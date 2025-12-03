@@ -1,3 +1,52 @@
-export default function Home() {
-  return <></>;
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarInset,
+} from "@/components/ui/sidebar";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import StatCard from "@/components/dashboard/StatCard";
+import RevenueChart from "@/components/dashboard/RevenueChart";
+import LowStockItems from "@/components/dashboard/LowStockItems";
+import RecentInvoices from "@/components/dashboard/RecentInvoices";
+import {
+  statsData,
+  revenueData,
+  lowStockItemsData,
+  recentInvoicesData,
+} from "@/lib/data";
+
+export default function DashboardPage() {
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen">
+        <DashboardSidebar />
+        <SidebarInset className="flex flex-1 flex-col">
+          <DashboardHeader />
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+            <div className="grid gap-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {statsData.map((stat) => (
+                  <StatCard key={stat.title} {...stat} />
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+                <div className="lg:col-span-3">
+                  <RevenueChart data={revenueData} />
+                </div>
+                <div className="lg:col-span-2">
+                  <LowStockItems data={lowStockItemsData} />
+                </div>
+              </div>
+
+              <div>
+                <RecentInvoices data={recentInvoicesData} />
+              </div>
+            </div>
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
 }
