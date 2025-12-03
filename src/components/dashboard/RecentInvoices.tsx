@@ -75,7 +75,7 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
                   <TableCell className="text-right text-primary-text">
                     {invoice.amount.toLocaleString("en-US", {
                       style: "currency",
-                      currency: "USD",
+                      currency: "LKR",
                     })}
                   </TableCell>
                   <TableCell className="text-right">

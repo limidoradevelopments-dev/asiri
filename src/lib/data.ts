@@ -13,14 +13,14 @@ export type StatCardData = {
 export const statsData: StatCardData[] = [
   {
     title: "Total Revenue",
-    value: "$45,231.89",
+    value: "LKR 13,569,567.00",
     icon: DollarSign,
     change: "+20.1% from last month",
     changeType: "increase",
   },
   {
     title: "Today's Revenue",
-    value: "$1,275.00",
+    value: "LKR 382,500.00",
     icon: DollarSign,
     change: "+12.5% from yesterday",
     changeType: "increase",
@@ -51,7 +51,7 @@ export const revenueData: RevenueData[] = Array.from({ length: 7 }, (_, i) => {
   date.setDate(today.getDate() - (6 - i));
   return {
     date: format(date, "MMM d"),
-    revenue: Math.floor(Math.random() * (2500 - 500 + 1)) + 500,
+    revenue: (Math.floor(Math.random() * (2500 - 500 + 1)) + 500) * 300,
   };
 });
 
@@ -83,35 +83,35 @@ export const recentInvoicesData: Invoice[] = [
     id: "INV-2024005",
     customer: "John Doe",
     date: new Date(2024, 6, 25),
-    amount: 350.0,
+    amount: 105000.0,
     status: "Paid",
   },
   {
     id: "INV-2024004",
     customer: "Jane Smith",
     date: new Date(2024, 6, 24),
-    amount: 125.5,
+    amount: 37650.5,
     status: "Pending",
   },
   {
     id: "INV-2024003",
     customer: "Michael Johnson",
     date: new Date(2024, 6, 22),
-    amount: 890.75,
+    amount: 267225.75,
     status: "Paid",
   },
   {
     id: "INV-2024002",
     customer: "Emily Davis",
     date: new Date(2024, 5, 15),
-    amount: 45.0,
+    amount: 13500.0,
     status: "Overdue",
   },
   {
     id: "INV-2024001",
     customer: "Chris Brown",
     date: new Date(2024, 6, 20),
-    amount: 620.0,
+    amount: 186000.0,
     status: "Paid",
   },
 ];
