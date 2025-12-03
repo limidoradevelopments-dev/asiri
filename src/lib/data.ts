@@ -13,14 +13,14 @@ export type StatCardData = {
 export const statsData: StatCardData[] = [
   {
     title: "Total Revenue",
-    value: "LKR 13,569,567.00",
+    value: "Rs. 13,569,567.00",
     icon: DollarSign,
     change: "+20.1% from last month",
     changeType: "increase",
   },
   {
     title: "Today's Revenue",
-    value: "LKR 382,500.00",
+    value: "Rs. 382,500.00",
     icon: DollarSign,
     change: "+12.5% from yesterday",
     changeType: "increase",

@@ -60,7 +60,7 @@ export default function RevenueChart({ data }: RevenueChartProps) {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => `LKR ${value / 1000}k`}
+                tickFormatter={(value) => `Rs. ${value / 1000}k`}
               />
               <ChartTooltip
                 cursor={false}

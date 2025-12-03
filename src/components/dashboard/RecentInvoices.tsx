@@ -76,7 +76,8 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
                     {invoice.amount.toLocaleString("en-US", {
                       style: "currency",
                       currency: "LKR",
-                    })}
+                      currencyDisplay: "symbol"
+                    }).replace('LKR', 'Rs.')}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
