@@ -28,10 +28,10 @@ const chartConfig = {
 
 export default function RevenueChart({ data }: RevenueChartProps) {
   return (
-    <Card>
+    <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
       <CardHeader>
-        <CardTitle>Revenue Overview</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-lg font-medium text-primary-text">Revenue Overview</CardTitle>
+        <CardDescription className="text-sm text-secondary-text">
           Showing revenue for the last 7 days.
         </CardDescription>
       </CardHeader>

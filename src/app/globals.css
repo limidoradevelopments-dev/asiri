@@ -4,11 +4,12 @@
 
 body {
   font-family: 'Inter', sans-serif;
+  background-color: #E5E5E5;
 }
 
 @layer base {
   :root {
-    --background: 0 0% 96.1%; /* #F5F5F5 */
+    --background: 220 13% 91%; /* #E2E8F0 to #F3F4F6 gradient equivalent */
     --foreground: 222 22% 9%; /* #111827 */
     --card: 0 0% 100%;
     --card-foreground: 222 22% 9%; /* #111827 */
@@ -32,7 +33,7 @@ body {
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --radius: 20px;
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 233 64% 30%;

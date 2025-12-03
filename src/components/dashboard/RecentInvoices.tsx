@@ -37,20 +37,18 @@ const statusVariantMap: Record<Invoice["status"], "default" | "secondary" | "des
 
 export default function RecentInvoices({ data }: RecentInvoicesProps) {
   return (
-    <Card>
+    <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-primary-text">Recent Invoices</CardTitle>
-        <CardDescription className="text-secondary-text">
+        <CardTitle className="text-lg font-medium text-primary-text">Recent Invoices</CardTitle>
+        <CardDescription className="text-sm text-secondary-text">
           A list of the most recent invoices from your business.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto" style={{
-          backgroundImage: 'linear-gradient(to right, rgba(255,255,255, 0.8), rgba(255,255,255, 0))'
-        }}>
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="border-white/40">
                 <TableHead className="text-secondary-text">Invoice</TableHead>
                 <TableHead className="hidden sm:table-cell text-secondary-text">Customer</TableHead>
                 <TableHead className="text-secondary-text">Status</TableHead>
@@ -63,11 +61,11 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
             </TableHeader>
             <TableBody>
               {data.map((invoice) => (
-                <TableRow key={invoice.id}>
+                <TableRow key={invoice.id} className="border-white/40">
                   <TableCell className="font-medium text-primary-text">{invoice.id}</TableCell>
                   <TableCell className="hidden sm:table-cell text-primary-text">{invoice.customer}</TableCell>
                   <TableCell>
-                    <Badge variant={statusVariantMap[invoice.status]} className="capitalize">
+                    <Badge variant={statusVariantMap[invoice.status]} className="capitalize text-xs font-medium">
                       {invoice.status}
                     </Badge>
                   </TableCell>

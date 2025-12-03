@@ -25,10 +25,10 @@ type LowStockItemsProps = {
 
 export default function LowStockItems({ data }: LowStockItemsProps) {
   return (
-    <Card>
+    <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
       <CardHeader>
-        <CardTitle>Low Stock Items</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-lg font-medium text-primary-text">Low Stock Items</CardTitle>
+        <CardDescription className="text-sm text-secondary-text">
           Items that are running low and may need reordering soon.
         </CardDescription>
       </CardHeader>
@@ -43,10 +43,10 @@ export default function LowStockItems({ data }: LowStockItemsProps) {
             </TableHeader>
             <TableBody>
               {data.map((item) => (
-                <TableRow key={item.sku}>
+                <TableRow key={item.sku} className="border-white/40">
                   <TableCell>
-                    <div className="font-medium">{item.name}</div>
-                    <div className="text-sm text-muted-foreground hidden sm:block">
+                    <div className="font-medium text-primary-text">{item.name}</div>
+                    <div className="text-sm text-secondary-text hidden sm:block">
                       {item.sku}
                     </div>
                   </TableCell>
@@ -55,6 +55,7 @@ export default function LowStockItems({ data }: LowStockItemsProps) {
                       variant={
                         item.stock < item.threshold ? "destructive" : "secondary"
                       }
+                      className="text-xs font-medium"
                     >
                       {item.stock}
                     </Badge>
@@ -66,7 +67,7 @@ export default function LowStockItems({ data }: LowStockItemsProps) {
         </div>
       </CardContent>
       <CardFooter>
-        <Button variant="outline" size="sm" className="w-full">
+        <Button variant="outline" size="sm" className="w-full text-sm font-medium">
           View All Inventory
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>

@@ -24,10 +24,10 @@ export default function DashboardHeader() {
   const pageTitle = currentPage ? currentPage.label : "Dashboard";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-white/20 bg-white/65 px-4 backdrop-blur-md sm:px-6">
       <SidebarTrigger className="md:hidden" />
       <div className="flex-1">
-        <h1 className="text-lg font-semibold text-primary-text">{pageTitle}</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-primary-text">{pageTitle}</h1>
       </div>
       <div className="flex items-center gap-4">
         <DropdownMenu>

@@ -31,7 +31,11 @@ export default function DashboardSidebar() {
   const pathname = usePathname();
 
   return (
-    <Sidebar>
+    <Sidebar
+      variant="inset"
+      collapsible="icon"
+      className="bg-gray-100/50 backdrop-blur-md border-r-white/40"
+    >
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
