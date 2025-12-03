@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ServicePulse Dashboard",
+  title: "Asiri Service Dashboard",
   description: "Dashboard for your vehicle service station.",
 };
 
