@@ -21,7 +21,7 @@ export default function DashboardPage() {
     <SidebarProvider>
       <div className="flex min-h-screen">
         <DashboardSidebar />
-        <SidebarInset className="flex flex-1 flex-col bg-transparent">
+        <SidebarInset className="flex flex-1 flex-col">
           <DashboardHeader />
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
