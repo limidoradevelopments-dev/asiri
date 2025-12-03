@@ -17,16 +17,16 @@ export default function StatCard({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-5 w-5 text-muted-foreground" />
+        <CardTitle className="text-sm font-medium text-secondary-text">{title}</CardTitle>
+        <Icon className="h-5 w-5 text-tertiary-text" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold text-primary-text">{value}</div>
         {change && (
           <p
             className={cn(
-              "text-xs text-muted-foreground",
-              changeType === "increase" && "text-green-600",
+              "text-xs text-secondary-text",
+              changeType === "increase" && "text-success-text",
               changeType === "decrease" && "text-red-600"
             )}
           >

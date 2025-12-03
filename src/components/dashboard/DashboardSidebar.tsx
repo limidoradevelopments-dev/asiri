@@ -37,7 +37,7 @@ export default function DashboardSidebar() {
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Wrench className="h-6 w-6" />
           </div>
-          <span className="text-xl font-semibold">Asiri Service</span>
+          <span className="text-xl font-semibold text-primary-text">Asiri Service</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -48,6 +48,7 @@ export default function DashboardSidebar() {
                 asChild
                 isActive={pathname === item.href}
                 tooltip={item.label}
+                className="font-medium"
               >
                 <Link href={item.href}>
                   <item.icon />

@@ -27,7 +27,7 @@ export default function DashboardHeader() {
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
       <SidebarTrigger className="md:hidden" />
       <div className="flex-1">
-        <h1 className="text-lg font-semibold">{pageTitle}</h1>
+        <h1 className="text-lg font-semibold text-primary-text">{pageTitle}</h1>
       </div>
       <div className="flex items-center gap-4">
         <DropdownMenu>
@@ -50,8 +50,8 @@ export default function DashboardHeader() {
           <DropdownMenuContent className="w-56" align="end">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Admin</p>
-                <p className="text-xs leading-none text-muted-foreground">
+                <p className="text-sm font-medium leading-none text-primary-text">Admin</p>
+                <p className="text-xs leading-none text-secondary-text">
                   admin@asiriservice.io
                 </p>
               </div>

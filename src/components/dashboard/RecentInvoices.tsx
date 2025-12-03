@@ -39,21 +39,23 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Invoices</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-primary-text">Recent Invoices</CardTitle>
+        <CardDescription className="text-secondary-text">
           A list of the most recent invoices from your business.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" style={{
+          backgroundImage: 'linear-gradient(to right, rgba(255,255,255, 0.8), rgba(255,255,255, 0))'
+        }}>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Invoice</TableHead>
-                <TableHead className="hidden sm:table-cell">Customer</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-secondary-text">Invoice</TableHead>
+                <TableHead className="hidden sm:table-cell text-secondary-text">Customer</TableHead>
+                <TableHead className="text-secondary-text">Status</TableHead>
+                <TableHead className="hidden md:table-cell text-secondary-text">Date</TableHead>
+                <TableHead className="text-right text-secondary-text">Amount</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -62,15 +64,15 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
             <TableBody>
               {data.map((invoice) => (
                 <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">{invoice.id}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{invoice.customer}</TableCell>
+                  <TableCell className="font-medium text-primary-text">{invoice.id}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-primary-text">{invoice.customer}</TableCell>
                   <TableCell>
                     <Badge variant={statusVariantMap[invoice.status]} className="capitalize">
                       {invoice.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">{format(invoice.date, "MMM d, yyyy")}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="hidden md:table-cell text-primary-text">{format(invoice.date, "MMM d, yyyy")}</TableCell>
+                  <TableCell className="text-right text-primary-text">
                     {invoice.amount.toLocaleString("en-US", {
                       style: "currency",
                       currency: "USD",
