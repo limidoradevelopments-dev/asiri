@@ -23,15 +23,15 @@ export default function StatCard({
       <CardContent>
         <div className="text-2xl font-bold text-primary-text">{value}</div>
         {change && (
-          <p
+          <div
             className={cn(
-              "text-xs text-secondary-text",
-              changeType === "increase" && "text-success-text",
-              changeType === "decrease" && "text-red-600"
+              "text-xs text-secondary-text inline-block px-2 py-1 rounded-full mt-1",
+              changeType === "increase" && "text-success-text bg-success-bg/60",
+              changeType === "decrease" && "text-red-600 bg-red-100/60"
             )}
           >
             {change}
-          </p>
+          </div>
         )}
       </CardContent>
     </Card>
