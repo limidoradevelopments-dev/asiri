@@ -32,7 +32,7 @@ export const statsData: StatCardData[] = [
     change: "2 items need immediate reorder",
   },
   {
-    title: "Total Business",
+    title: "Total Customers",
     value: "1,204",
     icon: Users,
     change: "+3 since last hour",
