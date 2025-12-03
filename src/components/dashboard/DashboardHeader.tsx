@@ -24,7 +24,7 @@ export default function DashboardHeader() {
   const userAvatar = PlaceHolderImages.find((img) => img.id === "user-avatar");
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
       <SidebarTrigger className="md:hidden" />
       <div className="flex w-full items-center gap-4">
         <form className="relative flex-1">

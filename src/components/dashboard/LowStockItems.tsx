@@ -25,15 +25,15 @@ type LowStockItemsProps = {
 
 export default function LowStockItems({ data }: LowStockItemsProps) {
   return (
-    <Card className="h-full flex flex-col">
+    <Card>
       <CardHeader>
         <CardTitle>Low Stock Items</CardTitle>
         <CardDescription>
           Items that are running low and may need reordering soon.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow">
-        {data.length > 0 ? (
+      <CardContent>
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -46,7 +46,7 @@ export default function LowStockItems({ data }: LowStockItemsProps) {
                 <TableRow key={item.sku}>
                   <TableCell>
                     <div className="font-medium">{item.name}</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-muted-foreground hidden sm:block">
                       {item.sku}
                     </div>
                   </TableCell>
@@ -63,11 +63,7 @@ export default function LowStockItems({ data }: LowStockItemsProps) {
               ))}
             </TableBody>
           </Table>
-        ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            No low stock items.
-          </div>
-        )}
+        </div>
       </CardContent>
       <CardFooter>
         <Button variant="outline" size="sm" className="w-full">

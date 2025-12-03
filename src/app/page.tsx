@@ -19,30 +19,26 @@ import {
 export default function DashboardPage() {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-background">
         <DashboardSidebar />
         <SidebarInset className="flex flex-1 flex-col">
           <DashboardHeader />
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-            <div className="grid gap-6">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {statsData.map((stat) => (
-                  <StatCard key={stat.title} {...stat} />
-                ))}
+          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {statsData.map((stat) => (
+                <StatCard key={stat.title} {...stat} />
+              ))}
+            </div>
+            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <RevenueChart data={revenueData} />
               </div>
-
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-                <div className="lg:col-span-3">
-                  <RevenueChart data={revenueData} />
-                </div>
-                <div className="lg:col-span-2">
-                  <LowStockItems data={lowStockItemsData} />
-                </div>
-              </div>
-
               <div>
-                <RecentInvoices data={recentInvoicesData} />
+                <LowStockItems data={lowStockItemsData} />
               </div>
+            </div>
+            <div className="mt-6">
+              <RecentInvoices data={recentInvoicesData} />
             </div>
           </main>
         </SidebarInset>
