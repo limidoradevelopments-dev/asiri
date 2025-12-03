@@ -8,7 +8,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarFooter,
 } from "@/components/ui/sidebar";
 import {
   Wrench,
@@ -17,7 +16,6 @@ import {
   Package,
   Users,
   Settings,
-  HardDrive,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -60,16 +58,6 @@ export default function DashboardSidebar() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton>
-              <HardDrive />
-              <span>Storage 8.5/10 GB</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }
