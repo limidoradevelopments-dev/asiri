@@ -9,7 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Search } from 'lucide-react';
+import { Search, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // --- Types ---
 type CartItem = WithId<Product | Service> & {
@@ -58,10 +59,10 @@ export default function POSPage() {
     });
   };
 
-  const updateQty = (id: string, delta: number) => {
-    setCart(prev => prev.map(item => item.cartId === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item));
+  const updateQty = (id: string, newQuantity: number) => {
+    setCart(prev => prev.map(item => item.cartId === id ? { ...item, quantity: Math.max(1, newQuantity) } : item));
   };
-
+  
   const removeFromCart = (id: string) => {
     setCart(prev => prev.filter(item => item.cartId !== id));
   };
@@ -210,45 +211,46 @@ export default function POSPage() {
                             const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
 
                             return (
-                                <div key={item.cartId} className="group py-6 border-b border-zinc-200 flex flex-col gap-3">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex flex-col">
-                                            <span className="text-lg font-medium tracking-tight">{item.name}</span>
-                                            <span className="text-[10px] uppercase tracking-widest text-zinc-400 mt-1">
+                                <div key={item.cartId} className="group py-4 border-b border-zinc-200 flex items-center gap-4">
+                                    <div className="flex-1 flex flex-col">
+                                        <span className="text-base font-medium tracking-tight truncate">{item.name}</span>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[10px] uppercase tracking-widest text-zinc-400">
                                                 {formatPrice(discountedPricePerUnit)} / unit
                                             </span>
-                                        </div>
-                                        <div className="font-mono text-lg">
-                                            {formatPrice(discountedPricePerUnit * item.quantity)}
+                                            <span className="text-zinc-300">·</span>
+                                             <div className="flex items-center gap-2">
+                                                <span className="text-[9px] uppercase tracking-widest text-zinc-400">Disc.</span>
+                                                <input 
+                                                    type="number"
+                                                    className="w-12 text-left text-xs font-mono bg-transparent border-b border-transparent hover:border-zinc-200 focus:border-black outline-none transition-colors p-0"
+                                                    placeholder="0.00"
+                                                    value={item.discountAmount || ''}
+                                                    onChange={(e) => updateItemDiscountAmount(item.cartId, e.target.value)}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Minimal Controls */}
-                                    <div className="flex justify-between items-center transition-opacity duration-300">
-                                        
-                                        {/* QTY Control (Text based) */}
-                                        <div className="flex items-center gap-4 text-sm font-mono select-none">
-                                            <button onClick={() => updateQty(item.cartId, -1)} className="text-zinc-400 hover:text-red-500 transition-colors cursor-pointer disabled:opacity-20" disabled={item.quantity <= 1}>[ - ]</button>
-                                            <span>{item.quantity.toString().padStart(2, '0')}</span>
-                                            <button onClick={() => updateQty(item.cartId, 1)} className="text-zinc-400 hover:text-black transition-colors cursor-pointer">[ + ]</button>
-                                        </div>
-
-                                        {/* Discount Control */}
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[9px] uppercase tracking-widest text-zinc-400">Disc.</span>
-                                            <input 
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2 text-sm font-mono select-none">
+                                            <span className="text-zinc-400">QTY</span>
+                                             <input 
                                                 type="number"
-                                                className="w-12 text-right text-xs font-mono bg-transparent border-b border-transparent hover:border-zinc-200 focus:border-black outline-none transition-colors"
-                                                placeholder="0"
-                                                value={item.discountAmount || ''}
-                                                onChange={(e) => updateItemDiscountAmount(item.cartId, e.target.value)}
+                                                className="w-10 text-center text-sm font-mono bg-zinc-100 border border-transparent hover:border-zinc-200 focus:border-black outline-none rounded-sm transition-colors"
+                                                value={item.quantity}
+                                                onChange={(e) => updateQty(item.cartId, parseInt(e.target.value) || 1)}
+                                                min="1"
                                             />
                                         </div>
 
-                                        {/* Remove (Text) */}
-                                        <button onClick={() => removeFromCart(item.cartId)} className="text-[9px] uppercase tracking-widest text-red-600 hover:text-red-800 transition-colors">
-                                            Remove
-                                        </button>
+                                        <div className="font-mono text-base w-24 text-right">
+                                            {formatPrice(discountedPricePerUnit * item.quantity)}
+                                        </div>
+
+                                        <Button onClick={() => removeFromCart(item.cartId)} variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-none">
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
                                     </div>
                                 </div>
                             );
@@ -298,7 +300,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-    
-
-    
