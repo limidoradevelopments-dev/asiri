@@ -103,7 +103,7 @@ export default function POSPage() {
       {/* GLOBAL TEXTURE: Subtle Noise is on body via layout */}
 
       {/* --- LEFT: CATALOG (55%) --- */}
-      <div className="relative z-10 w-[55%] flex flex-col pt-16 pl-12 pr-6">
+      <div className="relative z-10 w-[55%] flex flex-col pt-8 pl-12 pr-6">
         
         {/* Header Area */}
         <div className="flex justify-between items-start mb-16">
