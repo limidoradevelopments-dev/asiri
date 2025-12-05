@@ -196,6 +196,7 @@ export default function POSPage() {
     setSelectedEmployee(null);
     setSelectedCustomer(null);
     setSelectedVehicle(null);
+    setPaymentDialogOpen(false);
   };
 
   const handleProcessPayment = () => {
@@ -233,7 +234,7 @@ export default function POSPage() {
     setPaymentDialogOpen(true);
   };
   
-  const handleConfirmPayment = async (paymentDetails: { paymentMethod: PaymentMethod, amountPaid: number, balanceDue: number, paymentStatus: InvoiceStatus, chequeNumber?: string, bank?: string }) => {
+  const handleConfirmPayment = async (paymentDetails: { paymentMethod: PaymentMethod, amountPaid: number, balanceDue: number, paymentStatus: InvoiceStatus, changeDue: number, chequeNumber?: string, bank?: string }) => {
     if (!selectedCustomer || !selectedVehicle || !selectedEmployee) return;
 
     const invoiceItems = cart.map(item => {
@@ -251,6 +252,9 @@ export default function POSPage() {
       };
     });
 
+    // We don't save changeDue in the invoice as it's not a financial record, but it was used for the UI.
+    const { changeDue, ...restOfPaymentDetails } = paymentDetails;
+
     const invoice: Omit<Invoice, 'id'> = {
       invoiceNumber: `INV-${Date.now()}`,
       customerId: selectedCustomer.id,
@@ -262,26 +266,31 @@ export default function POSPage() {
       globalDiscountPercent,
       globalDiscountAmount: totals.globalDiscountAmount,
       total: totals.total,
-      ...paymentDetails
+      ...restOfPaymentDetails
     };
     
     // 4. Execute Database Operations
     await addDocumentNonBlocking(invoicesCollection, invoice);
 
     // Decrement stock for products in the cart
-    cart.forEach(item => {
+    for (const item of cart) {
       if (item.type === 'product') {
         const productRef = doc(firestore, 'products', item.id);
-        updateDoc(productRef, {
-          stock: increment(-item.quantity)
-        }).catch(error => {
-          console.error(`Failed to update stock for product ${item.id}:`, error);
-        });
+        // Using await here to ensure stock is updated before we clear the state
+        // but wrapped in a try/catch so one failure doesn't stop the whole process
+        try {
+          await updateDoc(productRef, {
+            stock: increment(-item.quantity)
+          });
+        } catch (error) {
+           console.error(`Failed to update stock for product ${item.id}:`, error);
+            // Optionally, you could add this to a list of failed updates to show the user
+        }
       }
-    });
+    }
 
     const vehicleDocRef = doc(firestore, 'vehicles', selectedVehicle.id);
-    updateDocumentNonBlocking(vehicleDocRef, { lastVisit: serverTimestamp() });
+    await updateDocumentNonBlocking(vehicleDocRef, { lastVisit: serverTimestamp() });
     
     toast({
       title: 'Invoice Created',
@@ -588,10 +597,13 @@ export default function POSPage() {
             {/* Pay Button - Full Width Text Block */}
             <button 
                 onClick={handleProcessPayment}
-                disabled={cart.length === 0}
+                // CHANGE: Only disable if the cart is empty. 
+                // Let handleProcessPayment() show the error toast if Customer/Employee is missing.
+                disabled={cart.length === 0} 
                 className={cn(
                     "w-full py-4 bg-black text-white text-sm uppercase tracking-[0.3em] hover:bg-zinc-800 transition-all rounded-none shadow-none",
                     "disabled:bg-zinc-100 disabled:text-zinc-300",
+                    // Optional: Add visual indication if info is missing but cart has items
                     (cart.length > 0 && (!selectedCustomer || !selectedEmployee || !selectedVehicle)) && "bg-zinc-800 opacity-90"
                 )}
             >
@@ -616,5 +628,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-    

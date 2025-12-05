@@ -34,7 +34,7 @@ type PaymentDialogProps = {
     amountPaid: number;
     balanceDue: number;
     paymentStatus: InvoiceStatus;
-    changeDue: number; // Added for record keeping
+    changeDue: number;
     chequeNumber?: string;
     bank?: string;
   }) => void;
@@ -76,23 +76,23 @@ export function PaymentDialog({
   // --- Core Calculation Logic ---
   const { balanceDue, changeDue, paymentStatus, numericPaid } = useMemo(() => {
     const paid = Math.max(0, parseFloat(amountPaid) || 0);
-    const diff = safeRound(totalAmount - paid);
+    const diff = safeRound(paid - totalAmount);
     
     let status: InvoiceStatus = 'Unpaid';
     let balance = 0;
     let change = 0;
 
-    if (paid === 0) {
+    if (paid <= 0) {
         status = 'Unpaid';
         balance = totalAmount;
-    } else if (diff > 0) {
+    } else if (diff < 0) {
         // Customer hasn't paid enough
         status = 'Partial';
-        balance = diff;
+        balance = Math.abs(diff);
     } else {
         // Customer paid exact or excess
         status = 'Paid';
-        change = Math.abs(diff); // The negative difference is the change
+        change = diff; // The positive difference is the change
     }
 
     return { 
@@ -278,7 +278,7 @@ export function PaymentDialog({
           <Button 
             onClick={handleConfirm} 
             className="h-12 px-8 flex-1 bg-black hover:bg-zinc-800 text-white uppercase tracking-widest text-xs font-bold"
-            disabled={paymentStatus === 'Unpaid' && numericPaid === 0} // Optional: Prevent 0 payments
+            disabled={paymentStatus === 'Unpaid' && numericPaid === 0 && paymentMethod !== 'Check'}
           >
             Complete Transaction
           </Button>
@@ -288,5 +288,3 @@ export function PaymentDialog({
     </Dialog>
   );
 }
-
-    
