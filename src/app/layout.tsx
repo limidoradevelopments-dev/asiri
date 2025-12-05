@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased bg-noise`}>
         <FirebaseClientProvider>
-          <SidebarProvider>
+          <SidebarProvider defaultOpen={false}>
             <div className="flex min-h-screen w-full">
               <DashboardSidebar />
               <SidebarInset>
