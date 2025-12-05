@@ -189,74 +189,77 @@ export default function POSPage() {
       <div className="relative z-20 w-[45%] flex flex-col bg-white border-l border-zinc-100 h-full">
         
         {/* Ticket Header */}
-        <div className="pt-8 px-10 pb-8">
-            <div className="flex justify-between items-baseline mb-8">
+        <div className="pt-8 px-10 pb-4">
+            <div className="flex justify-between items-baseline mb-4">
                 <span className="text-xs uppercase tracking-[0.2em] text-zinc-400">Ticket</span>
                 <span className="font-mono text-sm text-zinc-400">NO. {new Date().getTime().toString().slice(-4)}</span>
             </div>
             <div className="w-full h-px bg-zinc-900" />
         </div>
+        
+        {/* Cart Table Header */}
+        <div className="px-10 py-2 bg-zinc-50 border-b border-t border-zinc-200">
+            <div className="grid grid-cols-12 gap-4 text-xs uppercase tracking-widest text-zinc-400 font-medium">
+                <div className="col-span-5">Product Name</div>
+                <div className="col-span-2 text-center">QTY</div>
+                <div className="col-span-2 text-right">Unit Price</div>
+                <div className="col-span-1 text-right">Dis.</div>
+                <div className="col-span-2 text-right">Total</div>
+            </div>
+        </div>
 
         {/* Cart Items */}
         <div className="flex-1 overflow-hidden relative">
-            <ScrollArea className="h-full px-10">
-                {cart.length === 0 ? (
-                    <div className="h-40 flex items-center justify-center text-zinc-300 text-sm uppercase tracking-widest">
-                        ( Cart is Empty )
-                    </div>
-                ) : (
-                    <div className="flex flex-col">
-                        {cart.map((item, index) => {
-                            const originalPrice = 'sellingPrice' in item ? (item as any).sellingPrice : (item as any).price;
-                            const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
+            <ScrollArea className="h-full">
+                 <div className="px-10">
+                    {cart.length === 0 ? (
+                        <div className="h-40 flex items-center justify-center text-zinc-300 text-sm uppercase tracking-widest">
+                            ( Cart is Empty )
+                        </div>
+                    ) : (
+                        <div className="flex flex-col">
+                            {cart.map((item, index) => {
+                                const originalPrice = 'sellingPrice' in item ? (item as any).sellingPrice : (item as any).price;
+                                const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
 
-                            return (
-                                <div key={item.cartId} className="group py-4 border-b border-zinc-200 flex items-center gap-4">
-                                    <div className="flex-1 flex flex-col">
-                                        <span className="text-base font-medium tracking-tight truncate">{item.name}</span>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] uppercase tracking-widest text-zinc-400">
-                                                {formatPrice(discountedPricePerUnit)} / unit
-                                            </span>
-                                            <span className="text-zinc-300">·</span>
-                                             <div className="flex items-center gap-2">
-                                                <span className="text-[9px] uppercase tracking-widest text-zinc-400">Disc.</span>
-                                                <input 
-                                                    type="number"
-                                                    className="w-12 text-left text-xs font-mono bg-transparent border-b border-transparent hover:border-zinc-200 focus:border-black outline-none transition-colors p-0"
-                                                    placeholder="0.00"
-                                                    value={item.discountAmount || ''}
-                                                    onChange={(e) => updateItemDiscountAmount(item.cartId, e.target.value)}
-                                                />
-                                            </div>
+                                return (
+                                    <div key={item.cartId} className="group py-4 border-b border-zinc-100 grid grid-cols-12 gap-4 items-center">
+                                        <div className="col-span-5">
+                                            <span className="text-sm font-medium tracking-tight truncate">{item.name}</span>
                                         </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex items-center gap-2 text-sm font-mono select-none">
-                                            <span className="text-zinc-400">QTY</span>
-                                             <input 
+                                        <div className="col-span-2 text-center">
+                                            <input 
                                                 type="number"
-                                                className="w-10 text-center text-sm font-mono bg-zinc-100 border border-transparent hover:border-zinc-200 focus:border-black outline-none rounded-sm transition-colors"
+                                                className="w-16 text-center text-sm font-mono bg-zinc-100 border border-transparent hover:border-zinc-200 focus:border-black outline-none rounded-sm transition-colors py-1"
                                                 value={item.quantity}
                                                 onChange={(e) => updateQty(item.cartId, parseInt(e.target.value) || 1)}
                                                 min="1"
                                             />
                                         </div>
-
-                                        <div className="font-mono text-base w-24 text-right">
-                                            {formatPrice(discountedPricePerUnit * item.quantity)}
+                                        <div className="col-span-2 font-mono text-sm text-right">
+                                            {formatPrice(originalPrice)}
                                         </div>
-
-                                        <Button onClick={() => removeFromCart(item.cartId)} variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-none">
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                         <div className="col-span-1 text-right">
+                                            <input 
+                                                type="number"
+                                                className="w-12 text-right text-xs font-mono bg-transparent border-b border-transparent hover:border-zinc-200 focus:border-black outline-none transition-colors p-0"
+                                                placeholder="0.00"
+                                                value={item.discountAmount || ''}
+                                                onChange={(e) => updateItemDiscountAmount(item.cartId, e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="col-span-2 font-mono text-sm w-24 text-right flex items-center justify-end">
+                                            <span>{formatPrice(discountedPricePerUnit * item.quantity)}</span>
+                                            <Button onClick={() => removeFromCart(item.cartId)} variant="ghost" size="icon" className="h-8 w-8 ml-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-none">
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                                );
+                            })}
+                        </div>
+                    )}
+                 </div>
             </ScrollArea>
         </div>
 
@@ -300,3 +303,5 @@ export default function POSPage() {
     </div>
   );
 }
+
+
