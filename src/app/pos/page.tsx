@@ -1,14 +1,14 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { collection, doc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
 import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMethod, InvoiceStatus } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive } from 'lucide-react';
+import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -29,12 +29,22 @@ import { useToast } from '@/hooks/use-toast';
 import { PaymentDialog } from '@/components/pos/PaymentDialog';
 
 // --- Types ---
-type CartItem = WithId<Product | Service> & {
+type StandardCartItem = WithId<Product | Service> & {
+  type: 'product' | 'service';
+};
+
+type CustomCartItem = {
+    name: string;
+    unitPrice: number;
+    type: 'custom';
+};
+
+type CartItem = (StandardCartItem | CustomCartItem) & {
   cartId: string;
   quantity: number;
-  type: 'product' | 'service';
   discountAmount: number; // Discount per UNIT
 };
+
 
 // --- Math & Helper Utilities ---
 
@@ -44,7 +54,8 @@ const safeRound = (num: number): number => {
 };
 
 // Safely gets price regardless of Product (sellingPrice) or Service (price)
-const getItemPrice = (item: WithId<Product> | WithId<Service> | CartItem): number => {
+const getItemPrice = (item: CartItem): number => {
+  if (item.type === 'custom') return item.unitPrice;
   if ('sellingPrice' in item) return (item as WithId<Product>).sellingPrice;
   if ('price' in item) return (item as WithId<Service>).price;
   return 0;
@@ -53,6 +64,7 @@ const getItemPrice = (item: WithId<Product> | WithId<Service> | CartItem): numbe
 export default function POSPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const customNameInputRef = useRef<HTMLInputElement>(null);
 
   // --- Data Fetching ---
   const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
@@ -80,6 +92,12 @@ export default function POSPage() {
   const [selectedVehicle, setSelectedVehicle] = useState<WithId<Vehicle> | null>(null);
   const [isPaymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
+  useEffect(() => {
+    if (cart.some(item => item.type === 'custom' && item.name === '')) {
+      customNameInputRef.current?.focus();
+    }
+  }, [cart]);
+
 
   // --- Logic Helpers ---
   const formatPrice = (price: number) => {
@@ -92,13 +110,13 @@ export default function POSPage() {
 
   const addToCart = (item: WithId<Product> | WithId<Service>, type: 'product' | 'service') => {
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+      const existing = prev.find((i) => i.type !== 'custom' && i.id === item.id);
       const stock = type === 'product' ? (item as WithId<Product>).stock : Infinity;
       
       if (existing) {
         // Strict stock check
         if (existing.quantity < stock) {
-          return prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
+          return prev.map((i) => i.cartId === existing.cartId ? { ...i, quantity: i.quantity + 1 } : i);
         }
         return prev; // Stock limit reached
       }
@@ -116,13 +134,34 @@ export default function POSPage() {
     });
   };
 
-  const updateQty = (id: string, newQuantity: number) => {
+  const addCustomJob = () => {
+    const newCustomItem: CartItem = {
+      cartId: `custom-${Date.now()}`,
+      name: '',
+      quantity: 1,
+      unitPrice: 0,
+      discountAmount: 0,
+      type: 'custom',
+    };
+    setCart(prev => [...prev, newCustomItem]);
+  };
+
+  const updateCartItem = (cartId: string, updates: Partial<CartItem>) => {
     setCart(prev => prev.map(item => {
-      if (item.cartId === id) {
-        const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
-        // Ensure quantity is integer, at least 1, and max stock
-        const validQty = Math.max(1, Math.min(Math.floor(newQuantity), stock));
-        return { ...item, quantity: validQty };
+      if (item.cartId === cartId) {
+        const updatedItem = { ...item, ...updates };
+
+        if ('quantity' in updates) {
+          const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
+          updatedItem.quantity = Math.max(1, Math.min(Math.floor(updates.quantity || 1), stock));
+        }
+
+        if ('discountAmount' in updates) {
+          const originalPrice = getItemPrice(item);
+          updatedItem.discountAmount = Math.min(updates.discountAmount || 0, originalPrice);
+        }
+        
+        return updatedItem;
       }
       return item;
     }));
@@ -130,20 +169,6 @@ export default function POSPage() {
   
   const removeFromCart = (id: string) => {
     setCart(prev => prev.filter(item => item.cartId !== id));
-  };
-
-  const updateItemDiscountAmount = (id: string, newAmount: string) => {
-    const val = parseFloat(newAmount);
-    setCart(prev => prev.map(item => {
-      if (item.cartId === id) {
-        const originalPrice = getItemPrice(item);
-        const amount = isNaN(val) ? 0 : Math.max(0, val);
-        // CRITICAL: Discount cannot exceed the unit price
-        const effectiveDiscount = Math.min(amount, originalPrice);
-        return { ...item, discountAmount: effectiveDiscount };
-      }
-      return item;
-    }));
   };
   
   const handleSelectCustomerAndVehicle = (customer: WithId<Customer>, vehicle: WithId<Vehicle>) => {
@@ -210,22 +235,25 @@ export default function POSPage() {
       return;
     }
 
-    // 2. FINAL STOCK VALIDATION
-    const outOfStockItems: string[] = [];
+    // 2. FINAL STOCK VALIDATION & CUSTOM ITEM VALIDATION
+    const errors: string[] = [];
     cart.forEach(cartItem => {
         if (cartItem.type === 'product') {
             const liveProduct = products?.find(p => p.id === cartItem.id);
             if (!liveProduct || liveProduct.stock < cartItem.quantity) {
-                outOfStockItems.push(cartItem.name);
+                errors.push(`Insufficient stock for: ${cartItem.name}`);
             }
+        }
+        if (cartItem.type === 'custom' && !cartItem.name.trim()) {
+            errors.push('A custom job is missing a name.');
         }
     });
 
-    if (outOfStockItems.length > 0) {
+    if (errors.length > 0) {
         toast({
             variant: 'destructive',
-            title: 'Stock Error',
-            description: `Insufficient stock for: ${outOfStockItems.join(', ')}. Please update cart.`,
+            title: 'Invoice Error',
+            description: errors.join(' '),
         });
         return;
     }
@@ -243,7 +271,7 @@ export default function POSPage() {
       const lineTotal = safeRound(discountedPricePerUnit * item.quantity);
       
       return {
-        itemId: item.id,
+        itemId: item.type !== 'custom' ? item.id : `custom-${Date.now()}`,
         name: item.name,
         quantity: item.quantity,
         unitPrice: originalPrice,
@@ -356,7 +384,8 @@ export default function POSPage() {
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
                     {itemsToShow?.map((item) => {
                         const isProduct = 'stock' in item;
-                        const cartQuantity = cart.find(ci => ci.id === item.id)?.quantity ?? 0;
+                        const cartItem = cart.find(ci => ci.type !== 'custom' && ci.id === item.id);
+                        const cartQuantity = cartItem?.quantity ?? 0;
                         const stock = isProduct ? item.stock : Infinity;
                         const isOutOfStock = stock <= 0;
                         // Prevent adding if cart qty equals current stock
@@ -380,7 +409,7 @@ export default function POSPage() {
                                         {'category' in item ? item.category : 'vehicleCategory' in item ? item.vehicleCategory : (activeTab === 'services' ? 'SVC' : 'PRD')}
                                     </span>
                                     <span className="font-mono text-lg font-medium text-zinc-900">
-                                        {formatPrice(getItemPrice(item))}
+                                        {formatPrice(getItemPrice(item as any))}
                                     </span>
                                 </div>
                                 
@@ -497,7 +526,12 @@ export default function POSPage() {
         {/* Cart Table Header */}
         <div className="px-10 py-2 bg-zinc-50 border-b border-t border-zinc-200">
             <div className="grid grid-cols-12 gap-4 text-xs uppercase tracking-widest text-zinc-400 font-medium">
-                <div className="col-span-5">Product Name</div>
+                <div className="col-span-5 flex items-center gap-2">
+                    <span>Product Name</span>
+                     <button onClick={addCustomJob} title="Add custom job" className="text-zinc-400 hover:text-black transition-colors">
+                        <PlusCircle className="w-4 h-4"/>
+                    </button>
+                </div>
                 <div className="col-span-2 text-center">QTY</div>
                 <div className="col-span-2 text-right">Unit Price</div>
                 <div className="col-span-1 text-right">Dis.</div>
@@ -520,25 +554,49 @@ export default function POSPage() {
                                 const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
                                 const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
                                 const lineTotal = discountedPricePerUnit * item.quantity;
+                                const isCustom = item.type === 'custom';
 
                                 return (
                                     <div key={item.cartId} className="group py-4 border-b border-zinc-100 grid grid-cols-12 gap-4 items-center">
                                         <div className="col-span-5">
-                                            <span className="text-sm font-medium tracking-tight truncate block" title={item.name}>{item.name}</span>
+                                            {isCustom ? (
+                                                <Input
+                                                    ref={item.name === '' ? customNameInputRef : null}
+                                                    type="text"
+                                                    placeholder="Custom Job Name"
+                                                    value={item.name}
+                                                    onChange={(e) => updateCartItem(item.cartId, { name: e.target.value })}
+                                                    className="h-auto p-0 text-sm bg-transparent border-none focus-visible:ring-0"
+                                                />
+                                            ) : (
+                                                <span className="text-sm font-medium tracking-tight truncate block" title={item.name}>{item.name}</span>
+                                            )}
                                         </div>
                                         <div className="col-span-2 text-center">
                                             <input 
                                                 type="number"
                                                 className="w-16 text-center text-sm font-mono bg-zinc-100 border border-transparent hover:border-zinc-200 focus:border-black outline-none rounded-sm transition-colors py-1"
                                                 value={item.quantity}
-                                                onChange={(e) => updateQty(item.cartId, e.target.valueAsNumber || 0)}
+                                                onChange={(e) => updateCartItem(item.cartId, { quantity: e.target.valueAsNumber || 0 })}
                                                 onKeyDown={(e) => ["-", "e", "+", "."].includes(e.key) && e.preventDefault()}
                                                 min="1"
                                                 max={stock}
                                             />
                                         </div>
                                         <div className="col-span-2 font-mono text-sm text-right">
-                                            {formatPrice(originalPrice)}
+                                            {isCustom ? (
+                                                 <input 
+                                                    type="number"
+                                                    className="w-full text-right text-sm font-mono bg-transparent border-b border-transparent hover:border-zinc-200 focus:border-black outline-none transition-colors p-0"
+                                                    placeholder="0.00"
+                                                    value={item.unitPrice || ''}
+                                                    onChange={(e) => updateCartItem(item.cartId, { unitPrice: parseFloat(e.target.value) || 0})}
+                                                    onKeyDown={(e) => ["-", "e"].includes(e.key) && e.preventDefault()}
+                                                    min="0"
+                                                />
+                                            ) : (
+                                                formatPrice(originalPrice)
+                                            )}
                                         </div>
                                          <div className="col-span-1 text-right">
                                             <input 
@@ -546,7 +604,7 @@ export default function POSPage() {
                                                 className="w-12 text-right text-xs font-mono bg-transparent border-b border-transparent hover:border-zinc-200 focus:border-black outline-none transition-colors p-0"
                                                 placeholder="0.00"
                                                 value={item.discountAmount || ''}
-                                                onChange={(e) => updateItemDiscountAmount(item.cartId, e.target.value)}
+                                                onChange={(e) => updateCartItem(item.cartId, { discountAmount: parseFloat(e.target.value) || 0 })}
                                                 onKeyDown={(e) => ["-", "e"].includes(e.key) && e.preventDefault()}
                                                 min="0"
                                                 max={originalPrice}
@@ -634,3 +692,5 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
