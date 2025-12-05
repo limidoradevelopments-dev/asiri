@@ -18,7 +18,7 @@ export default function POSPage() {
   const { data: services, isLoading: servicesLoading } = useCollection<Service>(servicesCollection);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-full">
       {/* Left Column: Products and Services */}
       <div className="lg:col-span-2 flex flex-col gap-4">
         <Card className="flex-1 rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
@@ -42,7 +42,7 @@ export default function POSPage() {
       </div>
 
       {/* Right Column: Invoice */}
-      <div className="lg:col-span-1">
+      <div className="lg:col-span-3">
         <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm h-full">
           <CardHeader>
             <CardTitle>Invoice</CardTitle>
