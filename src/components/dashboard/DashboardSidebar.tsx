@@ -1,3 +1,4 @@
+
 "use client";
 
 import { usePathname } from "next/navigation";
@@ -16,12 +17,14 @@ import {
   Package,
   Users,
   Settings,
+  ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
 
 export const menuItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", icon: Package },
+  { href: "/pos", label: "POS", icon: ShoppingCart },
 ];
 
 export default function DashboardSidebar() {
