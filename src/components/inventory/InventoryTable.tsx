@@ -100,7 +100,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => onEdit(item)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(item.id, type)} className="text-destructive-foreground">Delete</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(item.id, type)} className="text-destructive">Delete</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
