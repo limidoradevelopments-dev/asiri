@@ -21,10 +21,7 @@ import Link from "next/link";
 
 export const menuItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/inventory", label: "Inventory", icon: Package },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function DashboardSidebar() {
