@@ -162,22 +162,30 @@
           "type": "number"
         },
         "paymentStatus": {
-            "type": "string",
-            "description": "The payment status of the invoice.",
-            "enum": ["Paid", "Partial", "Unpaid"]
+          "type": "string",
+          "description": "The payment status of the invoice.",
+          "enum": [
+            "Paid",
+            "Partial",
+            "Unpaid"
+          ]
         },
         "paymentMethod": {
-            "type": "string",
-            "description": "The method of payment.",
-            "enum": ["Cash", "Card", "Check"]
+          "type": "string",
+          "description": "The method of payment.",
+          "enum": [
+            "Cash",
+            "Card",
+            "Check"
+          ]
         },
         "amountPaid": {
-            "type": "number",
-            "description": "The amount paid by the customer."
+          "type": "number",
+          "description": "The amount paid by the customer."
         },
         "balanceDue": {
-            "type": "number",
-            "description": "The remaining balance to be paid."
+          "type": "number",
+          "description": "The remaining balance to be paid."
         },
         "chequeNumber": {
           "type": "string",
@@ -500,5 +508,3 @@
     "reasoning": "The Firestore data structure is designed to support the ServicePulse Dashboard application. Key entities like Customers, Vehicles, Products, and Services are stored in separate top-level collections to maintain structural segregation and allow for independent security rules. This approach simplifies querying (e.g., listing all vehicles) and aligns with best practices for authorization independence, as access to one collection does not depend on data from another."
   }
 }
-
-    

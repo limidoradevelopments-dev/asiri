@@ -268,6 +268,11 @@ export default function POSPage() {
       total: totals.total,
       ...restOfPaymentDetails
     };
+
+    if (paymentDetails.paymentMethod === 'Check') {
+      invoice.chequeNumber = paymentDetails.chequeNumber;
+      invoice.bank = paymentDetails.bank;
+    }
     
     // 4. Execute Database Operations
     await addDocumentNonBlocking(invoicesCollection, invoice);
