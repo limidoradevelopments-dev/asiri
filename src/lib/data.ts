@@ -153,3 +153,7 @@ export const servicesData: Service[] = [
   { id: 'SERV-004', name: 'Wheel Alignment', description: 'Four-wheel alignment', price: 6000.00 },
   { id: 'SERV-005', name: 'AC System Check', price: 8000.00 },
 ];
+
+export const categoriesData: string[] = [
+  ...new Set(productsData.map(p => p.category))
+];

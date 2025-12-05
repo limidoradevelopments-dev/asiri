@@ -5,17 +5,23 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { productsData as initialProducts, servicesData as initialServices, Product, Service } from "@/lib/data";
+import { productsData as initialProducts, servicesData as initialServices, categoriesData as initialCategories, Product, Service } from "@/lib/data";
 import InventoryTable from "@/components/inventory/InventoryTable";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [services, setServices] = useState<Service[]>(initialServices);
+  const [categories, setCategories] = useState<string[]>(initialCategories);
 
   const handleAddItem = (item: Product | Service, type: 'product' | 'service') => {
     if (type === 'product') {
-      setProducts(prev => [...prev, item as Product]);
+      const newProduct = item as Product;
+      setProducts(prev => [...prev, newProduct]);
+      // Add new category to the list if it doesn't exist
+      if (!categories.includes(newProduct.category)) {
+        setCategories(prev => [...prev, newProduct.category]);
+      }
     } else {
       setServices(prev => [...prev, item as Service]);
     }
@@ -25,7 +31,7 @@ export default function InventoryPage() {
     <main className="flex-1 overflow-y-auto p-2 sm:p-4 w-full">
       <div className="flex sm:flex-row justify-between items-start sm:items-center mb-4">
         <div className="flex items-center gap-4">
-          <AddItemDialog onAddItem={handleAddItem}>
+          <AddItemDialog onAddItem={handleAddItem} categories={categories} setCategories={setCategories}>
             <Button>
               <PlusCircle />
               Add Item
