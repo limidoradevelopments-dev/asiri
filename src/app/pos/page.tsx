@@ -285,7 +285,7 @@ export default function POSPage() {
                     <span className="text-sm uppercase tracking-widest font-bold">Total Due</span>
                     <span className="text-xs uppercase tracking-widest text-zinc-400">LKR</span>
                 </div>
-                <div className="text-6xl font-light tracking-tighter leading-none">
+                <div className="text-5xl font-light tracking-tighter leading-none">
                     {formatPrice(total)}
                 </div>
             </div>
@@ -293,7 +293,7 @@ export default function POSPage() {
             {/* Pay Button - Full Width Text Block */}
             <button 
                 disabled={cart.length === 0}
-                className="w-full py-6 bg-black text-white text-sm uppercase tracking-[0.3em] hover:bg-zinc-800 transition-all disabled:bg-zinc-100 disabled:text-zinc-300 rounded-none shadow-none"
+                className="w-full py-4 bg-black text-white text-sm uppercase tracking-[0.3em] hover:bg-zinc-800 transition-all disabled:bg-zinc-100 disabled:text-zinc-300 rounded-none shadow-none"
             >
                 Process Payment
             </button>
