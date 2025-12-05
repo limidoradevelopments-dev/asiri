@@ -72,7 +72,7 @@ export default function RevenueChart({ data }: RevenueChartProps) {
                     className="rounded-none border-zinc-200 bg-background"
                 />}
               />
-              <Bar dataKey="revenue" fill="var(--color-revenue)" radius={0} barSize={20} />
+              <Bar dataKey="revenue" fill="var(--color-revenue)" radius={0} barSize={30} />
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
