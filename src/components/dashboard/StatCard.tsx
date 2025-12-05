@@ -17,11 +17,16 @@ export default function StatCard({
   return (
     <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        {/* Title remains responsive with a good default size */}
         <CardTitle className="text-sm font-medium text-secondary-text">{title}</CardTitle>
+        {/* Icon size remains consistent */}
         <Icon className="h-5 w-5 text-tertiary-text" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-primary-text">{value}</div>
+        {/* Responsiveness Fix: The value text now defaults to 'text-xl' for small screens 
+          and scales up to 'text-2xl' for medium/larger screens ('sm' breakpoint and up).
+        */}
+        <div className="text-xl sm:text-2xl font-bold text-primary-text">{value}</div>
         {change && (
           <div
             className={cn(

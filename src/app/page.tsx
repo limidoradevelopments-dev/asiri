@@ -18,17 +18,33 @@ import {
 
 export default function DashboardPage() {
   return (
+    // 1. SidebarProvider wraps the whole layout to manage sidebar state
     <SidebarProvider>
       <div className="flex min-h-screen">
+        {/* 2. DashboardSidebar component, likely hidden or minimized on small screens */}
         <DashboardSidebar />
+        
+        {/* 3. SidebarInset takes up the remaining space, adjusting its margin/position based on sidebar state */}
         <SidebarInset className="flex flex-1 flex-col bg-background">
           <DashboardHeader />
+          
+          {/* 4. Main Content Area: Padding kept at p-4 default for mobile, 
+               scaling up at md and lg breakpoints.
+          */}
           <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+            
+            {/* Stat Cards: Excellent responsiveness. 
+                Default (small screen) is grid-cols-1 (stacked), then sm:grid-cols-2, then lg:grid-cols-4.
+            */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {statsData.map((stat) => (
                 <StatCard key={stat.title} {...stat} />
               ))}
             </div>
+            
+            {/* Charts/Low Stock: Excellent responsiveness.
+                Default (small screen) is grid-cols-1 (stacked), then lg:grid-cols-3.
+            */}
             <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <RevenueChart data={revenueData} />
@@ -37,6 +53,8 @@ export default function DashboardPage() {
                 <LowStockItems data={lowStockItemsData} />
               </div>
             </div>
+            
+            {/* Recent Invoices: Full width, naturally responsive. */}
             <div className="mt-4">
               <RecentInvoices data={recentInvoicesData} />
             </div>

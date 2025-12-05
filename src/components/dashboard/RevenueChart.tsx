@@ -30,13 +30,21 @@ export default function RevenueChart({ data }: RevenueChartProps) {
   return (
     <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg font-medium text-primary-text">Revenue Overview</CardTitle>
+        <CardTitle className="text-lg font-medium text-primary-text">
+          Revenue Overview
+        </CardTitle>
         <CardDescription className="text-sm text-secondary-text">
           Showing revenue for the last 7 days.
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/*
+          Key for responsiveness: w-full ensures it fits the card width.
+          h-64 (256px) is the mobile/default height.
+          sm:h-80 (320px) increases the height on small screens and up.
+        */}
         <ChartContainer config={chartConfig} className="w-full h-64 sm:h-80">
+          {/* ResponsiveContainer makes the BarChart scale its dimensions to its parent */}
           <ResponsiveContainer>
             <BarChart
               accessibilityLayer
@@ -44,7 +52,8 @@ export default function RevenueChart({ data }: RevenueChartProps) {
               margin={{
                 top: 5,
                 right: 5,
-                left: -20,
+                // Left margin is slightly negative to give the YAxis labels more room on all screens
+                left: -20, 
                 bottom: 5,
               }}
             >
@@ -54,13 +63,15 @@ export default function RevenueChart({ data }: RevenueChartProps) {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => value.slice(0, 3)}
+                // Shorten the day names (e.g., 'Mon') for all screens
+                tickFormatter={(value) => value.slice(0, 3)} 
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => `Rs. ${value / 1000}k`}
+                // Format the revenue for readability (e.g., 'Rs. 50k')
+                tickFormatter={(value) => `Rs. ${value / 1000}k`} 
               />
               <ChartTooltip
                 cursor={false}
