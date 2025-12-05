@@ -35,14 +35,14 @@ export default function POSPage() {
           </CardHeader>
           <CardContent className="flex-1 flex flex-col">
             <ScrollArea className="flex-1">
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {servicesLoading && Array.from({ length: 8 }).map((_, i) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+                {servicesLoading && Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="aspect-square bg-gray-200 animate-pulse rounded-lg" />
                 ))}
                 {services?.map(service => (
                   <div key={service.id} className="cursor-pointer aspect-square flex flex-col justify-center items-center text-center p-2 border rounded-lg bg-white/50 hover:bg-primary/10 hover:border-primary transition-colors">
-                    <p className="text-xs font-semibold">{service.name}</p>
-                    <p className="text-xs text-muted-foreground">{formatPrice(service.price)}</p>
+                    <p className="font-semibold">{service.name}</p>
+                    <p className="text-sm text-muted-foreground">{formatPrice(service.price)}</p>
                   </div>
                 ))}
               </div>
@@ -56,14 +56,14 @@ export default function POSPage() {
           </CardHeader>
           <CardContent className="flex-1 flex flex-col">
              <ScrollArea className="flex-1">
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                 {productsLoading && Array.from({ length: 12 }).map((_, i) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+                 {productsLoading && Array.from({ length: 9 }).map((_, i) => (
                   <div key={i} className="aspect-square bg-gray-200 animate-pulse rounded-lg" />
                 ))}
                 {products?.map(product => (
                   <div key={product.id} className="cursor-pointer aspect-square flex flex-col justify-center items-center text-center p-2 border rounded-lg bg-white/50 hover:bg-primary/10 hover:border-primary transition-colors">
-                    <p className="text-xs font-semibold">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">{formatPrice(product.sellingPrice)}</p>
+                    <p className="font-semibold">{product.name}</p>
+                    <p className="text-sm text-muted-foreground">{formatPrice(product.sellingPrice)}</p>
                   </div>
                 ))}
               </div>
