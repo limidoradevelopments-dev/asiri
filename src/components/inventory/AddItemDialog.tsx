@@ -61,24 +61,36 @@ const serviceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   price: z.coerce.number().min(0, 'Price cannot be negative'),
-  vehicleCategory: z.enum(['Car', 'Van', 'SUV', 'Motorbike', 'Other']),
+  vehicleCategory: z.string().min(1, 'Vehicle Category is required'),
 });
 
 type AddItemDialogProps = {
   children: React.ReactNode;
   onUpsertItem: (item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service', id?: string) => void;
-  categories: string[];
-  setCategories: React.Dispatch<React.SetStateAction<string[]>>;
+  productCategories: string[];
+  setProductCategories: React.Dispatch<React.SetStateAction<string[]>>;
+  vehicleCategories: string[];
+  setVehicleCategories: React.Dispatch<React.SetStateAction<string[]>>;
   itemToEdit?: WithId<Product> | WithId<Service> | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 };
 
-const vehicleCategories: Service['vehicleCategory'][] = ['Car', 'Van', 'SUV', 'Motorbike', 'Other'];
-
-export function AddItemDialog({ children, onUpsertItem, categories, setCategories, itemToEdit, isOpen, onOpenChange }: AddItemDialogProps) {
-  const [showNewCategoryDialog, setShowNewCategoryDialog] = useState(false);
-  const [newCategory, setNewCategory] = useState('');
+export function AddItemDialog({ 
+  children, 
+  onUpsertItem, 
+  productCategories, 
+  setProductCategories,
+  vehicleCategories,
+  setVehicleCategories,
+  itemToEdit, 
+  isOpen, 
+  onOpenChange 
+}: AddItemDialogProps) {
+  const [showNewProductCategoryDialog, setShowNewProductCategoryDialog] = useState(false);
+  const [newProductCategory, setNewProductCategory] = useState('');
+  const [showNewVehicleCategoryDialog, setShowNewVehicleCategoryDialog] = useState(false);
+  const [newVehicleCategory, setNewVehicleCategory] = useState('');
   const { toast } = useToast();
   
   const isEditMode = !!itemToEdit;
@@ -94,7 +106,7 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
   const serviceForm = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
-      name: '', description: '', price: 0, vehicleCategory: 'Car',
+      name: '', description: '', price: 0, vehicleCategory: '',
     },
   });
 
@@ -110,7 +122,7 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
         name: '', sku: '', category: '', stockThreshold: 0, actualPrice: 0, sellingPrice: 0,
       });
       serviceForm.reset({
-        name: '', description: '', price: 0, vehicleCategory: 'Car'
+        name: '', description: '', price: 0, vehicleCategory: ''
       });
     }
   }, [itemToEdit, isEditMode, productForm, serviceForm, isOpen]);
@@ -133,13 +145,22 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
     onOpenChange(false);
   };
 
-  const handleAddNewCategory = () => {
-    if (newCategory && !categories.includes(newCategory)) {
-      setCategories((prev) => [...prev, newCategory]);
-      productForm.setValue('category', newCategory);
+  const handleAddNewProductCategory = () => {
+    if (newProductCategory && !productCategories.includes(newProductCategory)) {
+      setProductCategories((prev) => [...prev, newProductCategory]);
+      productForm.setValue('category', newProductCategory);
     }
-    setShowNewCategoryDialog(false);
-    setNewCategory('');
+    setShowNewProductCategoryDialog(false);
+    setNewProductCategory('');
+  };
+
+  const handleAddNewVehicleCategory = () => {
+    if (newVehicleCategory && !vehicleCategories.includes(newVehicleCategory)) {
+      setVehicleCategories((prev) => [...prev, newVehicleCategory]);
+      serviceForm.setValue('vehicleCategory', newVehicleCategory);
+    }
+    setShowNewVehicleCategoryDialog(false);
+    setNewVehicleCategory('');
   };
 
   return (
@@ -196,7 +217,7 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
                         <Select
                           onValueChange={(value) => {
                             if (value === 'add-new') {
-                              setShowNewCategoryDialog(true);
+                              setShowNewProductCategoryDialog(true);
                             } else {
                               field.onChange(value);
                             }
@@ -209,7 +230,7 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {categories.map((category) => (
+                            {productCategories.map((category) => (
                               <SelectItem key={category} value={category}>
                                 {category}
                               </SelectItem>
@@ -219,7 +240,7 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
                               className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none"
                               onClick={(e) => {
                                 e.preventDefault();
-                                setShowNewCategoryDialog(true);
+                                setShowNewProductCategoryDialog(true);
                               }}
                             >
                               <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
@@ -302,7 +323,16 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Vehicle Category</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select 
+                          onValueChange={(value) => {
+                            if (value === 'add-new') {
+                              setShowNewVehicleCategoryDialog(true);
+                            } else {
+                              field.onChange(value);
+                            }
+                          }} 
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a vehicle category" />
@@ -312,6 +342,16 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
                             {vehicleCategories.map(category => (
                               <SelectItem key={category} value={category}>{category}</SelectItem>
                             ))}
+                            <button
+                              type="button"
+                              className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setShowNewVehicleCategoryDialog(true);
+                              }}
+                            >
+                              <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
+                            </button>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -356,28 +396,53 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
           </Tabs>
         </DialogContent>
       </Dialog>
-      <AlertDialog open={showNewCategoryDialog} onOpenChange={setShowNewCategoryDialog}>
+      <AlertDialog open={showNewProductCategoryDialog} onOpenChange={setShowNewProductCategoryDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Add a new category</AlertDialogTitle>
             <AlertDialogDescription>
-              Enter the name for the new category you want to create.
+              Enter the name for the new product category you want to create.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input
             placeholder="e.g., Brakes"
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
+            value={newProductCategory}
+            onChange={(e) => setNewProductCategory(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                handleAddNewCategory();
+                handleAddNewProductCategory();
               }
             }}
           />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAddNewCategory}>Add</AlertDialogAction>
+            <AlertDialogAction onClick={handleAddNewProductCategory}>Add</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={showNewVehicleCategoryDialog} onOpenChange={setShowNewVehicleCategoryDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add a new vehicle category</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter the name for the new vehicle category you want to create.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            placeholder="e.g., Truck"
+            value={newVehicleCategory}
+            onChange={(e) => setNewVehicleCategory(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddNewVehicleCategory();
+              }
+            }}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAddNewVehicleCategory}>Add</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

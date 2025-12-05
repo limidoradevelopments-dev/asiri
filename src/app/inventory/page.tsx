@@ -59,19 +59,29 @@ export default function InventoryPage() {
   }, [services, searchQuery]);
 
 
-  const categories = useMemo(() => {
+  const productCategories = useMemo(() => {
     if (!products) return [];
     return [...new Set(products.map(p => p.category))];
   }, [products]);
 
-  const [localCategories, setLocalCategories] = useState<string[]>([]);
+  const vehicleCategories = useMemo(() => {
+    if (!services) return [];
+    return [...new Set(services.map(s => s.vehicleCategory))];
+  }, [services]);
+
+  const [localProductCategories, setLocalProductCategories] = useState<string[]>([]);
+  const [localVehicleCategories, setLocalVehicleCategories] = useState<string[]>([]);
   const [itemToEdit, setItemToEdit] = useState<WithId<Product> | WithId<Service> | null>(null);
   const [isAddItemDialogOpen, setAddItemDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{id: string, type: 'product' | 'service'} | null>(null);
 
-  const allCategories = useMemo(() => {
-    return [...new Set([...categories, ...localCategories])];
-  }, [categories, localCategories]);
+  const allProductCategories = useMemo(() => {
+    return [...new Set([...productCategories, ...localProductCategories])];
+  }, [productCategories, localProductCategories]);
+
+  const allVehicleCategories = useMemo(() => {
+    return [...new Set([...vehicleCategories, ...localVehicleCategories])];
+  }, [vehicleCategories, localVehicleCategories]);
 
   const handleUpsertItem = (item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service', id?: string) => {
     if (id) {
@@ -86,8 +96,14 @@ export default function InventoryPage() {
       }
       if (type === 'product') {
         const newCategory = (item as Product).category;
-        if (!allCategories.includes(newCategory)) {
-          setLocalCategories(prev => [...prev, newCategory]);
+        if (!allProductCategories.includes(newCategory)) {
+          setLocalProductCategories(prev => [...prev, newCategory]);
+        }
+      }
+      if (type === 'service') {
+        const newCategory = (item as Service).vehicleCategory;
+        if (!allVehicleCategories.includes(newCategory)) {
+          setLocalVehicleCategories(prev => [...prev, newCategory]);
         }
       }
     }
@@ -155,8 +171,10 @@ export default function InventoryPage() {
             <div className="flex items-center gap-4">
               <AddItemDialog 
                 onUpsertItem={handleUpsertItem} 
-                categories={allCategories} 
-                setCategories={setLocalCategories}
+                productCategories={allProductCategories} 
+                setProductCategories={setLocalProductCategories}
+                vehicleCategories={allVehicleCategories}
+                setVehicleCategories={setLocalVehicleCategories}
                 itemToEdit={itemToEdit}
                 isOpen={isAddItemDialogOpen}
                 onOpenChange={onDialogClose}
