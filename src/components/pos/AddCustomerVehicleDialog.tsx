@@ -123,7 +123,7 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
                 searchResults.map(vehicle => {
                   const customer = customers.find(c => c.id === vehicle.customerId);
                   return (
-                    <button key={vehicle.id} onClick={() => handleSelect(vehicle)} className="w-full text-left p-3 hover:bg-zinc-100 rounded-sm transition-colors flex justify-between items-center">
+                    <button key={vehicle.id} onClick={() => handleSelect(vehicle)} className="w-full text-left p-3 hover:bg-zinc-100 rounded-sm transition-colors flex justify-between items-center group">
                       <div>
                         <p className="font-semibold">{vehicle.numberPlate}</p>
                         <p className="text-sm text-zinc-500">{customer?.name} - {vehicle.make} {vehicle.model} ({vehicle.year})</p>
@@ -180,7 +180,7 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
                       <FormItem><FormLabel>Make (Brand)</FormLabel><FormControl><Input placeholder="e.g., Toyota" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="model" render={({ field }) => (
-                      <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="e.g., Corolla" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormMessage>
+                      <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="e.g., Corolla" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                  <div className="grid grid-cols-3 gap-4">
