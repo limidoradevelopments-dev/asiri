@@ -39,7 +39,7 @@ export default function DashboardPage() {
             </div>
             
             {/* Charts/Low Stock: Responsive grid layout. `lg:grid-rows-1` ensures items in the same row have the same height. */}
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-rows-1">
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <RevenueChart data={revenueData} />
               </div>
