@@ -34,8 +34,7 @@ const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().min(1, 'SKU is required'),
   category: z.string().min(1, 'Category is required'),
-  stock: z.coerce.number().int().min(0, 'Stock cannot be negative'),
-  stockThreshold: z.coerce.number().int().min(0, 'Threshold cannot be negative'),
+  stockThreshold: z.coerce.number().int().min(0, 'Re-order level cannot be negative'),
   price: z.coerce.number().min(0, 'Price cannot be negative'),
 });
 
@@ -59,7 +58,6 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
       name: '',
       sku: '',
       category: '',
-      stock: 0,
       stockThreshold: 0,
       price: 0,
     },
@@ -77,6 +75,7 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
   const onProductSubmit = (values: z.infer<typeof productSchema>) => {
     const newProduct: Product = {
       id: `PROD-${Date.now()}`,
+      stock: 0, // Initialize stock at 0
       ...values,
     };
     onAddItem(newProduct, 'product');
@@ -156,12 +155,12 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
                 <div className="grid grid-cols-2 gap-4">
                    <FormField
                     control={productForm.control}
-                    name="stock"
+                    name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Stock</FormLabel>
+                        <FormLabel>Price (Rs.)</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="number" step="0.01" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -172,7 +171,7 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
                     name="stockThreshold"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Stock Threshold</FormLabel>
+                        <FormLabel>Re-order Level</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
@@ -181,19 +180,6 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
                     )}
                   />
                 </div>
-                 <FormField
-                  control={productForm.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price (Rs.)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <SheetFooter className="mt-6">
                   <SheetClose asChild>
                     <Button type="submit">Add Product</Button>
