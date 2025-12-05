@@ -21,6 +21,7 @@ import {
   LogOut,
   Users,
   Car,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -32,6 +33,7 @@ export const menuItems = [
   { href: "/pos", label: "POS", icon: ShoppingCart },
   { href: "/customers", label: "Customers", icon: Car },
   { href: "/employees", label: "Employees", icon: Users },
+  { href: "/invoices", label: "Invoices", icon: FileText },
 ];
 
 export default function DashboardSidebar() {
