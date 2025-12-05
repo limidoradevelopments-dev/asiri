@@ -115,3 +115,40 @@ export const recentInvoicesData: Invoice[] = [
     status: "Paid",
   },
 ];
+
+// --- Inventory Data ---
+
+export type Product = {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  stock: number;
+  stockThreshold: number;
+  price: number;
+};
+
+export type Service = {
+  id: string;
+  name: string;
+  category: string;
+  duration: string;
+  price: number;
+};
+
+export const productsData: Product[] = [
+  { id: 'PROD-001', name: 'Synthetic Oil 5L', sku: 'OIL-SYN-5L', category: 'Engine Oils', stock: 8, stockThreshold: 10, price: 12500.00 },
+  { id: 'PROD-002', name: 'Brake Pads Set (Front)', sku: 'BRK-PAD-F01', category: 'Brakes', stock: 4, stockThreshold: 5, price: 8500.00 },
+  { id: 'PROD-003', name: 'Standard Air Filter', sku: 'AIR-FIL-S12', category: 'Filters', stock: 12, stockThreshold: 15, price: 2500.00 },
+  { id: 'PROD-004', name: 'Spark Plugs (4-pack)', sku: 'SPK-PLG-04', category: 'Ignition', stock: 9, stockThreshold: 10, price: 4000.00 },
+  { id: 'PROD-005', name: 'Wiper Blades 22"', sku: 'WPR-BLD-22', category: 'Accessories', stock: 3, stockThreshold: 5, price: 3200.00 },
+  { id: 'PROD-006', name: 'Headlight Bulb H4', sku: 'BULB-H4-01', category: 'Lighting', stock: 25, stockThreshold: 20, price: 1500.00 },
+];
+
+export const servicesData: Service[] = [
+  { id: 'SERV-001', name: 'Full Service Package', category: 'Maintenance', duration: '3 hours', price: 25000.00 },
+  { id: 'SERV-002', name: 'Oil Change', category: 'Maintenance', duration: '30 minutes', price: 5000.00 },
+  { id: 'SERV-003', name: 'Brake Inspection & Cleaning', category: 'Brakes', duration: '1 hour', price: 7500.00 },
+  { id: 'SERV-004', name: 'Wheel Alignment', category: 'Suspension', duration: '45 minutes', price: 6000.00 },
+  { id: 'SERV-005', name: 'AC System Check', category: 'Air Conditioning', duration: '1 hour', price: 8000.00 },
+];
