@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -18,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WithId } from '@/firebase';
-import type { Invoice, Customer, Vehicle } from '@/lib/data';
+import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
@@ -26,8 +27,10 @@ import { Badge } from '../ui/badge';
 type EnrichedInvoice = WithId<Invoice> & {
   customerName?: string;
   vehicleNumberPlate?: string;
+  employeeName?: string;
   customerDetails?: WithId<Customer>;
   vehicleDetails?: WithId<Vehicle>;
+  employeeDetails?: WithId<Employee>;
 };
 
 

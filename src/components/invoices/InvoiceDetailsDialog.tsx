@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { Invoice, Customer, Vehicle } from '@/lib/data';
+import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { format } from 'date-fns';
 import { Separator } from '../ui/separator';
@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 type EnrichedInvoice = WithId<Invoice> & {
   customerDetails?: WithId<Customer>;
   vehicleDetails?: WithId<Vehicle>;
+  employeeDetails?: WithId<Employee>;
 };
 
 type DetailsDialogProps = {
@@ -46,7 +47,7 @@ const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
 export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsDialogProps) {
   if (!invoice) return null;
 
-  const { customerDetails: customer, vehicleDetails: vehicle } = invoice;
+  const { customerDetails: customer, vehicleDetails: vehicle, employeeDetails: employee } = invoice;
 
   const formatPrice = (price: number) => {
     return `Rs. ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -99,6 +100,7 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsD
                         <h3 className="text-xs uppercase tracking-widest text-zinc-400 font-bold">Details</h3>
                         <div className="space-y-1">
                             <p className="text-sm"><span className="font-semibold">Date:</span> {format(new Date(invoice.date), "MMM d, yyyy")}</p>
+                            <p className="text-sm"><span className="font-semibold">Job By:</span> {employee?.name || 'N/A'}</p>
                         </div>
                     </div>
                 </div>

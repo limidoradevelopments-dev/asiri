@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { collection } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
-import type { Invoice, Customer, Vehicle } from '@/lib/data';
+import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { InvoicesTable } from '@/components/invoices/InvoicesTable';
 import { cn } from '@/lib/utils';
@@ -12,8 +13,10 @@ import { InvoiceDetailsDialog } from '@/components/invoices/InvoiceDetailsDialog
 type EnrichedInvoice = WithId<Invoice> & {
   customerName?: string;
   vehicleNumberPlate?: string;
+  employeeName?: string;
   customerDetails?: WithId<Customer>;
   vehicleDetails?: WithId<Vehicle>;
+  employeeDetails?: WithId<Employee>;
 };
 
 type FilterStatus = 'all' | 'Paid' | 'Partial' | 'Unpaid';
@@ -24,31 +27,36 @@ export default function InvoicesPage() {
   const invoicesCollection = useMemoFirebase(() => collection(firestore, 'invoices'), [firestore]);
   const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
   const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
+  const employeesCollection = useMemoFirebase(() => collection(firestore, 'employees'), [firestore]);
 
   const { data: invoices, isLoading: invoicesLoading } = useCollection<Invoice>(invoicesCollection);
   const { data: customers, isLoading: customersLoading } = useCollection<WithId<Customer>>(customersCollection);
   const { data: vehicles, isLoading: vehiclesLoading } = useCollection<WithId<Vehicle>>(vehiclesCollection);
+  const { data: employees, isLoading: employeesLoading } = useCollection<WithId<Employee>>(employeesCollection);
   
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<EnrichedInvoice | null>(null);
 
 
   const enrichedInvoices = useMemo(() => {
-    if (!invoices || !customers || !vehicles) return [];
+    if (!invoices || !customers || !vehicles || !employees) return [];
     
     const customerMap = new Map(customers.map(c => [c.id, c]));
     const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
+    const employeeMap = new Map(employees.map(e => [e.id, e]));
 
     return invoices
       .map(invoice => ({
         ...invoice,
         customerName: customerMap.get(invoice.customerId)?.name || 'N/A',
         vehicleNumberPlate: vehicleMap.get(invoice.vehicleId)?.numberPlate || 'N/A',
+        employeeName: employeeMap.get(invoice.employeeId)?.name || 'N/A',
         customerDetails: customerMap.get(invoice.customerId),
         vehicleDetails: vehicleMap.get(invoice.vehicleId),
+        employeeDetails: employeeMap.get(invoice.employeeId),
       }))
       .sort((a, b) => b.date - a.date); // Sort by most recent first
-  }, [invoices, customers, vehicles]);
+  }, [invoices, customers, vehicles, employees]);
   
   const filteredInvoices = useMemo(() => {
     if (activeFilter === 'all') {
@@ -57,7 +65,7 @@ export default function InvoicesPage() {
     return enrichedInvoices.filter(invoice => invoice.paymentStatus === activeFilter);
   }, [enrichedInvoices, activeFilter]);
   
-  const isLoading = invoicesLoading || customersLoading || vehiclesLoading;
+  const isLoading = invoicesLoading || customersLoading || vehiclesLoading || employeesLoading;
 
   const handleViewDetails = (invoice: EnrichedInvoice) => {
     setSelectedInvoice(invoice);
