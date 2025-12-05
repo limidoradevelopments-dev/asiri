@@ -29,21 +29,21 @@ export default function DashboardPage() {
           <DashboardHeader />
           
           {/* 4. Main Content Area: Padding adjusted for better mobile view */}
-          <main className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-6">
+          <main className="flex-1 overflow-y-auto p-2 sm:p-4">
             
             {/* Stat Cards: Responsive grid layout */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
               {statsData.map((stat) => (
                 <StatCard key={stat.title} {...stat} />
               ))}
             </div>
             
-            {/* Charts/Low Stock: Responsive grid layout */}
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {/* Charts/Low Stock: Responsive grid layout. `lg:grid-rows-1` ensures items in the same row have the same height. */}
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-rows-1">
               <div className="lg:col-span-2">
                 <RevenueChart data={revenueData} />
               </div>
-              <div>
+              <div className="h-full">
                 <LowStockItems data={lowStockItemsData} />
               </div>
             </div>
