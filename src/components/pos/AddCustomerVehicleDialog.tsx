@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Search, UserPlus } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Full Name is required'),
@@ -27,6 +28,9 @@ const vehicleSchema = z.object({
   make: z.string().min(1, 'Make is required'),
   model: z.string().min(1, 'Model is required'),
   year: z.coerce.number().int().min(1900, 'Invalid year').max(new Date().getFullYear() + 1, 'Invalid year'),
+  mileage: z.coerce.number().int().min(0, "Mileage must be a positive number.").optional().or(z.literal('')),
+  fuelType: z.enum(['Petrol', 'Diesel', 'Hybrid', 'EV']).optional(),
+  transmission: z.enum(['Auto', 'Manual']).optional(),
 });
 
 type AddCustomerVehicleDialogProps = {
@@ -44,7 +48,11 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
 
   const form = useForm({
     resolver: zodResolver(customerSchema.merge(vehicleSchema)),
-    defaultValues: { name: '', phone: '', address: '', nic: '', numberPlate: '', make: '', model: '', year: new Date().getFullYear() },
+    defaultValues: { 
+      name: '', phone: '', address: '', nic: '', 
+      numberPlate: '', make: '', model: '', year: new Date().getFullYear(),
+      mileage: '', fuelType: undefined, transmission: undefined
+    },
   });
   
   useEffect(() => {
@@ -61,10 +69,13 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
   }, [searchQuery, vehicles]);
 
   const onSubmit = (values: z.infer<typeof customerSchema> & z.infer<typeof vehicleSchema>) => {
-    const { name, phone, address, nic, numberPlate, make, model, year } = values;
+    const { name, phone, address, nic, ...vehicleData } = values;
     const customerData = { name, phone, address, nic };
-    const vehicleData = { numberPlate, make, model, year };
-    onCreate(customerData, vehicleData);
+    const finalVehicleData: Omit<Vehicle, 'id' | 'customerId'> = {
+        ...vehicleData,
+        mileage: vehicleData.mileage ? Number(vehicleData.mileage) : undefined,
+    }
+    onCreate(customerData, finalVehicleData);
   };
 
   const handleSelect = (vehicle: WithId<Vehicle>) => {
@@ -79,7 +90,7 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl rounded-none border-zinc-200">
+      <DialogContent className="sm:max-w-4xl rounded-none border-zinc-200">
         <DialogHeader>
           <DialogTitle className="font-light tracking-tight text-2xl">{showAddForm ? 'Add New Customer & Vehicle' : 'Find Customer / Vehicle'}</DialogTitle>
           <DialogDescription className="text-zinc-500">
@@ -132,7 +143,7 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
 
         {showAddForm && (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
                 <h3 className="text-lg font-medium tracking-tight border-b pb-2 mb-4">Customer Details</h3>
                 <div className="grid grid-cols-2 gap-4">
                      <FormField control={form.control} name="name" render={({ field }) => (
@@ -151,24 +162,53 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
                     )} />
                 </div>
                  <h3 className="text-lg font-medium tracking-tight border-b pb-2 mb-4 pt-6">Vehicle Details</h3>
-                 <div className="grid grid-cols-2 gap-4">
+                 <div className="grid grid-cols-3 gap-4">
                      <FormField control={form.control} name="numberPlate" render={({ field }) => (
                       <FormItem><FormLabel>Vehicle Number Plate</FormLabel><FormControl><Input placeholder="e.g., ABC-1234" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
                     )} />
-                      <FormField control={form.control} name="year" render={({ field }) => (
-                      <FormItem><FormLabel>Year</FormLabel><FormControl><Input type="number" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                </div>
-                 <div className="grid grid-cols-2 gap-4">
-                     <FormField control={form.control} name="make" render={({ field }) => (
+                      <FormField control={form.control} name="make" render={({ field }) => (
                       <FormItem><FormLabel>Make (Brand)</FormLabel><FormControl><Input placeholder="e.g., Toyota" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="model" render={({ field }) => (
                       <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="e.g., Corolla" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
+                 <div className="grid grid-cols-3 gap-4">
+                    <FormField control={form.control} name="year" render={({ field }) => (
+                        <FormItem><FormLabel>Year</FormLabel><FormControl><Input type="number" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="mileage" render={({ field }) => (
+                        <FormItem><FormLabel>Mileage (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 85000" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="fuelType" render={({ field }) => (
+                        <FormItem><FormLabel>Fuel Type (Optional)</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger className={commonInputStyles}><SelectValue placeholder="Select fuel type" /></SelectTrigger></FormControl>
+                                <SelectContent className="rounded-none border-zinc-200">
+                                    <SelectItem value="Petrol">Petrol</SelectItem>
+                                    <SelectItem value="Diesel">Diesel</SelectItem>
+                                    <SelectItem value="Hybrid">Hybrid</SelectItem>
+                                    <SelectItem value="EV">Electric (EV)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        <FormMessage /></FormItem>
+                    )} />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                     <FormField control={form.control} name="transmission" render={({ field }) => (
+                        <FormItem><FormLabel>Transmission (Optional)</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger className={commonInputStyles}><SelectValue placeholder="Select transmission" /></SelectTrigger></FormControl>
+                                <SelectContent className="rounded-none border-zinc-200">
+                                    <SelectItem value="Auto">Automatic</SelectItem>
+                                    <SelectItem value="Manual">Manual</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        <FormMessage /></FormItem>
+                    )} />
+                </div>
 
-              <DialogFooter className="mt-8 gap-2">
+              <DialogFooter className="mt-8 gap-2 sticky bottom-0 bg-background py-4">
                 <Button type="button" variant="outline" onClick={() => setShowAddForm(false)} className={commonButtonStyles}>Back to Search</Button>
                 <Button type="submit" className={commonButtonStyles}>Create and Select</Button>
               </DialogFooter>

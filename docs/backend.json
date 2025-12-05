@@ -54,6 +54,28 @@
         "year": {
           "type": "number",
           "description": "The year the vehicle was manufactured."
+        },
+        "mileage": {
+          "type": "number",
+          "description": "The vehicle's current mileage (odometer reading)."
+        },
+        "fuelType": {
+          "type": "string",
+          "description": "The vehicle's fuel type.",
+          "enum": [
+            "Petrol",
+            "Diesel",
+            "Hybrid",
+            "EV"
+          ]
+        },
+        "transmission": {
+          "type": "string",
+          "description": "The vehicle's transmission type.",
+          "enum": [
+            "Auto",
+            "Manual"
+          ]
         }
       },
       "required": [
@@ -409,5 +431,3 @@
     "reasoning": "The Firestore data structure is designed to support the ServicePulse Dashboard application. Key entities like Customers, Vehicles, Products, and Services are stored in separate top-level collections to maintain structural segregation and allow for independent security rules. This approach simplifies querying (e.g., listing all vehicles) and aligns with best practices for authorization independence, as access to one collection does not depend on data from another."
   }
 }
-
-    

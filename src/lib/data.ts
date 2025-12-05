@@ -156,6 +156,7 @@ export interface Vehicle {
   model: string;
   year: number;
   customerId: string;
+  mileage?: number;
+  fuelType?: 'Petrol' | 'Diesel' | 'Hybrid' | 'EV';
+  transmission?: 'Auto' | 'Manual';
 }
-
-    
