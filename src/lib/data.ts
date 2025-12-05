@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from "lucide-react";
-import { DollarSign, Archive, Users, FileText } from "lucide-react";
+import { DollarSign, Archive, Users } from "lucide-react";
 import { format } from "date-fns";
 
 export type StatCardData = {
@@ -117,10 +117,9 @@ export const recentInvoicesData: Invoice[] = [
   },
 ];
 
-// --- Inventory Data ---
+// --- Inventory Data Types ---
 
-export type Product = {
-  id: string;
+export interface Product {
   name: string;
   sku: string;
   category: string;
@@ -128,32 +127,10 @@ export type Product = {
   stockThreshold: number;
   actualPrice: number;
   sellingPrice: number;
-};
+}
 
-export type Service = {
-  id: string;
+export interface Service {
   name: string;
   description?: string;
   price: number;
-};
-
-export const productsData: Product[] = [
-  { id: 'PROD-001', name: 'Synthetic Oil 5L', sku: 'OIL-SYN-5L', category: 'Engine Oils', stock: 8, stockThreshold: 10, actualPrice: 10000.00, sellingPrice: 12500.00 },
-  { id: 'PROD-002', name: 'Brake Pads Set (Front)', sku: 'BRK-PAD-F01', category: 'Brakes', stock: 4, stockThreshold: 5, actualPrice: 7000.00, sellingPrice: 8500.00 },
-  { id: 'PROD-003', name: 'Standard Air Filter', sku: 'AIR-FIL-S12', category: 'Filters', stock: 12, stockThreshold: 15, actualPrice: 2000.00, sellingPrice: 2500.00 },
-  { id: 'PROD-004', name: 'Spark Plugs (4-pack)', sku: 'SPK-PLG-04', category: 'Ignition', stock: 9, stockThreshold: 10, actualPrice: 3200.00, sellingPrice: 4000.00 },
-  { id: 'PROD-005', name: 'Wiper Blades 22"', sku: 'WPR-BLD-22', category: 'Accessories', stock: 3, stockThreshold: 5, actualPrice: 2500.00, sellingPrice: 3200.00 },
-  { id: 'PROD-006', name: 'Headlight Bulb H4', sku: 'BULB-H4-01', category: 'Lighting', stock: 25, stockThreshold: 20, actualPrice: 1200.00, sellingPrice: 1500.00 },
-];
-
-export const servicesData: Service[] = [
-  { id: 'SERV-001', name: 'Full Service Package', description: 'Comprehensive vehicle maintenance package', price: 25000.00 },
-  { id: 'SERV-002', name: 'Oil Change', description: 'Includes oil and filter change', price: 5000.00 },
-  { id: 'SERV-003', name: 'Brake Inspection & Cleaning', price: 7500.00 },
-  { id: 'SERV-004', name: 'Wheel Alignment', description: 'Four-wheel alignment', price: 6000.00 },
-  { id: 'SERV-005', name: 'AC System Check', price: 8000.00 },
-];
-
-export const categoriesData: string[] = [
-  ...new Set(productsData.map(p => p.category))
-];
+}

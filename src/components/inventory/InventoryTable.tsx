@@ -1,5 +1,6 @@
 
 import type { Product, Service } from "@/lib/data";
+import { WithId } from "@/firebase";
 import {
   Table,
   TableBody,
@@ -16,14 +17,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Loader } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type InventoryTableProps = {
-  data: (Product | Service)[];
+  data: WithId<Product>[] | WithId<Service>[];
   type: "product" | "service";
+  isLoading: boolean;
 };
 
-export default function InventoryTable({ data, type }: InventoryTableProps) {
+export default function InventoryTable({ data, type, isLoading }: InventoryTableProps) {
   const formatPrice = (price: number) => {
     return price.toLocaleString("en-US", {
       style: "currency",
@@ -32,12 +35,24 @@ export default function InventoryTable({ data, type }: InventoryTableProps) {
     }).replace('LKR', 'Rs.');
   }
 
-  const getPrice = (item: Product | Service) => {
+  const getPrice = (item: WithId<Product> | WithId<Service>) => {
     if (type === 'product') {
-      return (item as Product).sellingPrice;
+      return (item as WithId<Product>).sellingPrice;
     }
-    return (item as Service).price;
+    return (item as WithId<Service>).price;
   };
+  
+  const renderSkeleton = () => (
+    Array.from({ length: 5 }).map((_, index) => (
+      <TableRow key={index}>
+        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+        <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+        {type === "product" && <TableCell className="text-right"><Skeleton className="h-5 w-12 mx-auto" /></TableCell>}
+        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+        <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+      </TableRow>
+    ))
+  );
 
   return (
     <div className="overflow-x-auto mt-4">
@@ -56,19 +71,19 @@ export default function InventoryTable({ data, type }: InventoryTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((item) => (
+          {isLoading ? renderSkeleton() : data.map((item) => (
             <TableRow key={item.id} className="border-white/40">
               <TableCell className="font-medium text-primary-text">{item.name}</TableCell>
               <TableCell className="hidden sm:table-cell text-primary-text">
-                {type === 'product' ? (item as Product).category : (item as Service).description}
+                {type === 'product' ? (item as WithId<Product>).category : (item as WithId<Service>).description}
               </TableCell>
-              {type === "product" && (item as Product).stock !== undefined && (
+              {type === "product" && (item as WithId<Product>).stock !== undefined && (
                 <TableCell className="text-right">
                   <Badge 
-                    variant={(item as Product).stock < (item as Product).stockThreshold ? "destructive" : "secondary"}
+                    variant={(item as WithId<Product>).stock < (item as WithId<Product>).stockThreshold ? "destructive" : "secondary"}
                     className="text-xs font-medium"
                   >
-                    {(item as Product).stock}
+                    {(item as WithId<Product>).stock}
                   </Badge>
                 </TableCell>
               )}
@@ -93,6 +108,11 @@ export default function InventoryTable({ data, type }: InventoryTableProps) {
           ))}
         </TableBody>
       </Table>
+       {!isLoading && data.length === 0 && (
+        <div className="text-center py-10 text-gray-500">
+          No {type}s found. Add one to get started.
+        </div>
+      )}
     </div>
   );
 }

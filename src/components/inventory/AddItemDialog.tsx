@@ -64,7 +64,7 @@ const serviceSchema = z.object({
 
 type AddItemDialogProps = {
   children: React.ReactNode;
-  onAddItem: (item: Product | Service, type: 'product' | 'service') => void;
+  onAddItem: (item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service') => void;
   categories: string[];
   setCategories: React.Dispatch<React.SetStateAction<string[]>>;
 };
@@ -97,8 +97,7 @@ export function AddItemDialog({ children, onAddItem, categories, setCategories }
   });
 
   const onProductSubmit = (values: z.infer<typeof productSchema>) => {
-    const newProduct: Product = {
-      id: `PROD-${Date.now()}`,
+    const newProduct: Omit<Product, 'id'> = {
       stock: 0,
       ...values,
     };
@@ -109,8 +108,7 @@ export function AddItemDialog({ children, onAddItem, categories, setCategories }
   };
 
   const onServiceSubmit = (values: z.infer<typeof serviceSchema>) => {
-    const newService: Service = {
-      id: `SERV-${Date.now()}`,
+    const newService: Omit<Service, 'id'> = {
       ...values,
     };
     onAddItem(newService, 'service');
