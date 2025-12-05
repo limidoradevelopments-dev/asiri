@@ -188,11 +188,17 @@
         "price": {
           "type": "number",
           "description": "The price of the service."
+        },
+        "vehicleCategory": {
+          "type": "string",
+          "description": "The category of vehicle the service applies to.",
+          "enum": ["Car", "Van", "SUV", "Motorbike", "Other"]
         }
       },
       "required": [
         "name",
-        "price"
+        "price",
+        "vehicleCategory"
       ]
     }
   },

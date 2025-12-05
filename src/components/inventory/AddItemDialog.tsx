@@ -61,6 +61,7 @@ const serviceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   price: z.coerce.number().min(0, 'Price cannot be negative'),
+  vehicleCategory: z.enum(['Car', 'Van', 'SUV', 'Motorbike', 'Other']),
 });
 
 type AddItemDialogProps = {
@@ -72,6 +73,8 @@ type AddItemDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 };
+
+const vehicleCategories: Service['vehicleCategory'][] = ['Car', 'Van', 'SUV', 'Motorbike', 'Other'];
 
 export function AddItemDialog({ children, onUpsertItem, categories, setCategories, itemToEdit, isOpen, onOpenChange }: AddItemDialogProps) {
   const [showNewCategoryDialog, setShowNewCategoryDialog] = useState(false);
@@ -91,7 +94,7 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
   const serviceForm = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
-      name: '', description: '', price: 0,
+      name: '', description: '', price: 0, vehicleCategory: 'Car',
     },
   });
 
@@ -107,7 +110,7 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
         name: '', sku: '', category: '', stockThreshold: 0, actualPrice: 0, sellingPrice: 0,
       });
       serviceForm.reset({
-        name: '', description: '', price: 0,
+        name: '', description: '', price: 0, vehicleCategory: 'Car'
       });
     }
   }, [itemToEdit, isEditMode, productForm, serviceForm, isOpen]);
@@ -289,6 +292,28 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
                         <FormControl>
                           <Input placeholder="e.g., Full Service Package" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={serviceForm.control}
+                    name="vehicleCategory"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Category</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a vehicle category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {vehicleCategories.map(category => (
+                              <SelectItem key={category} value={category}>{category}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

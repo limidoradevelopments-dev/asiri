@@ -65,7 +65,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
             <TableHead className="text-secondary-text">Name</TableHead>
             {type === 'product' && <TableHead className="hidden sm:table-cell text-secondary-text">SKU</TableHead>}
             <TableHead className="hidden sm:table-cell text-secondary-text">
-              {type === 'product' ? 'Category' : 'Description'}
+              {type === 'product' ? 'Category' : 'Vehicle Category'}
             </TableHead>
             {type === "product" && <TableHead className="text-right text-secondary-text">Stock</TableHead>}
             <TableHead className="text-right text-secondary-text">Price</TableHead>
@@ -80,7 +80,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
               <TableCell className="font-medium text-primary-text">{item.name}</TableCell>
               {type === 'product' && <TableCell className="hidden sm:table-cell text-primary-text">{(item as WithId<Product>).sku}</TableCell>}
               <TableCell className="hidden sm:table-cell text-primary-text">
-                {type === 'product' ? (item as WithId<Product>).category : (item as WithId<Service>).description}
+                {type === 'product' ? (item as WithId<Product>).category : (item as WithId<Service>).vehicleCategory}
               </TableCell>
               {type === "product" && (item as WithId<Product>).stock !== undefined && (
                 <TableCell className="text-right">

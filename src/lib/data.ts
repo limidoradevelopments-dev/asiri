@@ -133,4 +133,5 @@ export interface Service {
   name: string;
   description?: string;
   price: number;
+  vehicleCategory: 'Car' | 'Van' | 'SUV' | 'Motorbike' | 'Other';
 }
