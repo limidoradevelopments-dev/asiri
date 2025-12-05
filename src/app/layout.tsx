@@ -6,6 +6,7 @@ import { Inter } from "next/font/google";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
+import { DesktopOnlyWrapper } from "@/components/DesktopOnlyWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,16 +24,18 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased bg-noise`}>
         <FirebaseClientProvider>
-          <SidebarProvider defaultOpen={false}>
-            <div className="flex min-h-screen w-full">
-              <DashboardSidebar />
-              <SidebarInset>
-                <div className="flex-1 flex flex-col">
-                  {children}
-                </div>
-              </SidebarInset>
-            </div>
-          </SidebarProvider>
+          <DesktopOnlyWrapper>
+            <SidebarProvider defaultOpen={false}>
+              <div className="flex min-h-screen w-full">
+                <DashboardSidebar />
+                <SidebarInset>
+                  <div className="flex-1 flex flex-col">
+                    {children}
+                  </div>
+                </SidebarInset>
+              </div>
+            </SidebarProvider>
+          </DesktopOnlyWrapper>
         </FirebaseClientProvider>
         <Toaster />
       </body>

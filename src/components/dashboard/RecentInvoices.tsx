@@ -1,3 +1,4 @@
+
 import type { Invoice } from "@/lib/data";
 import { format } from "date-fns";
 import {
@@ -52,9 +53,9 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
             <TableHeader>
               <TableRow className="border-zinc-100">
                 <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Invoice</TableHead>
-                <TableHead className="hidden sm:table-cell p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Customer</TableHead>
+                <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Customer</TableHead>
                 <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Status</TableHead>
-                <TableHead className="hidden md:table-cell p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Date</TableHead>
+                <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Date</TableHead>
                 <TableHead className="p-0 h-8 text-right text-xs font-normal text-zinc-400 uppercase tracking-widest">Amount</TableHead>
                 <TableHead className="p-0 h-8">
                   <span className="sr-only">Actions</span>
@@ -65,7 +66,7 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
               {data.map((invoice) => (
                 <TableRow key={invoice.id} className="border-zinc-100">
                   <TableCell className="py-3 px-0 font-medium">{invoice.id}</TableCell>
-                  <TableCell className="hidden sm:table-cell py-3 px-0">{invoice.customer}</TableCell>
+                  <TableCell className="py-3 px-0">{invoice.customer}</TableCell>
                   <TableCell className="py-3 px-0">
                     <Badge 
                       className={cn("capitalize text-xs font-medium rounded-md", statusStyles[invoice.status])}
@@ -74,7 +75,7 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
                       {invoice.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell py-3 px-0">{format(invoice.date, "MMM d, yyyy")}</TableCell>
+                  <TableCell className="py-3 px-0">{format(invoice.date, "MMM d, yyyy")}</TableCell>
                   <TableCell className="text-right py-3 px-0 font-mono">
                     {invoice.amount.toLocaleString("en-US", {
                       style: "currency",

@@ -80,14 +80,14 @@ export default function EmployeesPage() {
     <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-8 pb-12">
         
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row justify-between items-start mb-16 gap-8">
+        <div className="flex justify-between items-start mb-16 gap-8">
             <div>
                 <h1 className="text-5xl font-light tracking-tighter mb-2">EMPLOYEES</h1>
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Manage Employee Records</p>
             </div>
 
-            <div className="flex items-end gap-8 w-full md:w-auto">
-                <div className="relative group w-full md:w-80">
+            <div className="flex items-end gap-8 w-auto">
+                <div className="relative group w-80">
                     <Search className="absolute left-0 bottom-3 h-4 w-4 text-zinc-400 group-focus-within:text-black transition-colors" />
                     <input
                         type="search"

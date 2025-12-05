@@ -47,8 +47,8 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
     Array.from({ length: 5 }).map((_, index) => (
       <TableRow key={index} className="border-zinc-100">
         <TableCell className="py-4 px-0"><Skeleton className="h-5 w-32" /></TableCell>
-        <TableCell className="py-4 px-0 hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
-        <TableCell className="py-4 px-0 hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+        <TableCell className="py-4 px-0"><Skeleton className="h-5 w-24" /></TableCell>
+        <TableCell className="py-4 px-0"><Skeleton className="h-5 w-24" /></TableCell>
         {type === "product" && <TableCell className="py-4 px-0 text-right"><Skeleton className="h-5 w-12 ml-auto" /></TableCell>}
         <TableCell className="py-4 px-0 text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
         <TableCell className="py-4 px-0"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
@@ -62,8 +62,8 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
         <TableHeader>
           <TableRow className="border-zinc-100">
             <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Name</TableHead>
-            {type === 'product' && <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest hidden sm:table-cell">SKU</TableHead>}
-            <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest hidden sm:table-cell">
+            {type === 'product' && <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">SKU</TableHead>}
+            <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">
               {type === 'product' ? 'Category' : 'Vehicle Category'}
             </TableHead>
             {type === "product" && <TableHead className="p-0 h-8 text-right text-xs font-normal text-zinc-400 uppercase tracking-widest">Stock</TableHead>}
@@ -77,8 +77,8 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
           {isLoading ? renderSkeleton() : data.map((item) => (
             <TableRow key={item.id} className="border-zinc-100">
               <TableCell className="py-4 px-0 font-medium">{item.name}</TableCell>
-              {type === 'product' && <TableCell className="hidden sm:table-cell py-4 px-0">{ (item as WithId<Product>).sku}</TableCell>}
-              <TableCell className="hidden sm:table-cell py-4 px-0">
+              {type === 'product' && <TableCell className="py-4 px-0">{ (item as WithId<Product>).sku}</TableCell>}
+              <TableCell className="py-4 px-0">
                 {type === 'product' ? (item as WithId<Product>).category : (item as WithId<Service>).vehicleCategory}
               </TableCell>
               {type === "product" && (item as WithId<Product>).stock !== undefined && (
