@@ -92,3 +92,4 @@ export default function CustomersVehiclesTable({ data, isLoading, onEdit, onDele
     </div>
   );
 }
+

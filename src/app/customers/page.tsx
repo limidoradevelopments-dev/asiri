@@ -5,9 +5,9 @@ import { useState, useMemo } from "react";
 import { collection, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
-import type { Customer } from "@/lib/data";
-import { AddCustomerDialog } from "@/components/customers/AddCustomerDialog";
-import CustomersTable from "@/components/customers/CustomersTable";
+import type { Customer, Vehicle } from "@/lib/data";
+import { AddCustomerVehicleDialog } from "@/components/customers/AddCustomerVehicleDialog";
+import CustomersVehiclesTable from "@/components/customers/CustomersTable";
 import { useFirestore, useCollection, useMemoFirebase, WithId } from "@/firebase";
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
@@ -21,62 +21,105 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+type CustomerWithVehicle = {
+  customer: WithId<Customer>;
+  vehicle: WithId<Vehicle>;
+};
+
 export default function CustomersPage() {
   const firestore = useFirestore();
 
   const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
+  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
 
   const { data: customers, isLoading: customersLoading } = useCollection<Customer>(customersCollection);
+  const { data: vehicles, isLoading: vehiclesLoading } = useCollection<Vehicle>(vehiclesCollection);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [isAddCustomerDialogOpen, setAddCustomerDialogOpen] = useState(false);
-  const [customerToEdit, setCustomerToEdit] = useState<WithId<Customer> | null>(null);
-  const [customerToDelete, setCustomerToDelete] = useState<string | null>(null);
+  const [isAddDialogOpen, setAddDialogOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<CustomerWithVehicle | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<CustomerWithVehicle | null>(null);
 
-  const filteredCustomers = useMemo(() => {
-    if (!customers) return [];
-    if (!searchQuery) return customers;
+  const combinedData = useMemo(() => {
+    if (!customers || !vehicles) return [];
+    
+    const customerMap = new Map(customers.map(c => [c.id, c]));
+    
+    return vehicles.map(vehicle => {
+      const customer = customerMap.get(vehicle.customerId);
+      return customer ? { customer, vehicle } : null;
+    }).filter((item): item is CustomerWithVehicle => item !== null);
+
+  }, [customers, vehicles]);
+
+
+  const filteredData = useMemo(() => {
+    if (!combinedData) return [];
+    if (!searchQuery) return combinedData;
 
     const lowercasedQuery = searchQuery.toLowerCase();
 
-    return customers.filter(customer =>
+    return combinedData.filter(({ customer, vehicle }) =>
       customer.name.toLowerCase().includes(lowercasedQuery) ||
-      customer.phone.toLowerCase().includes(lowercasedQuery)
+      customer.phone.toLowerCase().includes(lowercasedQuery) ||
+      vehicle.numberPlate.toLowerCase().includes(lowercasedQuery)
     );
-  }, [customers, searchQuery]);
+  }, [combinedData, searchQuery]);
   
-  const handleUpsertCustomer = (customer: Omit<Customer, 'id'>, id?: string) => {
-    if (id) {
-      const docRef = doc(firestore, 'customers', id);
-      updateDocumentNonBlocking(docRef, { ...customer });
+  const handleUpsert = async (customerData: Omit<Customer, 'id'>, vehicleData: Omit<Vehicle, 'id' | 'customerId'>, customerId?: string, vehicleId?: string) => {
+    if (customerId && vehicleId) {
+      // Editing
+      const customerDocRef = doc(firestore, 'customers', customerId);
+      updateDocumentNonBlocking(customerDocRef, customerData);
+
+      const vehicleDocRef = doc(firestore, 'vehicles', vehicleId);
+      updateDocumentNonBlocking(vehicleDocRef, vehicleData);
+
     } else {
-      addDocumentNonBlocking(customersCollection, customer);
+      // Creating
+      const customerRef = await addDocumentNonBlocking(customersCollection, customerData);
+      if(customerRef) {
+        const newVehicleData = { ...vehicleData, customerId: customerRef.id };
+        await addDocumentNonBlocking(vehiclesCollection, newVehicleData);
+      }
     }
   };
 
-  const handleEdit = (customer: WithId<Customer>) => {
-    setCustomerToEdit(customer);
-    setAddCustomerDialogOpen(true);
+  const handleEdit = (item: CustomerWithVehicle) => {
+    setItemToEdit(item);
+    setAddDialogOpen(true);
   };
   
-  const handleDeleteRequest = (id: string) => {
-    setCustomerToDelete(id);
+  const handleDeleteRequest = (item: CustomerWithVehicle) => {
+    setItemToDelete(item);
   };
 
   const confirmDelete = () => {
-    if (customerToDelete) {
-      const docRef = doc(firestore, 'customers', customerToDelete);
-      deleteDocumentNonBlocking(docRef);
-      setCustomerToDelete(null);
+    if (itemToDelete) {
+      const { customer, vehicle } = itemToDelete;
+      
+      const vehicleDocRef = doc(firestore, 'vehicles', vehicle.id);
+      deleteDocumentNonBlocking(vehicleDocRef);
+
+      // Check if this is the customer's only vehicle
+      const customerVehicles = vehicles?.filter(v => v.customerId === customer.id);
+      if (customerVehicles?.length === 1) {
+        const customerDocRef = doc(firestore, 'customers', customer.id);
+        deleteDocumentNonBlocking(customerDocRef);
+      }
+      
+      setItemToDelete(null);
     }
   };
 
   const onDialogClose = (isOpen: boolean) => {
     if (!isOpen) {
-      setCustomerToEdit(null);
+      setItemToEdit(null);
     }
-    setAddCustomerDialogOpen(isOpen);
+    setAddDialogOpen(isOpen);
   }
+  
+  const isLoading = customersLoading || vehiclesLoading;
 
   return (
     <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-8 pb-12">
@@ -84,8 +127,8 @@ export default function CustomersPage() {
         {/* --- HEADER --- */}
         <div className="flex justify-between items-start mb-16 gap-8">
             <div>
-                <h1 className="text-5xl font-light tracking-tighter mb-2">CUSTOMERS</h1>
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">View and Manage Customer Records</p>
+                <h1 className="text-5xl font-light tracking-tighter mb-2">CUSTOMERS & VEHICLES</h1>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">View and Manage Customer & Vehicle Records</p>
             </div>
 
             <div className="flex items-end gap-8 w-auto">
@@ -93,7 +136,7 @@ export default function CustomersPage() {
                     <Search className="absolute left-0 bottom-3 h-4 w-4 text-zinc-400 group-focus-within:text-black transition-colors" />
                     <input
                         type="search"
-                        placeholder="SEARCH NAME OR PHONE..."
+                        placeholder="SEARCH NAME, PHONE, OR PLATE..."
                         className="w-full bg-transparent border-b border-zinc-200 py-2.5 pl-8 text-sm outline-none placeholder:text-zinc-300 placeholder:uppercase placeholder:tracking-widest uppercase tracking-wide focus:border-black transition-colors"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -101,43 +144,43 @@ export default function CustomersPage() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                     <AddCustomerDialog 
-                        onUpsertCustomer={handleUpsertCustomer} 
-                        customerToEdit={customerToEdit}
-                        isOpen={isAddCustomerDialogOpen}
+                     <AddCustomerVehicleDialog
+                        onUpsert={handleUpsert}
+                        itemToEdit={itemToEdit}
+                        isOpen={isAddDialogOpen}
                         onOpenChange={onDialogClose}
-                    >
+                      >
                         <Button 
                             className="h-10 px-6 rounded-none bg-black text-white text-xs uppercase tracking-[0.15em] hover:bg-zinc-800 transition-all shadow-none"
                         >
                             <Plus className="mr-2 h-3 w-3" />
-                            New Customer
+                            New Entry
                         </Button>
-                    </AddCustomerDialog>
+                    </AddCustomerVehicleDialog>
                 </div>
             </div>
         </div>
 
         <div className="min-h-[400px]">
-          <CustomersTable 
-            data={filteredCustomers}
-            isLoading={customersLoading}
+          <CustomersVehiclesTable
+            data={filteredData}
+            isLoading={isLoading}
             onEdit={handleEdit}
             onDelete={handleDeleteRequest}
           />
         </div>
 
-      <AlertDialog open={!!customerToDelete} onOpenChange={() => setCustomerToDelete(null)}>
+      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
         <AlertDialogContent className="rounded-none border-zinc-200">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-light tracking-tight text-xl">Confirm Deletion</AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-500">
-              This action cannot be undone. This will permanently remove the customer's record.
+              This action will permanently delete the vehicle record. If this is the customer's only vehicle, their record will be deleted as well. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 mt-4">
             <AlertDialogCancel 
-                onClick={() => setCustomerToDelete(null)}
+                onClick={() => setItemToDelete(null)}
                 className="rounded-none border-zinc-200 uppercase tracking-widest text-xs"
             >
                 Cancel
