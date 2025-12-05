@@ -1,3 +1,4 @@
+
 /**
  * Core Philosophy: This ruleset secures a backend for a vehicle service station dashboard.
  * The central security model assumes that any user authenticated via a non-anonymous
@@ -102,6 +103,27 @@ service cloud.firestore {
       allow update: if isEmployee() && resource != null;
       allow delete: if isEmployee() && resource != null;
     }
+
+    /**
+     * @description Manages product inventory.
+     * @path /products/{productId}
+     * @allow An authenticated employee can manage all products.
+     * @deny An anonymous user attempts to read product data.
+     */
+    match /products/{productId} {
+      allow read, write: if isEmployee();
+    }
+
+    /**
+     * @description Manages available services.
+     * @path /services/{serviceId}
+     * @allow An authenticated employee can manage all services.
+     * @deny An anonymous user attempts to create a new service.
+     */
+    match /services/{serviceId} {
+      allow read, write: if isEmployee();
+    }
+
 
     /**
      * @description Manages financial revenue records. All authenticated employees can manage revenue data.

@@ -28,7 +28,7 @@ export default function InventoryPage() {
   };
 
   return (
-    <main className="flex-1 overflow-y-auto p-2 sm:p-4 w-full">
+    <>
       <div className="flex sm:flex-row justify-between items-start sm:items-center mb-4">
         <div className="flex items-center gap-4">
           <AddItemDialog onAddItem={handleAddItem} categories={categories} setCategories={setCategories}>
@@ -56,6 +56,6 @@ export default function InventoryPage() {
           <InventoryTable data={services} type="service" />
         </TabsContent>
       </Tabs>
-    </main>
+    </>
   );
 }
