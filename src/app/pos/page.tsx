@@ -23,20 +23,20 @@ export default function POSPage() {
       <div className="lg:col-span-2 flex flex-col gap-4">
         <Card className="flex-1 rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
           <CardHeader>
-            <CardTitle>Products</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <p className="text-muted-foreground">Select products to add to the invoice.</p>
-             {/* Product list will go here */}
-          </CardContent>
-        </Card>
-        <Card className="flex-1 rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
-          <CardHeader>
             <CardTitle>Services</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">Select services to add to the invoice.</p>
             {/* Service list will go here */}
+          </CardContent>
+        </Card>
+        <Card className="flex-1 rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
+          <CardHeader>
+            <CardTitle>Products</CardTitle>
+          </CardHeader>
+          <CardContent>
+             <p className="text-muted-foreground">Select products to add to the invoice.</p>
+             {/* Product list will go here */}
           </CardContent>
         </Card>
       </div>
