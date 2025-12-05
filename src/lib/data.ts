@@ -135,3 +135,10 @@ export interface Service {
   price: number;
   vehicleCategory: 'Car' | 'Van' | 'SUV' | 'Motorbike' | 'Other';
 }
+
+export interface Employee {
+  name: string;
+  address: string;
+  mobile: string;
+  notes?: string;
+}

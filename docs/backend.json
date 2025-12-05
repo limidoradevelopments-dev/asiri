@@ -200,6 +200,35 @@
         "price",
         "vehicleCategory"
       ]
+    },
+    "Employee": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Employee",
+      "type": "object",
+      "description": "Represents an employee.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the employee."
+        },
+        "address": {
+          "type": "string",
+          "description": "The employee's address."
+        },
+        "mobile": {
+          "type": "string",
+          "description": "The employee's mobile number."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes about the employee."
+        }
+      },
+      "required": [
+        "name",
+        "address",
+        "mobile"
+      ]
     }
   },
   "auth": {
@@ -309,8 +338,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "/employees/{employeeId}",
+        "definition": {
+          "entityName": "Employee",
+          "schema": {
+            "$ref": "#/backend/entities/Employee"
+          },
+          "description": "Stores employee data.",
+          "params": [
+            {
+              "name": "employeeId",
+              "description": "The unique ID of the employee."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the ServicePulse Dashboard application for a vehicle service station. The primary entities are Customers, Invoices, StockItems, Revenue, Products, and Services. To ensure Authorization Independence (CRITICAL) and facilitate secure list operations (QAPs), the following structure is recommended:\n\n1.  **Customers Collection:** `/customers/{customerId}`\n    *   Stores customer information. Invoices are stored as a subcollection. This structure leverages path-based ownership, simplifying security rules.\n\n2.  **Invoices Subcollection:** `/customers/{customerId}/invoices/{invoiceId}`\n    *   Stores invoice data related to a specific customer.\n\n3.  **StockItems Collection:** `/stock_items/{stockItemId}`\n    *   Stores information about the service station's stock items.  Since access to stock items might require specific roles (e.g., manager), a separate collection ensures homogeneous security posture (all stock items have the same access requirements).\n\n4.  **Revenue Collection:** `/revenue/{revenueId}`\n    *   Stores revenue data. Similar to StockItems, segregating revenue data into its own collection simplifies access control. Access might be restricted to specific roles.\n\n5. **Products Collection:** `/products/{productId}`\n    *   Stores product inventory data. A separate collection allows for easy querying and management of all products.\n\n6. **Services Collection:** `/services/{serviceId}`\n    *   Stores information about the services offered by the station.\n\nThis structure prioritizes structural segregation by placing different data types into separate collections or subcollections, each with its own security requirements. By using simple path-based ownership for the customer/invoice relationship, we minimize the need for complex rules and maintain authorization independence.\n\nThis design achieves Authorization Independence because no `get()` calls are required in security rules to determine access to the subcollection. Since the 'customerId' is directly within the path structure, rules can authorize based solely on the `request.auth.uid` (if associated with the customer) or the presence of specific roles in other collections (e.g., an `/roles_admin/{uid}` document to allow global access). This structure also supports the required QAPs by enabling secure list operations, as access to collections and subcollections is controlled by the path and doesn't rely on filtering data."
+    "reasoning": "The Firestore data structure is designed to support the ServicePulse Dashboard application for a vehicle service station. The primary entities are Customers, Invoices, StockItems, Revenue, Products, and Services. To ensure Authorization Independence (CRITICAL) and facilitate secure list operations (QAPs), the following structure is recommended:\n\n1.  **Customers Collection:** `/customers/{customerId}`\n    *   Stores customer information. Invoices are stored as a subcollection. This structure leverages path-based ownership, simplifying security rules.\n\n2.  **Invoices Subcollection:** `/customers/{customerId}/invoices/{invoiceId}`\n    *   Stores invoice data related to a specific customer.\n\n3.  **StockItems Collection:** `/stock_items/{stockItemId}`\n    *   Stores information about the service station's stock items.  Since access to stock items might require specific roles (e.g., manager), a separate collection ensures homogeneous security posture (all stock items have the same access requirements).\n\n4.  **Revenue Collection:** `/revenue/{revenueId}`\n    *   Stores revenue data. Similar to StockItems, segregating revenue data into its own collection simplifies access control. Access might be restricted to specific roles.\n\n5. **Products Collection:** `/products/{productId}`\n    *   Stores product inventory data. A separate collection allows for easy querying and management of all products.\n\n6. **Services Collection:** `/services/{serviceId}`\n    *   Stores information about the services offered by the station.\n\n7. **Employees Collection:** `/employees/{employeeId}`\n    *   Stores employee data. A separate collection allows for easy querying and management of all employees.\n\nThis structure prioritizes structural segregation by placing different data types into separate collections or subcollections, each with its own security requirements. By using simple path-based ownership for the customer/invoice relationship, we minimize the need for complex rules and maintain authorization independence.\n\nThis design achieves Authorization Independence because no `get()` calls are required in security rules to determine access to the subcollection. Since the 'customerId' is directly within the path structure, rules can authorize based solely on the `request.auth.uid` (if associated with the customer) or the presence of specific roles in other collections (e.g., an `/roles_admin/{uid}` document to allow global access). This structure also supports the required QAPs by enabling secure list operations, as access to collections and subcollections is controlled by the path and doesn't rely on filtering data."
   }
 }

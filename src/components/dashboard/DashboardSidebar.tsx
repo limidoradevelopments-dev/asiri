@@ -19,6 +19,7 @@ import {
   ShoppingCart,
   User,
   LogOut,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -28,6 +29,7 @@ export const menuItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", icon: Package },
   { href: "/pos", label: "POS", icon: ShoppingCart },
+  { href: "/employees", label: "Employees", icon: Users },
 ];
 
 export default function DashboardSidebar() {
