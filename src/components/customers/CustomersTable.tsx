@@ -1,5 +1,5 @@
 
-import type { Customer, Vehicle } from "@/lib/data";
+import type { Customer } from "@/lib/data";
 import { WithId } from "@/firebase";
 import {
   Table,
@@ -9,19 +9,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type CustomerWithVehicles = WithId<Customer> & {
-  vehicles: WithId<Vehicle>[];
-};
-
 type CustomersTableProps = {
-  data: CustomerWithVehicles[];
+  data: WithId<Customer>[];
   isLoading: boolean;
+  onEdit: (customer: WithId<Customer>) => void;
+  onDelete: (id: string) => void;
 };
 
-export default function CustomersTable({ data, isLoading }: CustomersTableProps) {
+export default function CustomersTable({ data, isLoading, onEdit, onDelete }: CustomersTableProps) {
   
   const renderSkeleton = () => (
     Array.from({ length: 8 }).map((_, index) => (
@@ -29,7 +34,7 @@ export default function CustomersTable({ data, isLoading }: CustomersTableProps)
         <TableCell className="py-4 px-0"><Skeleton className="h-5 w-32" /></TableCell>
         <TableCell className="py-4 px-0"><Skeleton className="h-5 w-24" /></TableCell>
         <TableCell className="py-4 px-0"><Skeleton className="h-5 w-48" /></TableCell>
-        <TableCell className="py-4 px-0"><div className="flex gap-2"><Skeleton className="h-5 w-40" /><Skeleton className="h-5 w-40" /></div></TableCell>
+        <TableCell className="py-4 px-0"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
       </TableRow>
     ))
   );
@@ -42,7 +47,9 @@ export default function CustomersTable({ data, isLoading }: CustomersTableProps)
             <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Name</TableHead>
             <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Phone</TableHead>
             <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Address</TableHead>
-            <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Vehicles</TableHead>
+            <TableHead className="p-0 h-8">
+              <span className="sr-only">Actions</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -51,17 +58,19 @@ export default function CustomersTable({ data, isLoading }: CustomersTableProps)
               <TableCell className="py-4 px-0 font-medium">{customer.name}</TableCell>
               <TableCell className="py-4 px-0">{customer.phone}</TableCell>
               <TableCell className="py-4 px-0">{customer.address || '-'}</TableCell>
-              <TableCell className="py-4 px-0">
-                <div className="flex flex-wrap gap-2">
-                    {customer.vehicles.length > 0 ? customer.vehicles.map(v => (
-                        <Badge key={v.id} variant="secondary" className="font-mono bg-zinc-100 text-zinc-700 rounded-sm font-sans tracking-tight">
-                            <span className="font-semibold">{v.numberPlate}</span>
-                            <span className="ml-2 text-zinc-500">{v.make} {v.model} ({v.year})</span>
-                        </Badge>
-                    )) : (
-                        <span className="text-zinc-400 text-xs">-</span>
-                    )}
-                </div>
+              <TableCell className="text-right py-4 px-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">Actions</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="rounded-none border-zinc-200">
+                    <DropdownMenuItem onClick={() => onEdit(customer)} className="text-xs">Edit</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(customer.id)} className="text-xs text-red-600 focus:text-red-600">Delete</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))}
