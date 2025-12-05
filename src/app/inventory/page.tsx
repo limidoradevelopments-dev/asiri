@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 
 
 export default function InventoryPage() {
@@ -115,37 +116,42 @@ export default function InventoryPage() {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search by name or SKU..."
-            className="pl-8 w-full"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-4">
-          <AddItemDialog 
-            onUpsertItem={handleUpsertItem} 
-            categories={allCategories} 
-            setCategories={setLocalCategories}
-            itemToEdit={itemToEdit}
-            isOpen={isDialogOpen}
-            onOpenChange={onDialogClose}
-          >
-            <Button>
-              <PlusCircle />
-              Add Item
-            </Button>
-          </AddItemDialog>
-          <Button variant="outline">
-            <Plus />
-            Add Stock
-          </Button>
-        </div>
-      </div>
+      <Card className="mb-4 rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search by name or SKU..."
+                className="pl-8 w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-4">
+              <AddItemDialog 
+                onUpsertItem={handleUpsertItem} 
+                categories={allCategories} 
+                setCategories={setLocalCategories}
+                itemToEdit={itemToEdit}
+                isOpen={isDialogOpen}
+                onOpenChange={onDialogClose}
+              >
+                <Button>
+                  <PlusCircle />
+                  Add Item
+                </Button>
+              </AddItemDialog>
+              <Button variant="outline">
+                <Plus />
+                Add Stock
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
 
       <Tabs defaultValue="products">
         <TabsList className="grid w-full grid-cols-2 sm:w-[400px]">
