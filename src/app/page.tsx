@@ -23,13 +23,13 @@ export default function DashboardPage() {
         <DashboardSidebar />
         <SidebarInset className="flex flex-1 flex-col bg-background">
           <DashboardHeader />
-          <main className="flex-1 overflow-y-auto p-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {statsData.map((stat) => (
                 <StatCard key={stat.title} {...stat} />
               ))}
             </div>
-            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <RevenueChart data={revenueData} />
               </div>
@@ -37,7 +37,7 @@ export default function DashboardPage() {
                 <LowStockItems data={lowStockItemsData} />
               </div>
             </div>
-            <div className="mt-3">
+            <div className="mt-4">
               <RecentInvoices data={recentInvoicesData} />
             </div>
           </main>
