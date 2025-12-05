@@ -34,16 +34,7 @@ export default function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
-                {userAvatar && (
-                  <AvatarImage
-                    src={userAvatar.imageUrl}
-                    alt="User avatar"
-                    data-ai-hint={userAvatar.imageHint}
-                  />
-                )}
-                <AvatarFallback>
-                  <User />
-                </AvatarFallback>
+                <AvatarFallback>A</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
