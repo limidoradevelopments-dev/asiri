@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { collection } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
 import type { Product, Service } from '@/lib/data';
@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { Search } from 'lucide-react';
 
 // --- Types ---
 type CartItem = (Product | Service) & {
@@ -25,8 +26,8 @@ export default function POSPage() {
   // --- Data Fetching ---
   const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
   const servicesCollection = useMemoFirebase(() => collection(firestore, 'services'), [firestore]);
-  const { data: products } = useCollection<Product>(productsCollection);
-  const { data: services } = useCollection<Service>(servicesCollection);
+  const { data: products } = useCollection<WithId<Product>>(productsCollection);
+  const { data: services } = useCollection<WithId<Service>>(servicesCollection);
 
   // --- State ---
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -91,34 +92,37 @@ export default function POSPage() {
   const globalDiscountAmount = subtotalBeforeGlobalDiscount * (globalDiscountPercent / 100);
   const total = subtotalBeforeGlobalDiscount - globalDiscountAmount;
 
-  const itemsToShow = (activeTab === 'services' ? services : products)
-    ?.filter((i: any) => i.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const itemsToShow = useMemo(() => {
+    const list = activeTab === 'services' ? services : products;
+    if (!searchQuery) return list;
+    return list?.filter((i: any) => i.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [activeTab, services, products, searchQuery]);
+
 
   return (
-    <div className="flex h-screen w-full bg-[#fcfcfc] text-zinc-900 font-sans overflow-hidden">
+    <div className="flex h-screen w-full bg-background font-sans overflow-hidden">
       
-      {/* GLOBAL TEXTURE: Subtle Noise */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0 mix-blend-multiply" 
-           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
-      />
+      {/* GLOBAL TEXTURE: Subtle Noise is on body via layout */}
 
       {/* --- LEFT: CATALOG (65%) --- */}
-      <div className="relative z-10 w-[65%] flex flex-col pt-12 pl-12 pr-6">
+      <div className="relative z-10 w-[65%] flex flex-col pt-16 pl-12 pr-6">
         
         {/* Header Area */}
-        <div className="flex justify-between items-end mb-12">
+        <div className="flex justify-between items-start mb-16">
             <div>
-                <h1 className="text-4xl font-light tracking-tighter mb-2">CATALOG</h1>
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Select items to add</p>
+                <h1 className="text-5xl font-light tracking-tighter mb-2">POINT OF SALE</h1>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Create new invoices</p>
             </div>
             
             {/* Search as a simple line */}
-            <div className="w-64 border-b border-zinc-200 focus-within:border-black transition-colors">
-                <input 
-                    className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-zinc-300 uppercase tracking-widest"
-                    placeholder="Search..."
+            <div className="relative group w-80">
+                <Search className="absolute left-0 bottom-3 h-4 w-4 text-zinc-400 group-focus-within:text-black transition-colors" />
+                <input
+                    type="search"
+                    placeholder="SEARCH ITEM..."
+                    className="w-full bg-transparent border-b border-zinc-200 py-2.5 pl-8 text-sm outline-none placeholder:text-zinc-300 placeholder:uppercase placeholder:tracking-widest uppercase tracking-wide focus:border-black transition-colors"
                     value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                 />
             </div>
         </div>
@@ -133,12 +137,11 @@ export default function POSPage() {
                         className="relative bg-transparent h-12 p-0 rounded-none text-sm font-medium uppercase tracking-widest text-zinc-300 data-[state=active]:text-black data-[state=active]:shadow-none hover:text-zinc-500 transition-colors"
                     >
                         {tab}
-                        {activeTab === tab && <span className="absolute bottom-0 left-0 w-full h-[1px] bg-black" />}
                     </TabsTrigger>
                 ))}
             </TabsList>
             
-            {/* Grid - UPDATED SECTION */}
+            {/* Grid */}
             <ScrollArea className="flex-1 -mr-4 pr-4">
                 <div className="grid grid-cols-3 gap-6 pb-20">
                     {itemsToShow?.map((item) => (
@@ -185,10 +188,10 @@ export default function POSPage() {
       <div className="relative z-20 w-[35%] flex flex-col bg-white border-l border-zinc-100 h-full">
         
         {/* Ticket Header */}
-        <div className="pt-12 px-10 pb-8">
+        <div className="pt-16 px-10 pb-8">
             <div className="flex justify-between items-baseline mb-8">
                 <span className="text-xs uppercase tracking-[0.2em] text-zinc-400">Ticket</span>
-                <span className="font-mono text-sm text-zinc-400">NO. {Math.floor(Math.random() * 9000) + 1000}</span>
+                <span className="font-mono text-sm text-zinc-400">NO. {new Date().getTime().toString().slice(-4)}</span>
             </div>
             <div className="w-full h-px bg-zinc-900" />
         </div>
@@ -197,8 +200,8 @@ export default function POSPage() {
         <div className="flex-1 overflow-hidden relative">
             <ScrollArea className="h-full px-10">
                 {cart.length === 0 ? (
-                    <div className="h-40 flex items-center text-zinc-300 text-sm uppercase tracking-widest">
-                        ( Cart Empty )
+                    <div className="h-40 flex items-center justify-center text-zinc-300 text-sm uppercase tracking-widest">
+                        ( Cart is Empty )
                     </div>
                 ) : (
                     <div className="flex flex-col">
@@ -256,7 +259,7 @@ export default function POSPage() {
         </div>
 
         {/* Footer / Totals */}
-        <div className="p-10 bg-white z-20">
+        <div className="p-10 bg-white z-20 border-t border-zinc-100">
             {/* Global Discount */}
             <div className="flex justify-between items-center mb-6 text-sm">
                 <span className="text-zinc-400 uppercase tracking-widest text-xs">Global Discount</span>
@@ -285,7 +288,7 @@ export default function POSPage() {
             {/* Pay Button - Full Width Text Block */}
             <button 
                 disabled={cart.length === 0}
-                className="w-full py-6 bg-black text-white text-sm uppercase tracking-[0.3em] hover:bg-zinc-800 transition-all disabled:bg-zinc-100 disabled:text-zinc-300"
+                className="w-full py-6 bg-black text-white text-sm uppercase tracking-[0.3em] hover:bg-zinc-800 transition-all disabled:bg-zinc-100 disabled:text-zinc-300 rounded-none shadow-none"
             >
                 Process Payment
             </button>
@@ -295,6 +298,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-
-    
