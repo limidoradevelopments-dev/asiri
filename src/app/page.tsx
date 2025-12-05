@@ -29,7 +29,7 @@ export default function DashboardPage() {
           <DashboardHeader />
           
           {/* 4. Main Content Area: Padding adjusted for better mobile view */}
-          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <main className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-6">
             
             {/* Stat Cards: Responsive grid layout */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
