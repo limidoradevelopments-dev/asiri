@@ -17,26 +17,58 @@ export default function POSPage() {
   const { data: products, isLoading: productsLoading } = useCollection<Product>(productsCollection);
   const { data: services, isLoading: servicesLoading } = useCollection<Service>(servicesCollection);
 
+  const formatPrice = (price: number) => {
+    return price.toLocaleString("en-US", {
+      style: "currency",
+      currency: "LKR",
+      currencyDisplay: "symbol",
+    }).replace('LKR', 'Rs.');
+  }
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-[calc(100vh-8rem)]">
       {/* Left Column: Products and Services */}
       <div className="lg:col-span-2 flex flex-col gap-4">
-        <Card className="flex-1 rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
+        <Card className="flex-1 flex flex-col rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
           <CardHeader>
             <CardTitle>Services</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Select services to add to the invoice.</p>
-            {/* Service list will go here */}
+          <CardContent className="flex-1 flex flex-col">
+            <ScrollArea className="flex-1">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                {servicesLoading && Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="aspect-square bg-gray-200 animate-pulse rounded-lg" />
+                ))}
+                {services?.map(service => (
+                  <div key={service.id} className="cursor-pointer aspect-square flex flex-col justify-center items-center text-center p-2 border rounded-lg bg-white/50 hover:bg-primary/10 hover:border-primary transition-colors">
+                    <p className="text-xs font-semibold">{service.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatPrice(service.price)}</p>
+                  </div>
+                ))}
+              </div>
+               {!servicesLoading && services?.length === 0 && <p className="text-muted-foreground text-center">No services found.</p>}
+            </ScrollArea>
           </CardContent>
         </Card>
-        <Card className="flex-1 rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
+        <Card className="flex-1 flex flex-col rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
           <CardHeader>
             <CardTitle>Products</CardTitle>
           </CardHeader>
-          <CardContent>
-             <p className="text-muted-foreground">Select products to add to the invoice.</p>
-             {/* Product list will go here */}
+          <CardContent className="flex-1 flex flex-col">
+             <ScrollArea className="flex-1">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                 {productsLoading && Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="aspect-square bg-gray-200 animate-pulse rounded-lg" />
+                ))}
+                {products?.map(product => (
+                  <div key={product.id} className="cursor-pointer aspect-square flex flex-col justify-center items-center text-center p-2 border rounded-lg bg-white/50 hover:bg-primary/10 hover:border-primary transition-colors">
+                    <p className="text-xs font-semibold">{product.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatPrice(product.sellingPrice)}</p>
+                  </div>
+                ))}
+              </div>
+              {!productsLoading && products?.length === 0 && <p className="text-muted-foreground text-center">No products found.</p>}
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>
@@ -48,7 +80,7 @@ export default function POSPage() {
             <CardTitle>Invoice</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Items added will appear here.</p>
+            <p className="text-muted-foreground text-center py-10">Items added will appear here.</p>
             {/* Invoice items and total will go here */}
           </CardContent>
         </Card>
