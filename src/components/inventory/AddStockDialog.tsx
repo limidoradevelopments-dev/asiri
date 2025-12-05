@@ -80,7 +80,7 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                 <Command>
                   <CommandInput placeholder="Search product..." />
                   <CommandList>
@@ -119,7 +119,7 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
               type="number"
               min="1"
               value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value, 10))}
+              onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 0)}
             />
           </div>
         </div>
