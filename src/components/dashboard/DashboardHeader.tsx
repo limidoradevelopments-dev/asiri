@@ -23,8 +23,9 @@ export default function DashboardHeader() {
   const currentPage = menuItems.find((item) => item.href === pathname);
   const pageTitle = currentPage ? currentPage.label : "Dashboard";
 
+  // Header is now hidden, but kept for potential future use or on mobile.
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-white/20 bg-white/65 px-4 backdrop-blur-md sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur sm:px-6 md:hidden">
       <SidebarTrigger className="md:hidden" />
       <div className="flex-1">
         <h1 className="text-xl font-semibold tracking-tight text-primary-text">{pageTitle}</h1>

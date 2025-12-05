@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useMemo } from "react";
 import { collection, doc, increment, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Product, Service } from "@/lib/data";
 import InventoryTable from "@/components/inventory/InventoryTable";
@@ -22,10 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-
 
 export default function InventoryPage() {
   const firestore = useFirestore();
@@ -154,87 +150,133 @@ export default function InventoryPage() {
   }
 
   return (
-    <>
-      <Card className="mb-4 rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search by name or SKU..."
-                className="pl-8 w-full"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              <AddItemDialog 
-                onUpsertItem={handleUpsertItem} 
-                productCategories={allProductCategories} 
-                setProductCategories={setLocalProductCategories}
-                vehicleCategories={allVehicleCategories}
-                setVehicleCategories={setLocalVehicleCategories}
-                itemToEdit={itemToEdit}
-                isOpen={isAddItemDialogOpen}
-                onOpenChange={onDialogClose}
-              >
-                <Button>
-                  <PlusCircle />
-                  Add Item
-                </Button>
-              </AddItemDialog>
-               <AddStockDialog products={products ?? []} onAddStock={handleAddStock}>
-                 <Button variant="outline">
-                   <Plus />
-                   Add Stock
-                 </Button>
-               </AddStockDialog>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="flex min-h-screen w-full bg-[#fcfcfc] text-zinc-900 font-sans overflow-x-hidden">
+      
+      {/* GLOBAL TEXTURE: Subtle Noise */}
+      <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-0 mix-blend-multiply" 
+           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
+      />
 
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-16 pb-12">
+        
+        {/* --- HEADER --- */}
+        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+            <div>
+                <h1 className="text-5xl font-light tracking-tighter mb-2">INVENTORY</h1>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Manage Stock & Services</p>
+            </div>
 
-      <Tabs defaultValue="products">
-        <TabsList className="grid w-full grid-cols-2 sm:w-[400px]">
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-        </TabsList>
-        <TabsContent value="products">
-          <InventoryTable 
-            data={filteredProducts} 
-            type="product" 
-            isLoading={productsLoading} 
-            onEdit={handleEdit}
-            onDelete={handleDeleteRequest}
-          />
-        </TabsContent>
-        <TabsContent value="services">
-          <InventoryTable 
-            data={filteredServices} 
-            type="service" 
-            isLoading={servicesLoading}
-            onEdit={handleEdit}
-            onDelete={handleDeleteRequest}
-          />
-        </TabsContent>
-      </Tabs>
+            <div className="flex items-end gap-8 w-full md:w-auto">
+                {/* Minimal Line Search */}
+                <div className="relative group w-full md:w-80">
+                    <Search className="absolute left-0 bottom-3 h-4 w-4 text-zinc-400 group-focus-within:text-black transition-colors" />
+                    <input
+                        type="search"
+                        placeholder="SEARCH ITEM OR SKU..."
+                        className="w-full bg-transparent border-b border-zinc-200 py-2.5 pl-8 text-sm outline-none placeholder:text-zinc-300 placeholder:uppercase placeholder:tracking-widest uppercase tracking-wide focus:border-black transition-colors"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-4">
+                    <AddStockDialog products={products ?? []} onAddStock={handleAddStock}>
+                        <Button 
+                            variant="outline" 
+                            className="h-10 px-6 rounded-none border-zinc-200 text-xs uppercase tracking-[0.15em] hover:bg-zinc-50 hover:text-black hover:border-black transition-all"
+                        >
+                            <Plus className="mr-2 h-3 w-3" />
+                            Stock
+                        </Button>
+                    </AddStockDialog>
+
+                    <AddItemDialog 
+                        onUpsertItem={handleUpsertItem} 
+                        productCategories={allProductCategories} 
+                        setProductCategories={setLocalProductCategories}
+                        vehicleCategories={allVehicleCategories}
+                        setVehicleCategories={setLocalVehicleCategories}
+                        itemToEdit={itemToEdit}
+                        isOpen={isAddItemDialogOpen}
+                        onOpenChange={onDialogClose}
+                    >
+                        <Button 
+                            className="h-10 px-6 rounded-none bg-black text-white text-xs uppercase tracking-[0.15em] hover:bg-zinc-800 transition-all shadow-none"
+                        >
+                            <Plus className="mr-2 h-3 w-3" />
+                            New Item
+                        </Button>
+                    </AddItemDialog>
+                </div>
+            </div>
+        </div>
+
+        {/* --- TABS & TABLE --- */}
+        <Tabs defaultValue="products" className="w-full">
+            <TabsList className="bg-transparent justify-start gap-12 p-0 mb-8 w-full border-b border-zinc-100">
+                <TabsTrigger 
+                    value="products"
+                    className="relative bg-transparent h-12 p-0 rounded-none text-sm font-medium uppercase tracking-widest text-zinc-300 data-[state=active]:text-black data-[state=active]:shadow-none hover:text-zinc-500 transition-colors"
+                >
+                    Products
+                </TabsTrigger>
+                <TabsTrigger 
+                    value="services"
+                    className="relative bg-transparent h-12 p-0 rounded-none text-sm font-medium uppercase tracking-widest text-zinc-300 data-[state=active]:text-black data-[state=active]:shadow-none hover:text-zinc-500 transition-colors"
+                >
+                    Services
+                </TabsTrigger>
+            </TabsList>
+
+            <div className="min-h-[400px]">
+                <TabsContent value="products" className="mt-0 focus-visible:outline-none">
+                    <InventoryTable 
+                        data={filteredProducts} 
+                        type="product" 
+                        isLoading={productsLoading} 
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteRequest}
+                    />
+                </TabsContent>
+                <TabsContent value="services" className="mt-0 focus-visible:outline-none">
+                    <InventoryTable 
+                        data={filteredServices} 
+                        type="service" 
+                        isLoading={servicesLoading}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteRequest}
+                    />
+                </TabsContent>
+            </div>
+        </Tabs>
+
+      </div>
 
       <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-none border border-zinc-100 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.05)]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the item.
+            <AlertDialogTitle className="font-light tracking-tight text-xl">Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500">
+              This action cannot be undone. This will permanently remove the item from your inventory.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel 
+                onClick={() => setItemToDelete(null)}
+                className="rounded-none border-zinc-200 uppercase tracking-widest text-xs"
+            >
+                Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+                onClick={confirmDelete} 
+                className="bg-red-600 hover:bg-red-700 text-white rounded-none uppercase tracking-widest text-xs"
+            >
+                Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

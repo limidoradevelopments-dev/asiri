@@ -4,78 +4,110 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #E5E5E5;
+  /* Applying the global Swiss/Industrial background color */
+  background-color: hsl(var(--background)); 
 }
 
 @layer base {
   :root {
-    --background: 220 13% 91%; /* #E2E8F0 to #F3F4F6 gradient equivalent */
-    --foreground: 222 22% 9%; /* #111827 */
+    /* --- SWISS / INDUSTRIAL PALETTE (Light Mode) --- */
+    
+    /* Background: Slightly off-white (#fcfcfc) for that paper feel */
+    --background: 0 0% 99%; 
+    
+    /* Foreground: Sharp Black/Dark Zinc (#18181b) */
+    --foreground: 240 5% 10%; 
+
+    /* Card: Pure White */
     --card: 0 0% 100%;
-    --card-foreground: 222 22% 9%; /* #111827 */
+    --card-foreground: 240 5% 10%;
+ 
+    /* Popover: Pure White */
     --popover: 0 0% 100%;
-    --popover-foreground: 222 22% 9%; /* #111827 */
-    --primary: 233 64% 30%; /* #1A237E */
+    --popover-foreground: 240 5% 10%;
+ 
+    /* Primary: Deep Black (for buttons/active states) */
+    --primary: 240 6% 10%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 220 9% 43%; /* #6B7280 */
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 220 9% 43%; /* #6B7280 */
-    --accent: 180 100% 25.1%; /* #008080 */
-    --accent-foreground: 0 0% 98%;
+ 
+    /* Secondary: Light Zinc (for hover states/backgrounds) */
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+ 
+    /* Muted: Subtle Grays (for metadata/inactive text) */
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+ 
+    /* Accent: Used for selection or highlights (Keep it subtle or stark black) */
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+ 
+    /* Destructive: Error Red (Keep this sharp) */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 233 64% 30%;
-    --chart-1: 233 64% 30%;
-    --chart-2: 180 100% 25.1%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 20px;
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 233 64% 30%;
+
+    /* Border: Crisp Zinc-200 */
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    
+    /* Ring: Focus ring color */
+    --ring: 240 6% 10%;
+ 
+    /* RADIUS: 0px for that sharp, industrial Swiss look */
+    --radius: 0rem; 
+
+    /* Chart colors (Monochrome/Swiss accents if needed) */
+    --chart-1: 0 0% 20%;
+    --chart-2: 0 0% 40%;
+    --chart-3: 0 0% 60%;
+    --chart-4: 0 0% 80%;
+    --chart-5: 0 0% 90%;
+    
+    /* Sidebar variables */
+    --sidebar-background: 0 0% 99%;
+    --sidebar-foreground: 240 5% 10%;
+    --sidebar-primary: 240 6% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 240 5.9% 90%;
-    --sidebar-ring: 233 64% 30%;
+    --sidebar-accent: 240 5% 96%;
+    --sidebar-accent-foreground: 240 6% 10%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 240 6% 10%;
   }
+ 
   .dark {
+    /* --- INDUSTRIAL DARK MODE (Deep Graphite) --- */
     --background: 240 6% 10%;
     --foreground: 0 0% 98%;
     --card: 240 6% 10%;
     --card-foreground: 0 0% 98%;
     --popover: 240 6% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 233 64% 70%;
-    --primary-foreground: 233 64% 10%;
-    --secondary: 240 3.7% 15.9%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 6% 10%;
+    --secondary: 240 4% 16%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 180 100% 45%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 4% 16%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 233 64% 70%;
-    --chart-1: 233 64% 70%;
-    --chart-2: 180 100% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 240 5% 84%;
+    --chart-1: 0 0% 98%;
+    --chart-2: 0 0% 80%;
+    --chart-3: 0 0% 60%;
+    --chart-4: 0 0% 40%;
+    --chart-5: 0 0% 20%;
     --sidebar-background: 240 6% 10%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 233 64% 70%;
-    --sidebar-primary-foreground: 233 64% 10%;
-    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 240 6% 10%;
+    --sidebar-accent: 240 4% 16%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 233 64% 70%;
+    --sidebar-border: 240 4% 16%;
+    --sidebar-ring: 240 5% 84%;
   }
 }
 
@@ -85,5 +117,22 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* --- OPTIONAL: GLOBAL NOISE UTILITY --- 
+   You can apply this class to the body or specific containers 
+   to get that texture without repeating SVG code. 
+*/
+@layer utilities {
+  .bg-noise::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.03;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   }
 }

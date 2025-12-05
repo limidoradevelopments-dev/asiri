@@ -22,29 +22,23 @@ type RevenueChartProps = {
 const chartConfig = {
   revenue: {
     label: "Revenue",
-    color: "hsl(var(--primary))",
+    color: "hsl(var(--foreground))",
   },
 };
 
 export default function RevenueChart({ data }: RevenueChartProps) {
   return (
-    <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm flex flex-col h-full">
-      <CardHeader>
-        <CardTitle className="text-lg font-medium text-primary-text">
+    <Card className="rounded-none border-0 shadow-none bg-transparent p-0">
+      <CardHeader className="p-0 mb-8">
+        <CardTitle className="text-sm uppercase tracking-widest font-medium text-zinc-400">
           Revenue Overview
         </CardTitle>
-        <CardDescription className="text-sm text-secondary-text">
-          Showing revenue for the last 7 days.
+        <CardDescription className="text-xs text-zinc-400">
+          Showing revenue for the last 7 days
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1">
-        {/*
-          Key for responsiveness: w-full ensures it fits the card width.
-          h-64 (256px) is the mobile/default height.
-          sm:h-80 (320px) increases the height on small screens and up.
-        */}
-        <ChartContainer config={chartConfig} className="w-full h-full min-h-64 sm:min-h-80">
-          {/* ResponsiveContainer makes the BarChart scale its dimensions to its parent */}
+      <CardContent className="p-0">
+        <ChartContainer config={chartConfig} className="w-full h-[250px]">
           <ResponsiveContainer>
             <BarChart
               accessibilityLayer
@@ -52,32 +46,34 @@ export default function RevenueChart({ data }: RevenueChartProps) {
               margin={{
                 top: 5,
                 right: 5,
-                // Left margin is slightly negative to give the YAxis labels more room on all screens
-                left: -20, 
+                left: -30, 
                 bottom: 5,
               }}
             >
-              <CartesianGrid vertical={false} />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
               <XAxis
                 dataKey="date"
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                // Shorten the day names (e.g., 'Mon') for all screens
                 tickFormatter={(value) => value.slice(0, 3)} 
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                // Format the revenue for readability (e.g., 'Rs. 50k')
-                tickFormatter={(value) => `Rs. ${value / 1000}k`} 
+                tickFormatter={(value) => `Rs. ${value / 1000}k`}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
               />
               <ChartTooltip
                 cursor={false}
-                content={<ChartTooltipContent indicator="dot" />}
+                content={<ChartTooltipContent 
+                    indicator="dot" 
+                    className="rounded-none border-zinc-200 bg-background"
+                />}
               />
-              <Bar dataKey="revenue" fill="var(--color-revenue)" radius={8} />
+              <Bar dataKey="revenue" fill="var(--color-revenue)" radius={0} barSize={20} />
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>

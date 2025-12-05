@@ -3,7 +3,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -26,55 +25,42 @@ type LowStockItemsProps = {
 
 export default function LowStockItems({ data }: LowStockItemsProps) {
   return (
-    <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm flex flex-col h-full">
-      <CardHeader>
-        <CardTitle className="text-lg font-medium text-primary-text">Low Stock Items</CardTitle>
-        <CardDescription className="text-sm text-secondary-text">
-          Items that are running low and may need reordering soon.
+    <Card className="rounded-none border-0 shadow-none bg-transparent p-0 flex flex-col h-full">
+      <CardHeader className="p-0 mb-8">
+        <CardTitle className="text-sm uppercase tracking-widest font-medium text-zinc-400">Low Stock</CardTitle>
+        <CardDescription className="text-xs text-zinc-400">
+          Items below re-order level
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 p-0">
         <ScrollArea className="h-full">
-          <div className="px-6">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Item</TableHead>
-                  <TableHead className="text-right">Stock</TableHead>
+                <TableRow className="border-zinc-100">
+                  <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Item</TableHead>
+                  <TableHead className="p-0 h-8 text-right text-xs font-normal text-zinc-400 uppercase tracking-widest">Stock</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.map((item) => (
-                  <TableRow key={item.sku} className="border-white/40">
-                    <TableCell className="p-2 sm:p-4">
-                      <div className="font-medium text-primary-text">{item.name}</div>
-                      <div className="text-sm text-secondary-text hidden sm:block">
-                        {item.sku}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right p-2 sm:p-4">
-                      <Badge
-                        variant={
-                          item.stock < item.threshold ? "destructive" : "secondary"
+                  <TableRow key={item.sku} className="border-zinc-100">
+                    <TableCell className="py-3 px-0 font-medium">{item.name}</TableCell>
+                    <TableCell className="py-3 px-0 text-right">
+                      <span
+                        className={
+                          item.stock < item.threshold ? "text-red-600" : ""
                         }
-                        className="text-xs font-medium"
                       >
                         {item.stock}
-                      </Badge>
+                      </span>
+                       <span className="text-zinc-300"> / {item.threshold}</span>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
         </ScrollArea>
       </CardContent>
-      <CardFooter className="p-6">
-        <Button variant="outline" size="sm" className="w-full text-sm font-medium">
-          View All Inventory
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

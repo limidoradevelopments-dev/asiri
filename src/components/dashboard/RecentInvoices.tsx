@@ -24,71 +24,76 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type RecentInvoicesProps = {
   data: Invoice[];
 };
 
-const statusVariantMap: Record<Invoice["status"], "default" | "secondary" | "destructive"> = {
-  Paid: "default",
-  Pending: "secondary",
-  Overdue: "destructive",
+const statusStyles: Record<Invoice["status"], string> = {
+  Paid: "bg-green-100 text-green-800",
+  Pending: "bg-yellow-100 text-yellow-800",
+  Overdue: "bg-red-100 text-red-800",
 };
+
 
 export default function RecentInvoices({ data }: RecentInvoicesProps) {
   return (
-    <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-medium text-primary-text">Recent Invoices</CardTitle>
-        <CardDescription className="text-sm text-secondary-text">
+    <Card className="rounded-none border-0 shadow-none bg-background p-8">
+      <CardHeader className="p-0 mb-8">
+        <CardTitle className="text-sm uppercase tracking-widest font-medium text-zinc-400">Recent Invoices</CardTitle>
+        <CardDescription className="text-xs text-zinc-400">
           A list of the most recent invoices from your business.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-white/40">
-                <TableHead className="text-secondary-text">Invoice</TableHead>
-                <TableHead className="hidden sm:table-cell text-secondary-text">Customer</TableHead>
-                <TableHead className="text-secondary-text">Status</TableHead>
-                <TableHead className="hidden md:table-cell text-secondary-text">Date</TableHead>
-                <TableHead className="text-right text-secondary-text">Amount</TableHead>
-                <TableHead>
+              <TableRow className="border-zinc-100">
+                <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Invoice</TableHead>
+                <TableHead className="hidden sm:table-cell p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Customer</TableHead>
+                <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Status</TableHead>
+                <TableHead className="hidden md:table-cell p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Date</TableHead>
+                <TableHead className="p-0 h-8 text-right text-xs font-normal text-zinc-400 uppercase tracking-widest">Amount</TableHead>
+                <TableHead className="p-0 h-8">
                   <span className="sr-only">Actions</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.map((invoice) => (
-                <TableRow key={invoice.id} className="border-white/40">
-                  <TableCell className="font-medium text-primary-text">{invoice.id}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-primary-text">{invoice.customer}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariantMap[invoice.status]} className="capitalize text-xs font-medium">
+                <TableRow key={invoice.id} className="border-zinc-100">
+                  <TableCell className="py-3 px-0 font-medium">{invoice.id}</TableCell>
+                  <TableCell className="hidden sm:table-cell py-3 px-0">{invoice.customer}</TableCell>
+                  <TableCell className="py-3 px-0">
+                    <Badge 
+                      className={cn("capitalize text-xs font-medium rounded-md", statusStyles[invoice.status])}
+                      variant="outline"
+                    >
                       {invoice.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell text-primary-text">{format(invoice.date, "MMM d, yyyy")}</TableCell>
-                  <TableCell className="text-right text-primary-text">
+                  <TableCell className="hidden md:table-cell py-3 px-0">{format(invoice.date, "MMM d, yyyy")}</TableCell>
+                  <TableCell className="text-right py-3 px-0 font-mono">
                     {invoice.amount.toLocaleString("en-US", {
                       style: "currency",
                       currency: "LKR",
                       currencyDisplay: "symbol"
                     }).replace('LKR', 'Rs.')}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right py-3 px-0">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
                           <MoreHorizontal className="h-4 w-4" />
                           <span className="sr-only">Actions</span>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Mark as Paid</DropdownMenuItem>
-                        <DropdownMenuItem>Send Reminder</DropdownMenuItem>
+                      <DropdownMenuContent align="end" className="rounded-none border-zinc-200">
+                        <DropdownMenuItem className="text-xs">View Details</DropdownMenuItem>
+                        <DropdownMenuItem className="text-xs">Mark as Paid</DropdownMenuItem>
+                        <DropdownMenuItem className="text-xs">Send Reminder</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
