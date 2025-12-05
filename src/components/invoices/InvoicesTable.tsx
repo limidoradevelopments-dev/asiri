@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WithId } from '@/firebase';
-import type { Invoice, InvoiceStatus } from '@/lib/data';
+import type { Invoice, Customer, Vehicle } from '@/lib/data';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
@@ -26,20 +26,24 @@ import { Badge } from '../ui/badge';
 type EnrichedInvoice = WithId<Invoice> & {
   customerName?: string;
   vehicleNumberPlate?: string;
+  customerDetails?: WithId<Customer>;
+  vehicleDetails?: WithId<Vehicle>;
 };
+
 
 type InvoicesTableProps = {
   data: EnrichedInvoice[];
   isLoading: boolean;
+  onViewDetails: (invoice: EnrichedInvoice) => void;
 };
 
-const statusStyles: Record<InvoiceStatus, string> = {
+const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
   Paid: "bg-emerald-100 text-emerald-800 border-emerald-200",
   Partial: "bg-amber-100 text-amber-800 border-amber-200",
   Unpaid: "bg-red-100 text-red-800 border-red-200",
 };
 
-export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
+export function InvoicesTable({ data, isLoading, onViewDetails }: InvoicesTableProps) {
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('en-US', { style: 'currency', currency: 'LKR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('LKR', 'Rs.');
@@ -75,8 +79,8 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
         </TableHeader>
         <TableBody>
           {isLoading ? renderSkeleton() : data.map((invoice) => (
-            <TableRow key={invoice.id} className="border-zinc-100 text-sm">
-              <TableCell className="py-3 px-2 font-mono text-zinc-500 text-xs">{invoice.invoiceNumber}</TableCell>
+            <TableRow key={invoice.id} className="border-zinc-100 text-sm hover:bg-zinc-50/50 cursor-pointer" onClick={() => onViewDetails(invoice)}>
+              <TableCell className="py-3 px-2 font-mono text-blue-600 hover:underline text-xs">{invoice.invoiceNumber}</TableCell>
               <TableCell className="py-3 px-2 font-medium">{invoice.customerName}</TableCell>
               <TableCell className="py-3 px-2">{invoice.vehicleNumberPlate}</TableCell>
               <TableCell className="py-3 px-2">{format(new Date(invoice.date), "MMM d, yyyy")}</TableCell>
@@ -86,7 +90,7 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
                 </Badge>
               </TableCell>
               <TableCell className="text-right py-3 px-2 font-mono">{formatPrice(invoice.total)}</TableCell>
-              <TableCell className="text-right py-3 px-2">
+              <TableCell className="text-right py-3 px-2" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -95,7 +99,7 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="rounded-none border-zinc-200">
-                    <DropdownMenuItem className="text-xs">View Details</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onViewDetails(invoice)} className="text-xs">View Details</DropdownMenuItem>
                     <DropdownMenuItem className="text-xs">Print Invoice</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

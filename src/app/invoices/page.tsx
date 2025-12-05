@@ -3,18 +3,20 @@
 import { useState, useMemo } from 'react';
 import { collection } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
-import type { Invoice, Customer, Vehicle, InvoiceStatus } from '@/lib/data';
+import type { Invoice, Customer, Vehicle } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { InvoicesTable } from '@/components/invoices/InvoicesTable';
 import { cn } from '@/lib/utils';
-import { FileText } from 'lucide-react';
+import { InvoiceDetailsDialog } from '@/components/invoices/InvoiceDetailsDialog';
 
 type EnrichedInvoice = WithId<Invoice> & {
   customerName?: string;
   vehicleNumberPlate?: string;
+  customerDetails?: WithId<Customer>;
+  vehicleDetails?: WithId<Vehicle>;
 };
 
-type FilterStatus = 'all' | InvoiceStatus;
+type FilterStatus = 'all' | 'Paid' | 'Partial' | 'Unpaid';
 
 export default function InvoicesPage() {
   const firestore = useFirestore();
@@ -24,22 +26,26 @@ export default function InvoicesPage() {
   const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
 
   const { data: invoices, isLoading: invoicesLoading } = useCollection<Invoice>(invoicesCollection);
-  const { data: customers, isLoading: customersLoading } = useCollection<Customer>(customersCollection);
-  const { data: vehicles, isLoading: vehiclesLoading } = useCollection<Vehicle>(vehiclesCollection);
+  const { data: customers, isLoading: customersLoading } = useCollection<WithId<Customer>>(customersCollection);
+  const { data: vehicles, isLoading: vehiclesLoading } = useCollection<WithId<Vehicle>>(vehiclesCollection);
   
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
+  const [selectedInvoice, setSelectedInvoice] = useState<EnrichedInvoice | null>(null);
+
 
   const enrichedInvoices = useMemo(() => {
     if (!invoices || !customers || !vehicles) return [];
     
-    const customerMap = new Map(customers.map(c => [c.id, c.name]));
-    const vehicleMap = new Map(vehicles.map(v => [v.id, v.numberPlate]));
+    const customerMap = new Map(customers.map(c => [c.id, c]));
+    const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
 
     return invoices
       .map(invoice => ({
         ...invoice,
-        customerName: customerMap.get(invoice.customerId) || 'N/A',
-        vehicleNumberPlate: vehicleMap.get(invoice.vehicleId) || 'N/A',
+        customerName: customerMap.get(invoice.customerId)?.name || 'N/A',
+        vehicleNumberPlate: vehicleMap.get(invoice.vehicleId)?.numberPlate || 'N/A',
+        customerDetails: customerMap.get(invoice.customerId),
+        vehicleDetails: vehicleMap.get(invoice.vehicleId),
       }))
       .sort((a, b) => b.date - a.date); // Sort by most recent first
   }, [invoices, customers, vehicles]);
@@ -52,6 +58,10 @@ export default function InvoicesPage() {
   }, [enrichedInvoices, activeFilter]);
   
   const isLoading = invoicesLoading || customersLoading || vehiclesLoading;
+
+  const handleViewDetails = (invoice: EnrichedInvoice) => {
+    setSelectedInvoice(invoice);
+  };
 
   const filterButtons: { label: string; value: FilterStatus }[] = [
     { label: 'All Invoices', value: 'all' },
@@ -89,8 +99,15 @@ export default function InvoicesPage() {
         <InvoicesTable 
             data={filteredInvoices} 
             isLoading={isLoading} 
+            onViewDetails={handleViewDetails}
         />
       </div>
+      
+      <InvoiceDetailsDialog
+        invoice={selectedInvoice}
+        isOpen={!!selectedInvoice}
+        onOpenChange={(isOpen) => !isOpen && setSelectedInvoice(null)}
+      />
     </div>
   );
 }
