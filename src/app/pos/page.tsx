@@ -12,8 +12,7 @@ import { cn } from '@/lib/utils';
 import { Search } from 'lucide-react';
 
 // --- Types ---
-type CartItem = (Product | Service) & {
-  id: string;
+type CartItem = WithId<Product | Service> & {
   cartId: string;
   quantity: number;
   type: 'product' | 'service';
@@ -49,13 +48,11 @@ export default function POSPage() {
       if (existing) {
         return prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      const price = 'sellingPrice' in item ? item.sellingPrice : item.price;
       return [...prev, {
         ...item,
         cartId: `${item.id}-${Date.now()}`,
         quantity: 1,
         type,
-        price,
         discountAmount: 0
       }];
     });
