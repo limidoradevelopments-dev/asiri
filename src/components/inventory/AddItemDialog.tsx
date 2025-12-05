@@ -55,6 +55,9 @@ const productSchema = z.object({
   stockThreshold: z.coerce.number().int().min(0, 'Re-order level cannot be negative'),
   actualPrice: z.coerce.number().min(0, 'Price cannot be negative'),
   sellingPrice: z.coerce.number().min(0, 'Price cannot be negative'),
+}).refine((data) => data.sellingPrice >= data.actualPrice, {
+  message: 'Selling price must be higher than or equal to the actual price',
+  path: ['sellingPrice'],
 });
 
 const serviceSchema = z.object({
@@ -454,5 +457,7 @@ export function AddItemDialog({
     </>
   );
 }
+
+    
 
     
