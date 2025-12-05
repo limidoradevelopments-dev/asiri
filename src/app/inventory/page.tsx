@@ -2,13 +2,14 @@
 'use client';
 
 import { useState, useMemo } from "react";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, increment, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Plus, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Product, Service } from "@/lib/data";
 import InventoryTable from "@/components/inventory/InventoryTable";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
+import { AddStockDialog } from "@/components/inventory/AddStockDialog";
 import { useFirestore, useCollection, useMemoFirebase, WithId } from "@/firebase";
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
@@ -23,10 +24,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function InventoryPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
   const servicesCollection = useMemoFirebase(() => collection(firestore, 'services'), [firestore]);
@@ -42,7 +45,7 @@ export default function InventoryPage() {
 
     return products.filter(product =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+      (product.sku && product.sku.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [products, searchQuery]);
 
@@ -63,7 +66,7 @@ export default function InventoryPage() {
 
   const [localCategories, setLocalCategories] = useState<string[]>([]);
   const [itemToEdit, setItemToEdit] = useState<WithId<Product> | WithId<Service> | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddItemDialogOpen, setAddItemDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{id: string, type: 'product' | 'service'} | null>(null);
 
   const allCategories = useMemo(() => {
@@ -90,9 +93,29 @@ export default function InventoryPage() {
     }
   };
 
+  const handleAddStock = async (productId: string, quantity: number) => {
+    const productRef = doc(firestore, 'products', productId);
+    try {
+      await updateDoc(productRef, {
+        stock: increment(quantity)
+      });
+      toast({
+        title: "Stock Updated",
+        description: `Added ${quantity} to the stock.`,
+      });
+    } catch (error) {
+      console.error("Error updating stock: ", error);
+       toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update stock.",
+      });
+    }
+  };
+
   const handleEdit = (item: WithId<Product> | WithId<Service>) => {
     setItemToEdit(item);
-    setIsDialogOpen(true);
+    setAddItemDialogOpen(true);
   };
   
   const handleDeleteRequest = (id: string, type: 'product' | 'service') => {
@@ -111,7 +134,7 @@ export default function InventoryPage() {
     if (!isOpen) {
       setItemToEdit(null);
     }
-    setIsDialogOpen(isOpen);
+    setAddItemDialogOpen(isOpen);
   }
 
   return (
@@ -135,7 +158,7 @@ export default function InventoryPage() {
                 categories={allCategories} 
                 setCategories={setLocalCategories}
                 itemToEdit={itemToEdit}
-                isOpen={isDialogOpen}
+                isOpen={isAddItemDialogOpen}
                 onOpenChange={onDialogClose}
               >
                 <Button>
@@ -143,10 +166,12 @@ export default function InventoryPage() {
                   Add Item
                 </Button>
               </AddItemDialog>
-              <Button variant="outline">
-                <Plus />
-                Add Stock
-              </Button>
+               <AddStockDialog products={products ?? []} onAddStock={handleAddStock}>
+                 <Button variant="outline">
+                   <Plus />
+                   Add Stock
+                 </Button>
+               </AddStockDialog>
             </div>
           </div>
         </CardContent>
@@ -188,7 +213,7 @@ export default function InventoryPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

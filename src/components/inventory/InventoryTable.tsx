@@ -50,7 +50,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
         {type === "product" && <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>}
         <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
-        {type === "product" && <TableCell className="text-right"><Skeleton className="h-5 w-12 mx-auto" /></TableCell>}
+        {type === "product" && <TableCell className="text-right"><Skeleton className="h-5 w-12 ml-auto" /></TableCell>}
         <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
         <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
       </TableRow>
@@ -58,7 +58,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
   );
 
   return (
-    <div className="overflow-x-auto mt-4">
+    <div className="overflow-x-auto mt-4 rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
       <Table>
         <TableHeader>
           <TableRow className="border-white/40">
@@ -103,7 +103,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => onEdit(item)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(item.id, type)} className="text-destructive">Delete</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(item.id, type)} className="text-destructive focus:text-destructive focus:bg-destructive/10">Delete</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

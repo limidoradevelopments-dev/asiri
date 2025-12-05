@@ -103,16 +103,21 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
         serviceForm.reset(itemToEdit);
       }
     } else {
-      productForm.reset();
-      serviceForm.reset();
+      productForm.reset({
+        name: '', sku: '', category: '', stockThreshold: 0, actualPrice: 0, sellingPrice: 0,
+      });
+      serviceForm.reset({
+        name: '', description: '', price: 0,
+      });
     }
   }, [itemToEdit, isEditMode, productForm, serviceForm, isOpen]);
 
 
   const onProductSubmit = (values: z.infer<typeof productSchema>) => {
+    const stockValue = (isEditMode && itemToEdit && 'stock' in itemToEdit) ? itemToEdit.stock : 0;
     const productData: Omit<Product, 'id'> = {
-      stock: isEditMode ? (itemToEdit as Product).stock : 0,
       ...values,
+      stock: stockValue,
     };
     onUpsertItem(productData, 'product', itemToEdit?.id);
     toast({ title: isEditMode ? 'Product Updated' : 'Product Added', description: `${values.name} has been saved.` });
@@ -206,13 +211,9 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
                                 {category}
                               </SelectItem>
                             ))}
-                            <button
+                             <button
                               type="button"
-                              className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground"
-                              onSelect={(e) => {
-                                e.preventDefault();
-                                setShowNewCategoryDialog(true);
-                              }}
+                              className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none"
                               onClick={(e) => {
                                 e.preventDefault();
                                 setShowNewCategoryDialog(true);
@@ -254,8 +255,7 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
                       )}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                     <FormField
+                  <FormField
                       control={productForm.control}
                       name="stockThreshold"
                       render={({ field }) => (
@@ -268,7 +268,6 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
                         </FormItem>
                       )}
                     />
-                  </div>
                   <DialogFooter className="mt-6">
                     <DialogClose asChild>
                       <Button type="button" variant="secondary">Cancel</Button>
@@ -344,6 +343,12 @@ export function AddItemDialog({ children, onUpsertItem, categories, setCategorie
             placeholder="e.g., Brakes"
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddNewCategory();
+              }
+            }}
           />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
