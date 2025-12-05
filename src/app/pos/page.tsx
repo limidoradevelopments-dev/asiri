@@ -102,7 +102,7 @@ export default function POSPage() {
       {/* GLOBAL TEXTURE: Subtle Noise is on body via layout */}
 
       {/* --- LEFT: CATALOG (65%) --- */}
-      <div className="relative z-10 w-[65%] flex flex-col pt-16 pl-12 pr-6">
+      <div className="relative z-10 w-[65%] flex flex-col pt-8 pl-12 pr-6">
         
         {/* Header Area */}
         <div className="flex justify-between items-start mb-16">
@@ -185,7 +185,7 @@ export default function POSPage() {
       <div className="relative z-20 w-[35%] flex flex-col bg-white border-l border-zinc-100 h-full">
         
         {/* Ticket Header */}
-        <div className="pt-16 px-10 pb-8">
+        <div className="pt-8 px-10 pb-8">
             <div className="flex justify-between items-baseline mb-8">
                 <span className="text-xs uppercase tracking-[0.2em] text-zinc-400">Ticket</span>
                 <span className="font-mono text-sm text-zinc-400">NO. {new Date().getTime().toString().slice(-4)}</span>

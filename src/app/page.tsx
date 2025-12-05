@@ -12,7 +12,7 @@ import {
 
 export default function DashboardPage() {
   return (
-    <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-16 pb-12">
+    <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-8 pb-12">
         
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row justify-between items-start mb-16 gap-8">
