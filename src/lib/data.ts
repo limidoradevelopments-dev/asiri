@@ -142,3 +142,20 @@ export interface Employee {
   mobile: string;
   notes?: string;
 }
+
+export interface Customer {
+  name: string;
+  phone: string;
+  address?: string;
+  nic?: string;
+}
+
+export interface Vehicle {
+  numberPlate: string;
+  make: string;
+  model: string;
+  year: number;
+  customerId: string;
+}
+
+    

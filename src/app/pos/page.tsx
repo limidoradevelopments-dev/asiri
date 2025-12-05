@@ -2,14 +2,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
-import type { Product, Service, Employee } from '@/lib/data';
+import type { Product, Service, Employee, Customer, Vehicle } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Search, Trash2, ChevronsUpDown, Check } from 'lucide-react';
+import { Search, Trash2, ChevronsUpDown, Check, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -24,7 +24,8 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { AddCustomerVehicleDialog } from '@/components/pos/AddCustomerVehicleDialog';
 
 // --- Types ---
 type CartItem = WithId<Product | Service> & {
@@ -41,10 +42,14 @@ export default function POSPage() {
   const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
   const servicesCollection = useMemoFirebase(() => collection(firestore, 'services'), [firestore]);
   const employeesCollection = useMemoFirebase(() => collection(firestore, 'employees'), [firestore]);
+  const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
+  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
 
   const { data: products } = useCollection<WithId<Product>>(productsCollection);
   const { data: services } = useCollection<WithId<Service>>(servicesCollection);
   const { data: employees } = useCollection<WithId<Employee>>(employeesCollection);
+  const { data: customers } = useCollection<WithId<Customer>>(customersCollection);
+  const { data: vehicles } = useCollection<WithId<Vehicle>>(vehiclesCollection);
 
   // --- State ---
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -53,7 +58,9 @@ export default function POSPage() {
   const [globalDiscountPercent, setGlobalDiscountPercent] = useState<number>(0);
   const [selectedEmployee, setSelectedEmployee] = useState<WithId<Employee> | null>(null);
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
-
+  const [isCustomerDialogOpen, setCustomerDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<WithId<Customer> | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<WithId<Vehicle> | null>(null);
 
   // --- Logic Helpers ---
   const formatPrice = (price: number) => {
@@ -98,6 +105,23 @@ export default function POSPage() {
       }
       return item;
     }));
+  };
+  
+  const handleSelectCustomerAndVehicle = (customer: WithId<Customer>, vehicle: WithId<Vehicle>) => {
+    setSelectedCustomer(customer);
+    setSelectedVehicle(vehicle);
+    setCustomerDialogOpen(false);
+  };
+  
+  const handleCreateCustomerAndVehicle = async (customerData: Omit<Customer, 'id'>, vehicleData: Omit<Vehicle, 'id' | 'customerId'>) => {
+    const customerRef = await addDocumentNonBlocking(customersCollection, customerData);
+    if(customerRef) {
+      const newVehicleData = { ...vehicleData, customerId: customerRef.id };
+      const vehicleRef = await addDocumentNonBlocking(vehiclesCollection, newVehicleData);
+      if(vehicleRef) {
+        handleSelectCustomerAndVehicle({ ...customerData, id: customerRef.id }, { ...newVehicleData, id: vehicleRef.id });
+      }
+    }
   };
 
   // --- Calculations ---
@@ -210,7 +234,24 @@ export default function POSPage() {
         
         {/* Ticket Header */}
         <div className="pt-8 px-10 pb-4">
-            <div className="flex justify-between items-baseline mb-4">
+            <div className="flex justify-between items-center mb-4">
+                <span className="text-xs uppercase tracking-[0.2em] text-zinc-400">Customer</span>
+                 <Button
+                    variant="link"
+                    className="p-0 h-auto font-mono text-sm text-zinc-400 hover:text-black focus:text-black flex items-center"
+                    onClick={() => setCustomerDialogOpen(true)}
+                  >
+                    {selectedCustomer && selectedVehicle ? (
+                      <div className='text-right'>
+                        <div className='font-semibold'>{selectedCustomer.name}</div>
+                        <div className='text-zinc-400 font-normal'>{selectedVehicle.numberPlate}</div>
+                      </div>
+                    ) : "Add Customer / Vehicle"}
+                    {!selectedCustomer && <UserPlus className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
+                  </Button>
+            </div>
+             <div className="w-full h-px bg-zinc-200" />
+            <div className="flex justify-between items-baseline my-4">
                 <span className="text-xs uppercase tracking-[0.2em] text-zinc-400">Job By</span>
                 <Popover open={employeePopoverOpen} onOpenChange={setEmployeePopoverOpen}>
                   <PopoverTrigger asChild>
@@ -358,8 +399,18 @@ export default function POSPage() {
                 Process Payment
             </button>
         </div>
-
+         <AddCustomerVehicleDialog
+            isOpen={isCustomerDialogOpen}
+            onOpenChange={setCustomerDialogOpen}
+            customers={customers || []}
+            vehicles={vehicles || []}
+            onSelect={handleSelectCustomerAndVehicle}
+            onCreate={handleCreateCustomerAndVehicle}
+          />
       </div>
     </div>
   );
 }
+
+
+    
