@@ -15,7 +15,7 @@ export default function InventoryPage() {
     <SidebarProvider>
       <div className="flex min-h-screen">
         <DashboardSidebar />
-        <SidebarInset className="flex flex-1 flex-col bg-background">
+        <SidebarInset className="flex flex-1 bg-background">
           <DashboardHeader />
           <main className="flex-1 overflow-y-auto p-2 sm:p-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
