@@ -7,8 +7,8 @@ import InventoryTable from "@/components/inventory/InventoryTable";
 
 export default function InventoryPage() {
   return (
-    <main className="flex-1 overflow-y-auto p-2 sm:p-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+    <main className="flex-1 overflow-y-auto p-2 sm:p-4 w-full">
+      <div className="flex sm:flex-row justify-between items-start sm:items-center mb-4">
         <div className="flex items-center gap-4">
           {/* These buttons are ready for future functionality */}
           <Button>

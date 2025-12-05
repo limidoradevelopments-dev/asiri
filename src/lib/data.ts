@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from "lucide-react";
 import { DollarSign, Archive, Users, FileText } from "lucide-react";
 import { format } from "date-fns";
@@ -131,8 +132,7 @@ export type Product = {
 export type Service = {
   id: string;
   name: string;
-  category: string;
-  duration: string;
+  description?: string;
   price: number;
 };
 
@@ -146,9 +146,9 @@ export const productsData: Product[] = [
 ];
 
 export const servicesData: Service[] = [
-  { id: 'SERV-001', name: 'Full Service Package', category: 'Maintenance', duration: '3 hours', price: 25000.00 },
-  { id: 'SERV-002', name: 'Oil Change', category: 'Maintenance', duration: '30 minutes', price: 5000.00 },
-  { id: 'SERV-003', name: 'Brake Inspection & Cleaning', category: 'Brakes', duration: '1 hour', price: 7500.00 },
-  { id: 'SERV-004', name: 'Wheel Alignment', category: 'Suspension', duration: '45 minutes', price: 6000.00 },
-  { id: 'SERV-005', name: 'AC System Check', category: 'Air Conditioning', duration: '1 hour', price: 8000.00 },
+  { id: 'SERV-001', name: 'Full Service Package', description: 'Comprehensive vehicle maintenance package', price: 25000.00 },
+  { id: 'SERV-002', name: 'Oil Change', description: 'Includes oil and filter change', price: 5000.00 },
+  { id: 'SERV-003', name: 'Brake Inspection & Cleaning', price: 7500.00 },
+  { id: 'SERV-004', name: 'Wheel Alignment', description: 'Four-wheel alignment', price: 6000.00 },
+  { id: 'SERV-005', name: 'AC System Check', price: 8000.00 },
 ];

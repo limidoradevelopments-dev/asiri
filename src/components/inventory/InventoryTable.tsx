@@ -1,3 +1,4 @@
+
 import type { Product, Service } from "@/lib/data";
 import {
   Table,
@@ -37,9 +38,10 @@ export default function InventoryTable({ data, type }: InventoryTableProps) {
         <TableHeader>
           <TableRow className="border-white/40">
             <TableHead className="text-secondary-text">Name</TableHead>
-            <TableHead className="hidden sm:table-cell text-secondary-text">Category</TableHead>
+            <TableHead className="hidden sm:table-cell text-secondary-text">
+              {type === 'product' ? 'Category' : 'Description'}
+            </TableHead>
             {type === "product" && <TableHead className="text-right text-secondary-text">Stock</TableHead>}
-            {type === "service" && <TableHead className="hidden md:table-cell text-secondary-text">Duration</TableHead>}
             <TableHead className="text-right text-secondary-text">Price</TableHead>
             <TableHead>
               <span className="sr-only">Actions</span>
@@ -50,7 +52,9 @@ export default function InventoryTable({ data, type }: InventoryTableProps) {
           {data.map((item) => (
             <TableRow key={item.id} className="border-white/40">
               <TableCell className="font-medium text-primary-text">{item.name}</TableCell>
-              <TableCell className="hidden sm:table-cell text-primary-text">{item.category}</TableCell>
+              <TableCell className="hidden sm:table-cell text-primary-text">
+                {type === 'product' ? (item as Product).category : (item as Service).description}
+              </TableCell>
               {type === "product" && (item as Product).stock !== undefined && (
                 <TableCell className="text-right">
                   <Badge 
@@ -60,9 +64,6 @@ export default function InventoryTable({ data, type }: InventoryTableProps) {
                     {(item as Product).stock}
                   </Badge>
                 </TableCell>
-              )}
-               {type === "service" && (
-                <TableCell className="hidden md:table-cell text-primary-text">{(item as Service).duration}</TableCell>
               )}
               <TableCell className="text-right text-primary-text">{formatPrice(item.price)}</TableCell>
               <TableCell className="text-right">
