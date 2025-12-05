@@ -255,6 +255,7 @@ export default function POSPage() {
     // We don't save changeDue in the invoice as it's not a financial record, but it was used for the UI.
     const { changeDue, ...restOfPaymentDetails } = paymentDetails;
 
+    // DEFINITIVE FIX: Construct a base invoice, then conditionally add cheque details.
     const invoice: Omit<Invoice, 'id'> = {
       invoiceNumber: `INV-${Date.now()}`,
       customerId: selectedCustomer.id,
@@ -266,12 +267,15 @@ export default function POSPage() {
       globalDiscountPercent,
       globalDiscountAmount: totals.globalDiscountAmount,
       total: totals.total,
-      ...restOfPaymentDetails
+      paymentStatus: paymentDetails.paymentStatus,
+      amountPaid: paymentDetails.amountPaid,
+      balanceDue: paymentDetails.balanceDue,
+      paymentMethod: paymentDetails.paymentMethod,
     };
-
+    
     if (paymentDetails.paymentMethod === 'Check') {
-      invoice.chequeNumber = paymentDetails.chequeNumber;
-      invoice.bank = paymentDetails.bank;
+      invoice.chequeNumber = paymentDetails.chequeNumber || '';
+      invoice.bank = paymentDetails.bank || '';
     }
     
     // 4. Execute Database Operations
@@ -281,15 +285,12 @@ export default function POSPage() {
     for (const item of cart) {
       if (item.type === 'product') {
         const productRef = doc(firestore, 'products', item.id);
-        // Using await here to ensure stock is updated before we clear the state
-        // but wrapped in a try/catch so one failure doesn't stop the whole process
         try {
           await updateDoc(productRef, {
             stock: increment(-item.quantity)
           });
         } catch (error) {
            console.error(`Failed to update stock for product ${item.id}:`, error);
-            // Optionally, you could add this to a list of failed updates to show the user
         }
       }
     }
