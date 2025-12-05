@@ -50,11 +50,13 @@ export default function InventoryPage() {
     if (id) {
       // Update existing item
       const docRef = doc(firestore, type === 'product' ? 'products' : 'services', id);
-      updateDocumentNonBlocking(docRef, item);
+      updateDocumentNonBlocking(docRef, { ...item });
     } else {
       // Add new item
       const collectionRef = type === 'product' ? productsCollection : servicesCollection;
-      addDocumentNonBlocking(collectionRef, item);
+      if (collectionRef) {
+          addDocumentNonBlocking(collectionRef, item);
+      }
       if (type === 'product') {
         const newCategory = (item as Product).category;
         if (!allCategories.includes(newCategory)) {
@@ -81,9 +83,11 @@ export default function InventoryPage() {
     }
   };
 
-  const onDialogClose = () => {
-    setIsDialogOpen(false);
-    setItemToEdit(null);
+  const onDialogClose = (isOpen: boolean) => {
+    if (!isOpen) {
+      setItemToEdit(null);
+    }
+    setIsDialogOpen(isOpen);
   }
 
   return (
@@ -98,7 +102,7 @@ export default function InventoryPage() {
             isOpen={isDialogOpen}
             onOpenChange={onDialogClose}
           >
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button>
               <PlusCircle />
               Add Item
             </Button>
