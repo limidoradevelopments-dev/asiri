@@ -27,6 +27,7 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/no
 import { AddCustomerVehicleDialog } from '@/components/pos/AddCustomerVehicleDialog';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentDialog } from '@/components/pos/PaymentDialog';
+import { Input } from '@/components/ui/input';
 
 // --- Types ---
 type StandardCartItem = WithId<Product | Service> & {
@@ -280,9 +281,6 @@ export default function POSPage() {
       };
     });
 
-    // We don't save changeDue in the invoice as it's not a financial record, but it was used for the UI.
-    const { changeDue, ...restOfPaymentDetails } = paymentDetails;
-
     // DEFINITIVE FIX: Construct a base invoice, then conditionally add cheque details.
     const invoice: Omit<Invoice, 'id'> = {
       invoiceNumber: `INV-${Date.now()}`,
@@ -301,9 +299,9 @@ export default function POSPage() {
       paymentMethod: paymentDetails.paymentMethod,
     };
     
-    if (paymentDetails.paymentMethod === 'Check') {
-      invoice.chequeNumber = paymentDetails.chequeNumber || '';
-      invoice.bank = paymentDetails.bank || '';
+    if (paymentDetails.paymentMethod === 'Check' && paymentDetails.chequeNumber && paymentDetails.bank) {
+      invoice.chequeNumber = paymentDetails.chequeNumber;
+      invoice.bank = paymentDetails.bank;
     }
     
     // 4. Execute Database Operations
@@ -692,5 +690,7 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
 
     
