@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState } from 'react';
 import { collection } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
 import type { Product, Service } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 // --- Types ---
 type CartItem = (Product | Service) & {
+  id: string;
   cartId: string;
   quantity: number;
   type: 'product' | 'service';
@@ -40,7 +42,7 @@ export default function POSPage() {
     });
   };
 
-  const addToCart = (item: Product | Service, type: 'product' | 'service') => {
+  const addToCart = (item: WithId<Product> | WithId<Service>, type: 'product' | 'service') => {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
       if (existing) {
@@ -89,6 +91,9 @@ export default function POSPage() {
   const globalDiscountAmount = subtotalBeforeGlobalDiscount * (globalDiscountPercent / 100);
   const total = subtotalBeforeGlobalDiscount - globalDiscountAmount;
 
+  const itemsToShow = (activeTab === 'services' ? services : products)
+    ?.filter((i: any) => i.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div className="flex h-screen w-full bg-[#fcfcfc] text-zinc-900 font-sans overflow-hidden">
       
@@ -136,7 +141,7 @@ export default function POSPage() {
             {/* Grid - UPDATED SECTION */}
             <ScrollArea className="flex-1 -mr-4 pr-4">
                 <div className="grid grid-cols-3 gap-6 pb-20">
-                    {(activeTab === 'services' ? services : products)?.filter((i:any) => i.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item: any) => (
+                    {itemsToShow?.map((item) => (
                         <button 
                             key={item.id} 
                             onClick={() => addToCart(item, activeTab === 'services' ? 'service' : 'product')} 
@@ -145,10 +150,10 @@ export default function POSPage() {
                             {/* Top Row: Category & Price */}
                             <div className="flex justify-between items-start w-full">
                                 <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-300 group-hover:text-black transition-colors border border-zinc-100 group-hover:border-zinc-900 px-1.5 py-0.5 rounded-sm">
-                                    {item.category || (activeTab === 'services' ? 'SVC' : 'PRD')}
+                                    {'category' in item ? item.category : 'vehicleCategory' in item ? item.vehicleCategory : (activeTab === 'services' ? 'SVC' : 'PRD')}
                                 </span>
                                 <span className="font-mono text-lg font-medium text-zinc-900">
-                                    {formatPrice(item.sellingPrice || item.price)}
+                                    {formatPrice('sellingPrice' in item ? item.sellingPrice : item.price)}
                                 </span>
                             </div>
                             
@@ -290,3 +295,6 @@ export default function POSPage() {
     </div>
   );
 }
+
+
+    
