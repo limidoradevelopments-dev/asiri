@@ -27,8 +27,10 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer, Vehicle } from '@/lib/data';
-import { WithId } from '@/firebase';
+import { WithId, useCollection, useMemoFirebase } from '@/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Full Name is required'),
@@ -70,6 +72,9 @@ export function AddCustomerVehicleDialog({
   onOpenChange 
 }: AddCustomerVehicleDialogProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
+  const { data: vehicles } = useCollection<Vehicle>(vehiclesCollection);
   
   const isEditMode = !!itemToEdit;
   
@@ -99,6 +104,14 @@ export function AddCustomerVehicleDialog({
 
 
   const onSubmit = (values: z.infer<typeof combinedSchema>) => {
+    if (!isEditMode && vehicles?.some(v => v.numberPlate === values.numberPlate)) {
+        form.setError('numberPlate', {
+            type: 'manual',
+            message: 'A vehicle with this number plate already exists.',
+        });
+        return;
+    }
+    
     const { name, phone, address, nic, ...vehicleData } = values;
     const customerData = { name, phone, address, nic };
     

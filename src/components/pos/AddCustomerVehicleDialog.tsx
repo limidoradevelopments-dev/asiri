@@ -70,6 +70,13 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
   }, [searchQuery, vehicles]);
 
   const onSubmit = (values: z.infer<typeof customerSchema> & z.infer<typeof vehicleSchema>) => {
+     if (vehicles?.some(v => v.numberPlate === values.numberPlate)) {
+        form.setError('numberPlate', {
+            type: 'manual',
+            message: 'A vehicle with this number plate already exists.',
+        });
+        return;
+    }
     const { name, phone, address, nic, ...vehicleData } = values;
     const customerData = { name, phone, address, nic };
     const finalVehicleData: Omit<Vehicle, 'id' | 'customerId'> = {
@@ -88,9 +95,17 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
 
   const formatLastVisit = (timestamp: number | undefined) => {
     if (!timestamp) return 'No previous visits';
-    const date = new Date(timestamp);
-    return `${format(date, 'MMM d, yyyy')} (${formatDistanceToNow(date, { addSuffix: true })})`;
+    try {
+      const date = new Date(timestamp);
+      // Check if timestamp is in seconds, convert to milliseconds
+      const dateToFormat = timestamp > 1000000000000 ? date : new Date(timestamp * 1000);
+      if (isNaN(dateToFormat.getTime())) return 'Invalid date';
+      return `${format(dateToFormat, 'MMM d, yyyy')} (${formatDistanceToNow(dateToFormat, { addSuffix: true })})`;
+    } catch(e) {
+      return 'Invalid date';
+    }
   };
+
 
   const commonInputStyles = "rounded-none h-11 text-base";
   const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
