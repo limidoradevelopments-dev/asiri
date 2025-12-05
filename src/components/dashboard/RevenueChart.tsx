@@ -56,14 +56,13 @@ export default function RevenueChart({ data }: RevenueChartProps) {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => value.slice(0, 3)} 
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => `Rs. ${value / 1000}k`}
+                tickFormatter={(value) => `Rs. ${Number(value) / 1000}k`}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
               />
               <ChartTooltip
