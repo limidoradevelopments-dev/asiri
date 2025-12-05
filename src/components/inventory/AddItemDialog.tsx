@@ -7,17 +7,16 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-  SheetClose,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Form,
@@ -27,7 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import type { Product, Service } from '@/lib/data';
 
 const productSchema = z.object({
@@ -45,13 +44,14 @@ const serviceSchema = z.object({
   price: z.coerce.number().min(0, 'Price cannot be negative'),
 });
 
-type AddItemSheetProps = {
+type AddItemDialogProps = {
   children: React.ReactNode;
   onAddItem: (item: Product | Service, type: 'product' | 'service') => void;
 };
 
-export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
+export function AddItemDialog({ children, onAddItem }: AddItemDialogProps) {
   const [open, setOpen] = useState(false);
+  const { toast } = useToast();
   
   const productForm = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -98,15 +98,15 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent className="sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle>Add New Item</SheetTitle>
-          <SheetDescription>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add New Item</DialogTitle>
+          <DialogDescription>
             Add a new product or service to your inventory.
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
         <Tabs defaultValue="product" className="mt-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="product">Product</TabsTrigger>
@@ -197,11 +197,11 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
                     )}
                   />
                 </div>
-                <SheetFooter className="mt-6">
-                  <SheetClose asChild>
+                <DialogFooter className="mt-6">
+                  <DialogClose asChild>
                     <Button type="submit">Add Product</Button>
-                  </SheetClose>
-                </SheetFooter>
+                  </DialogClose>
+                </DialogFooter>
               </form>
             </Form>
           </TabsContent>
@@ -247,16 +247,16 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
                     </FormItem>
                   )}
                 />
-                <SheetFooter className="mt-6">
-                  <SheetClose asChild>
+                <DialogFooter className="mt-6">
+                  <DialogClose asChild>
                     <Button type="submit">Add Service</Button>
-                  </SheetClose>
-                </SheetFooter>
+                  </DialogClose>
+                </DialogFooter>
               </form>
             </Form>
           </TabsContent>
         </Tabs>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

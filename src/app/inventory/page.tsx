@@ -7,7 +7,7 @@ import { PlusCircle, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { productsData as initialProducts, servicesData as initialServices, Product, Service } from "@/lib/data";
 import InventoryTable from "@/components/inventory/InventoryTable";
-import { AddItemSheet } from "@/components/inventory/AddItemSheet";
+import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -25,12 +25,12 @@ export default function InventoryPage() {
     <main className="flex-1 overflow-y-auto p-2 sm:p-4 w-full">
       <div className="flex sm:flex-row justify-between items-start sm:items-center mb-4">
         <div className="flex items-center gap-4">
-          <AddItemSheet onAddItem={handleAddItem}>
+          <AddItemDialog onAddItem={handleAddItem}>
             <Button>
               <PlusCircle />
               Add Item
             </Button>
-          </AddItemSheet>
+          </AddItemDialog>
           <Button variant="outline">
             <Plus />
             Add Stock
