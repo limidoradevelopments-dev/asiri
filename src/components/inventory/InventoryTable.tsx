@@ -17,16 +17,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Loader } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type InventoryTableProps = {
   data: WithId<Product>[] | WithId<Service>[];
   type: "product" | "service";
   isLoading: boolean;
+  onEdit: (item: WithId<Product> | WithId<Service>) => void;
+  onDelete: (id: string, type: "product" | "service") => void;
 };
 
-export default function InventoryTable({ data, type, isLoading }: InventoryTableProps) {
+export default function InventoryTable({ data, type, isLoading, onEdit, onDelete }: InventoryTableProps) {
   const formatPrice = (price: number) => {
     return price.toLocaleString("en-US", {
       style: "currency",
@@ -97,10 +99,8 @@ export default function InventoryTable({ data, type, isLoading }: InventoryTable
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
-                    <DropdownMenuItem>View Details</DropdownMenuItem>
-                    {type === "product" && <DropdownMenuItem>Adjust Stock</DropdownMenuItem>}
-                    <DropdownMenuItem className="text-destructive-foreground">Delete</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(item)}>Edit</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(item.id, type)} className="text-destructive-foreground">Delete</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Service } from '@/lib/data';
+import { WithId } from '@/firebase';
 import {
   Select,
   SelectContent,
@@ -64,57 +65,64 @@ const serviceSchema = z.object({
 
 type AddItemDialogProps = {
   children: React.ReactNode;
-  onAddItem: (item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service') => void;
+  onUpsertItem: (item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service', id?: string) => void;
   categories: string[];
   setCategories: React.Dispatch<React.SetStateAction<string[]>>;
+  itemToEdit?: WithId<Product> | WithId<Service> | null;
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
 };
 
-export function AddItemDialog({ children, onAddItem, categories, setCategories }: AddItemDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddItemDialog({ children, onUpsertItem, categories, setCategories, itemToEdit, isOpen, onOpenChange }: AddItemDialogProps) {
   const [showNewCategoryDialog, setShowNewCategoryDialog] = useState(false);
   const [newCategory, setNewCategory] = useState('');
   const { toast } = useToast();
   
+  const isEditMode = !!itemToEdit;
+  const itemType = itemToEdit ? ('sku' in itemToEdit ? 'product' : 'service') : 'product';
+  
   const productForm = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: '',
-      sku: '',
-      category: '',
-      stockThreshold: 0,
-      actualPrice: 0,
-      sellingPrice: 0,
+      name: '', sku: '', category: '', stockThreshold: 0, actualPrice: 0, sellingPrice: 0,
     },
   });
 
   const serviceForm = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
-      name: '',
-      description: '',
-      price: 0,
+      name: '', description: '', price: 0,
     },
   });
 
+  useEffect(() => {
+    if (isEditMode && itemToEdit) {
+      if ('sku' in itemToEdit) { // It's a Product
+        productForm.reset(itemToEdit);
+      } else { // It's a Service
+        serviceForm.reset(itemToEdit);
+      }
+    } else {
+      productForm.reset();
+      serviceForm.reset();
+    }
+  }, [itemToEdit, isEditMode, productForm, serviceForm, isOpen]);
+
+
   const onProductSubmit = (values: z.infer<typeof productSchema>) => {
-    const newProduct: Omit<Product, 'id'> = {
-      stock: 0,
+    const productData: Omit<Product, 'id'> = {
+      stock: isEditMode ? (itemToEdit as Product).stock : 0,
       ...values,
     };
-    onAddItem(newProduct, 'product');
-    toast({ title: 'Product Added', description: `${values.name} has been added.` });
-    productForm.reset();
-    setOpen(false);
+    onUpsertItem(productData, 'product', itemToEdit?.id);
+    toast({ title: isEditMode ? 'Product Updated' : 'Product Added', description: `${values.name} has been saved.` });
+    onOpenChange(false);
   };
 
   const onServiceSubmit = (values: z.infer<typeof serviceSchema>) => {
-    const newService: Omit<Service, 'id'> = {
-      ...values,
-    };
-    onAddItem(newService, 'service');
-    toast({ title: 'Service Added', description: `${values.name} has been added.` });
-    serviceForm.reset();
-    setOpen(false);
+    onUpsertItem(values, 'service', itemToEdit?.id);
+    toast({ title: isEditMode ? 'Service Updated' : 'Service Added', description: `${values.name} has been saved.` });
+    onOpenChange(false);
   };
 
   const handleAddNewCategory = () => {
@@ -128,19 +136,19 @@ export function AddItemDialog({ children, onAddItem, categories, setCategories }
 
   return (
     <>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Add New Item</DialogTitle>
+            <DialogTitle>{isEditMode ? 'Edit Item' : 'Add New Item'}</DialogTitle>
             <DialogDescription>
-              Add a new product or service to your inventory.
+              {isEditMode ? 'Update the details of the item.' : 'Add a new product or service to your inventory.'}
             </DialogDescription>
           </DialogHeader>
-          <Tabs defaultValue="product" className="mt-4">
+          <Tabs defaultValue={itemType} className="mt-4">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="product">Product</TabsTrigger>
-              <TabsTrigger value="service">Service</TabsTrigger>
+              <TabsTrigger value="product" disabled={isEditMode && itemType === 'service'}>Product</TabsTrigger>
+              <TabsTrigger value="service" disabled={isEditMode && itemType === 'product'}>Service</TabsTrigger>
             </TabsList>
             <TabsContent value="product">
               <Form {...productForm}>
@@ -265,7 +273,7 @@ export function AddItemDialog({ children, onAddItem, categories, setCategories }
                     <DialogClose asChild>
                       <Button type="button" variant="secondary">Cancel</Button>
                     </DialogClose>
-                    <Button type="submit">Add Product</Button>
+                    <Button type="submit">{isEditMode ? 'Save Changes' : 'Add Product'}</Button>
                   </DialogFooter>
                 </form>
               </Form>
@@ -316,7 +324,7 @@ export function AddItemDialog({ children, onAddItem, categories, setCategories }
                     <DialogClose asChild>
                       <Button type="button" variant="secondary">Cancel</Button>
                     </DialogClose>
-                    <Button type="submit">Add Service</Button>
+                    <Button type="submit">{isEditMode ? 'Save Changes' : 'Add Service'}</Button>
                   </DialogFooter>
                 </form>
               </Form>
