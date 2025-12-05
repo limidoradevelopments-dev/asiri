@@ -48,6 +48,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
     Array.from({ length: 5 }).map((_, index) => (
       <TableRow key={index}>
         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+        {type === "product" && <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>}
         <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
         {type === "product" && <TableCell className="text-right"><Skeleton className="h-5 w-12 mx-auto" /></TableCell>}
         <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
@@ -62,6 +63,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
         <TableHeader>
           <TableRow className="border-white/40">
             <TableHead className="text-secondary-text">Name</TableHead>
+            {type === 'product' && <TableHead className="hidden sm:table-cell text-secondary-text">SKU</TableHead>}
             <TableHead className="hidden sm:table-cell text-secondary-text">
               {type === 'product' ? 'Category' : 'Description'}
             </TableHead>
@@ -76,6 +78,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
           {isLoading ? renderSkeleton() : data.map((item) => (
             <TableRow key={item.id} className="border-white/40">
               <TableCell className="font-medium text-primary-text">{item.name}</TableCell>
+              {type === 'product' && <TableCell className="hidden sm:table-cell text-primary-text">{(item as WithId<Product>).sku}</TableCell>}
               <TableCell className="hidden sm:table-cell text-primary-text">
                 {type === 'product' ? (item as WithId<Product>).category : (item as WithId<Service>).description}
               </TableCell>
