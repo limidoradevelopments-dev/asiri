@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Search, UserPlus } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Full Name is required'),
@@ -178,5 +179,3 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
     </Dialog>
   );
 }
-
-    
