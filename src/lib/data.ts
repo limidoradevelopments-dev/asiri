@@ -159,4 +159,5 @@ export interface Vehicle {
   mileage?: number;
   fuelType?: 'Petrol' | 'Diesel' | 'Hybrid' | 'EV';
   transmission?: 'Auto' | 'Manual';
+  lastVisit?: number;
 }

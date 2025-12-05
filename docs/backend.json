@@ -76,6 +76,10 @@
             "Auto",
             "Manual"
           ]
+        },
+        "lastVisit": {
+          "type": "number",
+          "description": "Timestamp of the last visit/invoice date."
         }
       },
       "required": [
@@ -92,33 +96,80 @@
       "type": "object",
       "description": "Represents an invoice for a service performed.",
       "properties": {
-        "id": {
+        "invoiceNumber": {
           "type": "string",
-          "description": "Unique identifier for the invoice."
+          "description": "The sequential invoice number."
         },
         "customerId": {
           "type": "string",
-          "description": "Reference to Customer. (Relationship: Customer 1:N Invoice)"
+          "description": "ID of the customer."
         },
-        "invoiceNumber": {
+        "vehicleId": {
           "type": "string",
-          "description": "The invoice number."
+          "description": "ID of the vehicle."
+        },
+        "employeeId": {
+          "type": "string",
+          "description": "ID of the employee who performed the job."
         },
         "date": {
           "type": "number",
-          "description": "The date the invoice was issued."
+          "description": "The date the invoice was created (timestamp)."
         },
-        "amount": {
-          "type": "number",
-          "description": "The total amount of the invoice."
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "unitPrice": {
+                "type": "number"
+              },
+              "discount": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "itemId",
+              "name",
+              "quantity",
+              "unitPrice",
+              "total"
+            ]
+          }
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "globalDiscountPercent": {
+          "type": "number"
+        },
+        "globalDiscountAmount": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
         }
       },
       "required": [
-        "id",
-        "customerId",
         "invoiceNumber",
+        "customerId",
+        "vehicleId",
+        "employeeId",
         "date",
-        "amount"
+        "items",
+        "total"
       ]
     },
     "StockItem": {
@@ -328,18 +379,14 @@
         }
       },
       {
-        "path": "/customers/{customerId}/invoices/{invoiceId}",
+        "path": "/invoices/{invoiceId}",
         "definition": {
           "entityName": "Invoice",
           "schema": {
             "$ref": "#/backend/entities/Invoice"
           },
-          "description": "Stores invoices associated with a specific customer. Authorization is based on path-based ownership (customer ID).",
+          "description": "Stores invoices for services.",
           "params": [
-            {
-              "name": "customerId",
-              "description": "The unique ID of the customer."
-            },
             {
               "name": "invoiceId",
               "description": "The unique ID of the invoice."

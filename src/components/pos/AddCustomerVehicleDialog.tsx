@@ -15,6 +15,7 @@ import { Search, UserPlus } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { format, formatDistanceToNow } from 'date-fns';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Full Name is required'),
@@ -85,6 +86,12 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
     }
   }
 
+  const formatLastVisit = (timestamp: number | undefined) => {
+    if (!timestamp) return 'No previous visits';
+    const date = new Date(timestamp);
+    return `${format(date, 'MMM d, yyyy')} (${formatDistanceToNow(date, { addSuffix: true })})`;
+  };
+
   const commonInputStyles = "rounded-none h-11 text-base";
   const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
   
@@ -121,7 +128,10 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
                         <p className="font-semibold">{vehicle.numberPlate}</p>
                         <p className="text-sm text-zinc-500">{customer?.name} - {vehicle.make} {vehicle.model} ({vehicle.year})</p>
                       </div>
-                       <span className="text-xs uppercase tracking-widest text-zinc-400">Select</span>
+                       <div className="text-right">
+                          <p className="text-xs text-zinc-400">{formatLastVisit(vehicle.lastVisit)}</p>
+                          <span className="text-xs uppercase tracking-widest text-zinc-400 group-hover:text-black">Select</span>
+                       </div>
                     </button>
                   )
                 })
@@ -170,7 +180,7 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
                       <FormItem><FormLabel>Make (Brand)</FormLabel><FormControl><Input placeholder="e.g., Toyota" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="model" render={({ field }) => (
-                      <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="e.g., Corolla" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="e.g., Corolla" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormMessage>
                     )} />
                 </div>
                  <div className="grid grid-cols-3 gap-4">

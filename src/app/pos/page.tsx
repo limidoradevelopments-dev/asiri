@@ -2,9 +2,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
-import type { Product, Service, Employee, Customer, Vehicle } from '@/lib/data';
+import type { Product, Service, Employee, Customer, Vehicle, Invoice } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -24,8 +24,9 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { AddCustomerVehicleDialog } from '@/components/pos/AddCustomerVehicleDialog';
+import { useToast } from '@/hooks/use-toast';
 
 // --- Types ---
 type CartItem = WithId<Product | Service> & {
@@ -37,6 +38,7 @@ type CartItem = WithId<Product | Service> & {
 
 export default function POSPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   // --- Data Fetching ---
   const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
@@ -44,6 +46,7 @@ export default function POSPage() {
   const employeesCollection = useMemoFirebase(() => collection(firestore, 'employees'), [firestore]);
   const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
   const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
+  const invoicesCollection = useMemoFirebase(() => collection(firestore, 'invoices'), [firestore]);
 
   const { data: products } = useCollection<WithId<Product>>(productsCollection);
   const { data: services } = useCollection<WithId<Service>>(servicesCollection);
@@ -140,6 +143,62 @@ export default function POSPage() {
     return list?.filter((i: any) => i.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [activeTab, services, products, searchQuery]);
 
+  const resetState = () => {
+    setCart([]);
+    setGlobalDiscountPercent(0);
+    setSelectedEmployee(null);
+    setSelectedCustomer(null);
+    setSelectedVehicle(null);
+  };
+
+  const handleProcessPayment = () => {
+    if (!selectedCustomer || !selectedVehicle || !selectedEmployee || cart.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Information',
+        description: 'Please select a customer, vehicle, employee, and add items to the cart.',
+      });
+      return;
+    }
+
+    const invoiceItems = cart.map(item => {
+      const originalPrice = 'sellingPrice' in item ? (item as any).sellingPrice : (item as any).price;
+      const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
+      return {
+        itemId: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: originalPrice,
+        discount: item.discountAmount,
+        total: discountedPricePerUnit * item.quantity,
+      };
+    });
+
+    const invoice: Omit<Invoice, 'id'> = {
+      invoiceNumber: `INV-${Date.now()}`,
+      customerId: selectedCustomer.id,
+      vehicleId: selectedVehicle.id,
+      employeeId: selectedEmployee.id,
+      date: Date.now(),
+      items: invoiceItems,
+      subtotal: subtotalBeforeGlobalDiscount,
+      globalDiscountPercent,
+      globalDiscountAmount,
+      total,
+    };
+    
+    addDocumentNonBlocking(invoicesCollection, invoice);
+
+    const vehicleDocRef = doc(firestore, 'vehicles', selectedVehicle.id);
+    updateDocumentNonBlocking(vehicleDocRef, { lastVisit: serverTimestamp() });
+    
+    toast({
+      title: 'Invoice Created',
+      description: `Invoice for ${selectedCustomer.name} has been processed.`,
+    });
+
+    resetState();
+  };
 
   return (
     <div className="flex h-screen w-full bg-background font-sans overflow-hidden">
@@ -393,7 +452,8 @@ export default function POSPage() {
 
             {/* Pay Button - Full Width Text Block */}
             <button 
-                disabled={cart.length === 0}
+                onClick={handleProcessPayment}
+                disabled={cart.length === 0 || !selectedCustomer || !selectedEmployee}
                 className="w-full py-4 bg-black text-white text-sm uppercase tracking-[0.3em] hover:bg-zinc-800 transition-all disabled:bg-zinc-100 disabled:text-zinc-300 rounded-none shadow-none"
             >
                 Process Payment
@@ -411,6 +471,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-
-    
