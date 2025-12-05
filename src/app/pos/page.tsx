@@ -2,14 +2,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
 import type { Product, Service, Employee, Customer, Vehicle, Invoice } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Search, Trash2, ChevronsUpDown, Check, UserPlus } from 'lucide-react';
+import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -75,22 +75,42 @@ export default function POSPage() {
 
   const addToCart = (item: WithId<Product> | WithId<Service>, type: 'product' | 'service') => {
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      if (existing) {
-        return prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
-      }
-      return [...prev, {
-        ...item,
-        cartId: `${item.id}-${Date.now()}`,
-        quantity: 1,
-        type,
-        discountAmount: 0
-      }];
+        const existing = prev.find((i) => i.id === item.id);
+        const stock = type === 'product' ? (item as WithId<Product>).stock : Infinity;
+        
+        if (existing) {
+            // Check stock before increasing quantity
+            if (existing.quantity < stock) {
+                return prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
+            }
+            // If stock limit reached, do nothing
+            return prev;
+        }
+        
+        // Check stock before adding new item
+        if (stock > 0) {
+            return [...prev, {
+                ...item,
+                cartId: `${item.id}-${Date.now()}`,
+                quantity: 1,
+                type,
+                discountAmount: 0
+            }];
+        }
+        // If out of stock, do nothing
+        return prev;
     });
   };
 
   const updateQty = (id: string, newQuantity: number) => {
-    setCart(prev => prev.map(item => item.cartId === id ? { ...item, quantity: Math.max(1, newQuantity) } : item));
+    setCart(prev => prev.map(item => {
+        if (item.cartId === id) {
+            const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
+            // Quantity cannot be less than 1 and not more than stock
+            return { ...item, quantity: Math.max(1, Math.min(newQuantity, stock)) };
+        }
+        return item;
+    }));
   };
   
   const removeFromCart = (id: string) => {
@@ -189,6 +209,19 @@ export default function POSPage() {
     
     addDocumentNonBlocking(invoicesCollection, invoice);
 
+    // Decrement stock for products in the cart
+    cart.forEach(item => {
+      if (item.type === 'product') {
+        const productRef = doc(firestore, 'products', item.id);
+        updateDoc(productRef, {
+          stock: increment(-item.quantity)
+        }).catch(error => {
+          console.error(`Failed to update stock for product ${item.id}:`, error);
+          // Optionally, show a toast for stock update failure
+        });
+      }
+    });
+
     const vehicleDocRef = doc(firestore, 'vehicles', selectedVehicle.id);
     updateDocumentNonBlocking(vehicleDocRef, { lastVisit: serverTimestamp() });
     
@@ -248,41 +281,69 @@ export default function POSPage() {
             {/* Grid */}
             <ScrollArea className="flex-1 -mr-4 pr-4">
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
-                    {itemsToShow?.map((item) => (
-                        <button 
-                            key={item.id} 
-                            onClick={() => addToCart(item, activeTab === 'services' ? 'service' : 'product')} 
-                            className="group relative flex flex-col justify-between h-[180px] p-5 border border-zinc-200 bg-white text-left transition-all duration-200 hover:border-black hover:z-10 "
-                        >
-                            {/* Top Row: Category & Price */}
-                            <div className="flex justify-between items-start w-full">
-                                <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-300 group-hover:text-black transition-colors border border-zinc-100 group-hover:border-zinc-900 px-1.5 py-0.5 rounded-sm">
-                                    {'category' in item ? item.category : 'vehicleCategory' in item ? item.vehicleCategory : (activeTab === 'services' ? 'SVC' : 'PRD')}
-                                </span>
-                                <span className="font-mono text-lg font-medium text-zinc-900">
-                                    {formatPrice('sellingPrice' in item ? item.sellingPrice : item.price)}
-                                </span>
-                            </div>
-                            
-                            {/* Middle: Name */}
-                            <div className="flex-1 flex flex-col justify-center py-2">
-                                <h3 className="text-xl font-medium leading-tight tracking-tight line-clamp-2 text-zinc-800 group-hover:text-black">
-                                    {item.name}
-                                </h3>
-                            </div>
+                    {itemsToShow?.map((item) => {
+                        const isProduct = 'stock' in item;
+                        const cartQuantity = cart.find(ci => ci.id === item.id)?.quantity ?? 0;
+                        const stock = isProduct ? item.stock : Infinity;
+                        const isOutOfStock = stock <= 0;
+                        const cartLimitReached = isProduct && cartQuantity >= stock;
+                        const isDisabled = isOutOfStock || cartLimitReached;
 
-                            {/* Bottom: ID & Add Action */}
-                            <div className="w-full flex justify-between items-end border-t border-zinc-100 pt-3 mt-1 group-hover:border-zinc-200 transition-colors">
-                                <span className="font-mono text-[10px] text-zinc-300">
-                                    #{item.id ? item.id.substring(0, 5).toUpperCase() : '000'}
-                                </span>
-                                <div className="flex items-center gap-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                                    <span className="text-[9px] uppercase tracking-widest font-bold">Add</span>
-                                    <span className="text-sm leading-none mb-0.5">+</span>
+                        return (
+                            <button 
+                                key={item.id} 
+                                onClick={() => addToCart(item, activeTab === 'services' ? 'service' : 'product')} 
+                                disabled={isDisabled}
+                                className={cn(
+                                    "group relative flex flex-col justify-between h-[180px] p-5 border border-zinc-200 bg-white text-left transition-all duration-200",
+                                    !isDisabled && "hover:border-black hover:z-10",
+                                    isDisabled && "bg-zinc-50 opacity-60 cursor-not-allowed"
+                                )}
+                            >
+                                {/* Top Row: Category & Price */}
+                                <div className="flex justify-between items-start w-full">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-300 group-hover:text-black transition-colors border border-zinc-100 group-hover:border-zinc-900 px-1.5 py-0.5 rounded-sm">
+                                        {'category' in item ? item.category : 'vehicleCategory' in item ? item.vehicleCategory : (activeTab === 'services' ? 'SVC' : 'PRD')}
+                                    </span>
+                                    <span className="font-mono text-lg font-medium text-zinc-900">
+                                        {formatPrice('sellingPrice' in item ? item.sellingPrice : item.price)}
+                                    </span>
                                 </div>
-                            </div>
-                        </button>
-                    ))}
+                                
+                                {/* Middle: Name */}
+                                <div className="flex-1 flex flex-col justify-center py-2">
+                                    <h3 className="text-xl font-medium leading-tight tracking-tight line-clamp-2 text-zinc-800 group-hover:text-black">
+                                        {item.name}
+                                    </h3>
+                                </div>
+
+                                {/* Bottom: ID & Add Action / Stock */}
+                                <div className="w-full flex justify-between items-end border-t border-zinc-100 pt-3 mt-1 group-hover:border-zinc-200 transition-colors">
+                                     <div className='flex items-center gap-2'>
+                                        <span className="font-mono text-[10px] text-zinc-300">
+                                            #{item.id ? item.id.substring(0, 5).toUpperCase() : '000'}
+                                        </span>
+                                        {isProduct && (
+                                            <div className={cn("flex items-center gap-1 text-xs", stock < item.stockThreshold ? 'text-red-500' : 'text-zinc-400')}>
+                                                <Archive className="w-3 h-3" />
+                                                <span>{stock}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                                        {isDisabled ? (
+                                             <span className="text-[9px] uppercase tracking-widest font-bold text-red-500">Out of Stock</span>
+                                        ): (
+                                            <>
+                                                <span className="text-[9px] uppercase tracking-widest font-bold">Add</span>
+                                                <span className="text-sm leading-none mb-0.5">+</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             </ScrollArea>
         </Tabs>
@@ -381,6 +442,7 @@ export default function POSPage() {
                             {cart.map((item, index) => {
                                 const originalPrice = 'sellingPrice' in item ? (item as any).sellingPrice : (item as any).price;
                                 const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
+                                const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
 
                                 return (
                                     <div key={item.cartId} className="group py-4 border-b border-zinc-100 grid grid-cols-12 gap-4 items-center">
@@ -394,6 +456,7 @@ export default function POSPage() {
                                                 value={item.quantity}
                                                 onChange={(e) => updateQty(item.cartId, parseInt(e.target.value) || 1)}
                                                 min="1"
+                                                max={stock}
                                             />
                                         </div>
                                         <div className="col-span-2 font-mono text-sm text-right">
@@ -471,3 +534,5 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
