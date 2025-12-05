@@ -144,7 +144,7 @@ export default function POSPage() {
             
             {/* Grid */}
             <ScrollArea className="flex-1 -mr-4 pr-4">
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
                     {itemsToShow?.map((item) => (
                         <button 
                             key={item.id} 
@@ -303,5 +303,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-
