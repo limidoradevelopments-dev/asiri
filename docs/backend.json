@@ -1,0 +1,208 @@
+{
+  "entities": {
+    "Customer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Customer",
+      "type": "object",
+      "description": "Represents a customer and their vehicle service details.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the customer."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the customer."
+        },
+        "vehicle": {
+          "type": "string",
+          "description": "The customer's vehicle model."
+        },
+        "serviceType": {
+          "type": "string",
+          "description": "The type of service performed on the vehicle (e.g., Oil Change)."
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp of when the customer record was created."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "vehicle",
+        "serviceType",
+        "createdAt"
+      ]
+    },
+    "Invoice": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Invoice",
+      "type": "object",
+      "description": "Represents an invoice for a service performed.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the invoice."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to Customer. (Relationship: Customer 1:N Invoice)"
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "description": "The invoice number."
+        },
+        "date": {
+          "type": "number",
+          "description": "The date the invoice was issued."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The total amount of the invoice."
+        }
+      },
+      "required": [
+        "id",
+        "customerId",
+        "invoiceNumber",
+        "date",
+        "amount"
+      ]
+    },
+    "StockItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StockItem",
+      "type": "object",
+      "description": "Represents an item in the service station's stock.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the stock item."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the stock item."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the item in stock."
+        },
+        "reorderPoint": {
+          "type": "number",
+          "description": "The quantity at which the item should be reordered."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "quantity",
+        "reorderPoint"
+      ]
+    },
+    "Revenue": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Revenue",
+      "type": "object",
+      "description": "Represents revenue data for the service station.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the revenue record."
+        },
+        "date": {
+          "type": "number",
+          "description": "The date for which the revenue is recorded."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of revenue for the given date."
+        }
+      },
+      "required": [
+        "id",
+        "date",
+        "amount"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/customers/{customerId}",
+        "definition": {
+          "entityName": "Customer",
+          "schema": {
+            "$ref": "#/backend/entities/Customer"
+          },
+          "description": "Stores customer data.  Invoices are stored as a subcollection under each customer. Uses path-based ownership for simple security rules.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "The unique ID of the customer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/customers/{customerId}/invoices/{invoiceId}",
+        "definition": {
+          "entityName": "Invoice",
+          "schema": {
+            "$ref": "#/backend/entities/Invoice"
+          },
+          "description": "Stores invoices associated with a specific customer.  Authorization is based on path-based ownership (customer ID).",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "The unique ID of the customer."
+            },
+            {
+              "name": "invoiceId",
+              "description": "The unique ID of the invoice."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stock_items/{stockItemId}",
+        "definition": {
+          "entityName": "StockItem",
+          "schema": {
+            "$ref": "#/backend/entities/StockItem"
+          },
+          "description": "Stores stock item data. Segregated for homogeneous security posture; all stock items share the same access requirements.",
+          "params": [
+            {
+              "name": "stockItemId",
+              "description": "The unique ID of the stock item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/revenue/{revenueId}",
+        "definition": {
+          "entityName": "Revenue",
+          "schema": {
+            "$ref": "#/backend/entities/Revenue"
+          },
+          "description": "Stores revenue data. Segregated for homogeneous security posture; all revenue entries share the same access requirements.",
+          "params": [
+            {
+              "name": "revenueId",
+              "description": "The unique ID of the revenue record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the ServicePulse Dashboard application for a vehicle service station. The primary entities are Customers, Invoices, StockItems, and Revenue. To ensure Authorization Independence (CRITICAL) and facilitate secure list operations (QAPs), the following structure is recommended:\n\n1.  **Customers Collection:** `/customers/{customerId}`\n    *   Stores customer information. Invoices are stored as a subcollection. This structure leverages path-based ownership, simplifying security rules.\n\n2.  **Invoices Subcollection:** `/customers/{customerId}/invoices/{invoiceId}`\n    *   Stores invoice data related to a specific customer.\n\n3.  **StockItems Collection:** `/stock_items/{stockItemId}`\n    *   Stores information about the service station's stock items.  Since access to stock items might require specific roles (e.g., manager), a separate collection ensures homogeneous security posture (all stock items have the same access requirements).\n\n4.  **Revenue Collection:** `/revenue/{revenueId}`\n    *   Stores revenue data. Similar to StockItems, segregating revenue data into its own collection simplifies access control. Access might be restricted to specific roles.\n\nThis structure prioritizes structural segregation by placing different data types (Customers, Invoices, StockItems, Revenue) into separate collections or subcollections, each with its own security requirements. By using simple path-based ownership for the customer/invoice relationship, we minimize the need for complex rules and maintain authorization independence.\n\nThis design achieves Authorization Independence because no `get()` calls are required in security rules to determine access to the subcollection. Since the 'customerId' is directly within the path structure, rules can authorize based solely on the `request.auth.uid` (if associated with the customer) or the presence of specific roles in other collections (e.g., an `/roles_admin/{uid}` document to allow global access). This structure also supports the required QAPs by enabling secure list operations, as access to collections and subcollections is controlled by the path and doesn't rely on filtering data."
+  }
+}

@@ -1,0 +1,121 @@
+/**
+ * Core Philosophy: This ruleset secures a backend for a vehicle service station dashboard.
+ * The central security model assumes that any user authenticated via a non-anonymous
+ * method (e.g., email/password) is a trusted employee with full access to manage
+ * business data (customers, stock, revenue). Access is strictly denied to the public
+ * and anonymous users.
+ *
+ * Data Structure: The data is organized into three top-level collections for clear
+ * separation of concerns:
+ * - /customers/{customerId}: Stores customer records.
+ * - /stock_items/{stockItemId}: Manages inventory.
+ * - /revenue/{revenueId}: Tracks financial records.
+ * Additionally, a nested subcollection, /customers/{customerId}/invoices/{invoiceId},
+ * links invoices directly to the relevant customer.
+ *
+ * Key Security Decisions:
+ * - Employee-Only Access: Given the lack of a formal roles system in the data model,
+ *   a global "isEmployee" rule is used, which grants access only to users signed
+ *   in with persistent providers (i.e., not anonymous). This provides a secure-by-default
+ *   posture for this internal application.
+ * - No Public Access: All collections are locked down from public read and write access.
+ * - Relational Integrity: For the invoices subcollection, rules enforce that the
+ *   `customerId` field within an invoice document must match the `customerId` from
+ *   the path, ensuring data consistency.
+ *
+ * Denormalization for Authorization: This ruleset does not currently require complex
+ * denormalization, as the primary authorization check is global (isEmployee). The
+ * path structure for invoices (/customers/{customerId}/invoices/{invoiceId}) is a form
+ * of denormalization that allows for efficient and secure checks on subcollection data
+ * without needing extra `get()` calls.
+ *
+ * Structural Segregation: The use of distinct top-level collections for `customers`,
+ * `stock_items`, and `revenue` ensures that each data type can have a homogeneous and
+ * independent security posture, simplifying rule management.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+
+    /**
+     * Returns true if a user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the user is a trusted employee.
+     * For this application, any non-anonymous user is considered an employee.
+     * This prevents anonymous users, who might access the app, from reading or writing data.
+     */
+    function isEmployee() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+
+    /**
+     * @description Manages customer records. All authenticated employees can read and write customer data.
+     * @path /customers/{customerId}
+     * @allow An authenticated employee (create)s a new customer document.
+     * @deny An anonymous user attempts to (list) all customers.
+     * @principle Restricts all access to a trusted group of authenticated employees.
+     */
+    match /customers/{customerId} {
+      allow get: if isEmployee();
+      allow list: if isEmployee();
+      allow create: if isEmployee();
+      allow update: if isEmployee() && resource != null;
+      allow delete: if isEmployee() && resource != null;
+
+      /**
+       * @description Manages invoices for a specific customer. Access is inherited from the parent customer.
+       * @path /customers/{customerId}/invoices/{invoiceId}
+       * @allow An authenticated employee (create)s a new invoice for customer 'cust123'.
+       * @deny An employee tries to (create) an invoice where the document's `customerId` doesn't match the path.
+       * @principle Enforces relational integrity by ensuring the invoice's internal customerId matches its path.
+       */
+      match /invoices/{invoiceId} {
+        allow get: if isEmployee();
+        allow list: if isEmployee();
+        // On create, ensure the invoice document is correctly linked to its parent customer path.
+        allow create: if isEmployee() && request.resource.data.customerId == customerId;
+        // On update, ensure the link to the parent customer cannot be changed and the document exists.
+        allow update: if isEmployee() && resource != null && request.resource.data.customerId == resource.data.customerId;
+        allow delete: if isEmployee() && resource != null;
+      }
+    }
+
+    /**
+     * @description Manages service station inventory. All authenticated employees can manage stock items.
+     * @path /stock_items/{stockItemId}
+     * @allow An authenticated employee (update)s the quantity of a stock item.
+     * @deny A non-authenticated user attempts to (get) a stock item.
+     * @principle Restricts all access to a trusted group of authenticated employees.
+     */
+    match /stock_items/{stockItemId} {
+      allow get: if isEmployee();
+      allow list: if isEmployee();
+      allow create: if isEmployee();
+      allow update: if isEmployee() && resource != null;
+      allow delete: if isEmployee() && resource != null;
+    }
+
+    /**
+     * @description Manages financial revenue records. All authenticated employees can manage revenue data.
+     * @path /revenue/{revenueId}
+     * @allow An authenticated employee (create)s a new daily revenue entry.
+     * @deny An anonymous user attempts to (delete) a revenue record.
+     * @principle Restricts all access to a trusted group of authenticated employees.
+     */
+    match /revenue/{revenueId} {
+      allow get: if isEmployee();
+      allow list: if isEmployee();
+      allow create: if isEmployee();
+      allow update: if isEmployee() && resource != null;
+      allow delete: if isEmployee() && resource != null;
+    }
+  }
+}
