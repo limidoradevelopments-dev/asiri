@@ -588,7 +588,7 @@ export default function POSPage() {
             {/* Pay Button - Full Width Text Block */}
             <button 
                 onClick={handleProcessPayment}
-                disabled={cart.length === 0 || !selectedCustomer || !selectedEmployee}
+                disabled={cart.length === 0 || !selectedCustomer || !selectedVehicle || !selectedEmployee}
                 className="w-full py-4 bg-black text-white text-sm uppercase tracking-[0.3em] hover:bg-zinc-800 transition-all disabled:bg-zinc-100 disabled:text-zinc-300 rounded-none shadow-none"
             >
                 Process Payment
@@ -612,3 +612,5 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
