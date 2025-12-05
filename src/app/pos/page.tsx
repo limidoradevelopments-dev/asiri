@@ -107,7 +107,7 @@ export default function POSPage() {
         {/* Header Area */}
         <div className="flex justify-between items-start mb-16">
             <div>
-                <h1 className="text-5xl font-light tracking-tighter mb-2">POINT OF SALE</h1>
+                <h1 className="text-5xl font-normal tracking-tighter mb-2">POINT OF SALE</h1>
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Create new invoices</p>
             </div>
             
@@ -127,15 +127,18 @@ export default function POSPage() {
         {/* Minimal Tabs */}
         <Tabs defaultValue="services" value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
             <TabsList className="bg-zinc-100 justify-start p-1 mb-8 w-full rounded-none">
-                {['services', 'products'].map((tab) => (
-                    <TabsTrigger 
-                        key={tab} 
-                        value={tab}
-                        className="relative h-10 px-6 rounded-none text-sm font-medium uppercase tracking-widest text-zinc-400 data-[state=active]:text-white data-[state=active]:bg-black data-[state=active]:shadow-none hover:bg-zinc-200 transition-colors"
-                    >
-                        {tab}
-                    </TabsTrigger>
-                ))}
+                <TabsTrigger
+                    value="services"
+                    className="relative h-10 px-6 rounded-none text-sm font-medium uppercase tracking-widest text-zinc-400 data-[state=active]:text-white data-[state=active]:bg-black data-[state=active]:shadow-none hover:bg-zinc-200 transition-colors"
+                >
+                    Services
+                </TabsTrigger>
+                <TabsTrigger
+                    value="products"
+                    className="relative h-10 px-6 rounded-none text-sm font-medium uppercase tracking-widest text-zinc-400 data-[state=active]:text-white data-[state=active]:bg-black data-[state=active]:shadow-none hover:bg-zinc-200 transition-colors"
+                >
+                    Products
+                </TabsTrigger>
             </TabsList>
             
             {/* Grid */}
@@ -221,13 +224,13 @@ export default function POSPage() {
                                     </div>
 
                                     {/* Minimal Controls */}
-                                    <div className="flex justify-between items-center opacity-30 group-hover:opacity-100 transition-opacity duration-300">
+                                    <div className="flex justify-between items-center transition-opacity duration-300">
                                         
                                         {/* QTY Control (Text based) */}
                                         <div className="flex items-center gap-4 text-sm font-mono select-none">
-                                            <button onClick={() => updateQty(item.cartId, -1)} className="hover:text-red-500 transition-colors cursor-pointer disabled:opacity-20" disabled={item.quantity <= 1}>[ - ]</button>
+                                            <button onClick={() => updateQty(item.cartId, -1)} className="text-zinc-400 hover:text-red-500 transition-colors cursor-pointer disabled:opacity-20" disabled={item.quantity <= 1}>[ - ]</button>
                                             <span>{item.quantity.toString().padStart(2, '0')}</span>
-                                            <button onClick={() => updateQty(item.cartId, 1)} className="hover:text-black transition-colors cursor-pointer">[ + ]</button>
+                                            <button onClick={() => updateQty(item.cartId, 1)} className="text-zinc-400 hover:text-black transition-colors cursor-pointer">[ + ]</button>
                                         </div>
 
                                         {/* Discount Control */}
