@@ -210,7 +210,7 @@ export default function POSPage() {
                             const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
 
                             return (
-                                <div key={item.cartId} className="group py-6 border-b border-zinc-100 flex flex-col gap-3">
+                                <div key={item.cartId} className="group py-6 border-b border-zinc-200 flex flex-col gap-3">
                                     <div className="flex justify-between items-start">
                                         <div className="flex flex-col">
                                             <span className="text-lg font-medium tracking-tight">{item.name}</span>
@@ -298,3 +298,5 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
