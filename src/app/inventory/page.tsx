@@ -32,20 +32,18 @@ export default function InventoryPage() {
               </div>
             </div>
 
-            <div className="p-4 sm:p-6 bg-white/65 backdrop-blur-md border-white/40 shadow-sm rounded-3xl">
-              <Tabs defaultValue="products">
-                <TabsList className="grid w-full grid-cols-2 sm:w-[400px]">
-                  <TabsTrigger value="products">Products</TabsTrigger>
-                  <TabsTrigger value="services">Services</TabsTrigger>
-                </TabsList>
-                <TabsContent value="products">
-                  <InventoryTable data={productsData} type="product" />
-                </TabsContent>
-                <TabsContent value="services">
-                  <InventoryTable data={servicesData} type="service" />
-                </TabsContent>
-              </Tabs>
-            </div>
+            <Tabs defaultValue="products">
+              <TabsList className="grid w-full grid-cols-2 sm:w-[400px]">
+                <TabsTrigger value="products">Products</TabsTrigger>
+                <TabsTrigger value="services">Services</TabsTrigger>
+              </TabsList>
+              <TabsContent value="products">
+                <InventoryTable data={productsData} type="product" />
+              </TabsContent>
+              <TabsContent value="services">
+                <InventoryTable data={servicesData} type="service" />
+              </TabsContent>
+            </Tabs>
           </main>
         </SidebarInset>
       </div>
