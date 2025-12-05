@@ -29,7 +29,7 @@ export default function CustomersTable({ data, isLoading }: CustomersTableProps)
         <TableCell className="py-4 px-0"><Skeleton className="h-5 w-32" /></TableCell>
         <TableCell className="py-4 px-0"><Skeleton className="h-5 w-24" /></TableCell>
         <TableCell className="py-4 px-0"><Skeleton className="h-5 w-48" /></TableCell>
-        <TableCell className="py-4 px-0"><div className="flex gap-2"><Skeleton className="h-5 w-20" /><Skeleton className="h-5 w-20" /></div></TableCell>
+        <TableCell className="py-4 px-0"><div className="flex gap-2"><Skeleton className="h-5 w-40" /><Skeleton className="h-5 w-40" /></div></TableCell>
       </TableRow>
     ))
   );
@@ -54,8 +54,9 @@ export default function CustomersTable({ data, isLoading }: CustomersTableProps)
               <TableCell className="py-4 px-0">
                 <div className="flex flex-wrap gap-2">
                     {customer.vehicles.length > 0 ? customer.vehicles.map(v => (
-                        <Badge key={v.id} variant="secondary" className="font-mono bg-zinc-100 text-zinc-700 rounded-sm">
-                            {v.numberPlate}
+                        <Badge key={v.id} variant="secondary" className="font-mono bg-zinc-100 text-zinc-700 rounded-sm font-sans tracking-tight">
+                            <span className="font-semibold">{v.numberPlate}</span>
+                            <span className="ml-2 text-zinc-500">{v.make} {v.model} ({v.year})</span>
                         </Badge>
                     )) : (
                         <span className="text-zinc-400 text-xs">-</span>
