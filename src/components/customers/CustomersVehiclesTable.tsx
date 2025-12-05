@@ -29,9 +29,10 @@ type CustomersVehiclesTableProps = {
   isLoading: boolean;
   onEdit: (item: CustomerWithVehicle) => void;
   onDelete: (item: CustomerWithVehicle) => void;
+  onViewDetails: (item: CustomerWithVehicle) => void;
 };
 
-export default function CustomersVehiclesTable({ data, isLoading, onEdit, onDelete }: CustomersVehiclesTableProps) {
+export default function CustomersVehiclesTable({ data, isLoading, onEdit, onDelete, onViewDetails }: CustomersVehiclesTableProps) {
   
   const renderSkeleton = () => (
     Array.from({ length: 8 }).map((_, index) => (
@@ -61,12 +62,16 @@ export default function CustomersVehiclesTable({ data, isLoading, onEdit, onDele
         </TableHeader>
         <TableBody>
           {isLoading ? renderSkeleton() : data.map((item) => (
-            <TableRow key={item.vehicle.id} className="border-zinc-100">
+            <TableRow 
+              key={item.vehicle.id} 
+              className="border-zinc-100 cursor-pointer hover:bg-zinc-50/50"
+              onClick={() => onViewDetails(item)}
+            >
               <TableCell className="py-4 px-0 font-medium">{item.customer.name}</TableCell>
               <TableCell className="py-4 px-0">{item.customer.phone}</TableCell>
               <TableCell className="py-4 px-0">{`${item.vehicle.make} ${item.vehicle.model} (${item.vehicle.year})`}</TableCell>
               <TableCell className="py-4 px-0">{item.vehicle.numberPlate}</TableCell>
-              <TableCell className="text-right py-4 px-0">
+              <TableCell className="text-right py-4 px-0" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -92,4 +97,3 @@ export default function CustomersVehiclesTable({ data, isLoading, onEdit, onDele
     </div>
   );
 }
-

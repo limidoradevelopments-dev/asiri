@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import type { Customer, Vehicle } from "@/lib/data";
 import { AddCustomerVehicleDialog } from "@/components/customers/AddCustomerVehicleDialog";
-import CustomersVehiclesTable from "@/components/customers/CustomersTable";
+import CustomersVehiclesTable from "@/components/customers/CustomersVehiclesTable";
 import { useFirestore, useCollection, useMemoFirebase, WithId } from "@/firebase";
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { CustomerVehicleDetailsDialog } from "@/components/customers/CustomerVehicleDetailsDialog";
 
 type CustomerWithVehicle = {
   customer: WithId<Customer>;
@@ -39,6 +40,7 @@ export default function CustomersPage() {
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<CustomerWithVehicle | null>(null);
   const [itemToDelete, setItemToDelete] = useState<CustomerWithVehicle | null>(null);
+  const [itemToView, setItemToView] = useState<CustomerWithVehicle | null>(null);
 
   const combinedData = useMemo(() => {
     if (!customers || !vehicles) return [];
@@ -92,6 +94,10 @@ export default function CustomersPage() {
   
   const handleDeleteRequest = (item: CustomerWithVehicle) => {
     setItemToDelete(item);
+  };
+
+  const handleViewDetails = (item: CustomerWithVehicle) => {
+    setItemToView(item);
   };
 
   const confirmDelete = () => {
@@ -167,6 +173,7 @@ export default function CustomersPage() {
             isLoading={isLoading}
             onEdit={handleEdit}
             onDelete={handleDeleteRequest}
+            onViewDetails={handleViewDetails}
           />
         </div>
 
@@ -194,6 +201,12 @@ export default function CustomersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <CustomerVehicleDetailsDialog
+        item={itemToView}
+        isOpen={!!itemToView}
+        onOpenChange={(isOpen) => !isOpen && setItemToView(null)}
+      />
     </div>
   );
 }
