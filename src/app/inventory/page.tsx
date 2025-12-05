@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from "react";
@@ -150,17 +151,10 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-[#fcfcfc] text-zinc-900 font-sans overflow-x-hidden">
-      
-      {/* GLOBAL TEXTURE: Subtle Noise */}
-      <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-0 mix-blend-multiply" 
-           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
-      />
-
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-16 pb-12">
+    <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-16 pb-12">
         
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+        <div className="flex flex-col md:flex-row justify-between items-start mb-16 gap-8">
             <div>
                 <h1 className="text-5xl font-light tracking-tighter mb-2">INVENTORY</h1>
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Manage Stock & Services</p>
@@ -251,17 +245,15 @@ export default function InventoryPage() {
             </div>
         </Tabs>
 
-      </div>
-
       <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
-        <AlertDialogContent className="rounded-none border border-zinc-100 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.05)]">
+        <AlertDialogContent className="rounded-none border-zinc-200">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-light tracking-tight text-xl">Confirm Deletion</AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-500">
               This action cannot be undone. This will permanently remove the item from your inventory.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
+          <AlertDialogFooter className="gap-2 mt-4">
             <AlertDialogCancel 
                 onClick={() => setItemToDelete(null)}
                 className="rounded-none border-zinc-200 uppercase tracking-widest text-xs"
@@ -280,3 +272,5 @@ export default function InventoryPage() {
     </div>
   );
 }
+
+    

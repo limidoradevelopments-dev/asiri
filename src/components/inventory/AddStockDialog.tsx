@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogClose
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,13 +54,23 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
     }
   };
 
+  const commonInputStyles = "rounded-none h-11 text-base";
+  const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
+
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+            setSelectedProduct(null);
+            setQuantity(1);
+        }
+    }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md rounded-none border-zinc-200">
         <DialogHeader>
-          <DialogTitle>Add Stock</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="font-light tracking-tight text-2xl">Add Stock</DialogTitle>
+          <DialogDescription className="text-zinc-500">
             Select a product and enter the quantity to add to its stock.
           </DialogDescription>
         </DialogHeader>
@@ -72,7 +83,7 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
                   variant="outline"
                   role="combobox"
                   aria-expanded={popoverOpen}
-                  className="w-full justify-between"
+                  className={cn("w-full justify-between font-normal", commonInputStyles)}
                 >
                   {selectedProduct
                     ? selectedProduct.name
@@ -80,9 +91,9 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-none border-zinc-200">
                 <Command>
-                  <CommandInput placeholder="Search product..." />
+                  <CommandInput placeholder="Search product..." className="h-11"/>
                   <CommandList>
                     <CommandEmpty>No product found.</CommandEmpty>
                     <CommandGroup>
@@ -120,19 +131,26 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
               min="1"
               value={quantity}
               onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 0)}
+              className={commonInputStyles}
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button
-            type="button"
-            onClick={handleUpdateStock}
-            disabled={!selectedProduct || quantity <= 0}
-          >
-            Update Stock
-          </Button>
+        <DialogFooter className="gap-2">
+            <DialogClose asChild>
+                <Button type="button" variant="outline" className={commonButtonStyles}>Cancel</Button>
+            </DialogClose>
+            <Button
+                type="button"
+                onClick={handleUpdateStock}
+                disabled={!selectedProduct || quantity <= 0}
+                className={commonButtonStyles}
+            >
+                Update Stock
+            </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+    

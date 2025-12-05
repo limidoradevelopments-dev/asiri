@@ -163,21 +163,24 @@ export function AddItemDialog({
     setNewVehicleCategory('');
   };
 
+  const commonInputStyles = "rounded-none h-11 text-base";
+  const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg rounded-none border-zinc-200">
           <DialogHeader>
-            <DialogTitle>{isEditMode ? 'Edit Item' : 'Add New Item'}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="font-light tracking-tight text-2xl">{isEditMode ? 'Edit Item' : 'Add New Item'}</DialogTitle>
+            <DialogDescription className="text-zinc-500">
               {isEditMode ? 'Update the details of the item.' : 'Add a new product or service to your inventory.'}
             </DialogDescription>
           </DialogHeader>
           <Tabs defaultValue={itemType} className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="product" disabled={isEditMode && itemType === 'service'}>Product</TabsTrigger>
-              <TabsTrigger value="service" disabled={isEditMode && itemType === 'product'}>Service</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-zinc-100 rounded-none h-11">
+              <TabsTrigger value="product" disabled={isEditMode && itemType === 'service'} className="rounded-none data-[state=active]:bg-white data-[state=active]:shadow-none h-full uppercase text-xs tracking-widest">Product</TabsTrigger>
+              <TabsTrigger value="service" disabled={isEditMode && itemType === 'product'} className="rounded-none data-[state=active]:bg-white data-[state=active]:shadow-none h-full uppercase text-xs tracking-widest">Service</TabsTrigger>
             </TabsList>
             <TabsContent value="product">
               <Form {...productForm}>
@@ -189,7 +192,7 @@ export function AddItemDialog({
                       <FormItem>
                         <FormLabel>Product Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Synthetic Oil 5L" {...field} />
+                          <Input placeholder="e.g., Synthetic Oil 5L" {...field} className={commonInputStyles} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -202,7 +205,7 @@ export function AddItemDialog({
                       <FormItem>
                         <FormLabel>SKU</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., OIL-SYN-5L" {...field} />
+                          <Input placeholder="e.g., OIL-SYN-5L" {...field} className={commonInputStyles} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -225,11 +228,11 @@ export function AddItemDialog({
                           value={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className={commonInputStyles}>
                               <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="rounded-none border-zinc-200">
                             {productCategories.map((category) => (
                               <SelectItem key={category} value={category}>
                                 {category}
@@ -259,7 +262,7 @@ export function AddItemDialog({
                         <FormItem>
                           <FormLabel>Actual Price (Rs.)</FormLabel>
                           <FormControl>
-                            <Input type="number" step="0.01" {...field} />
+                            <Input type="number" step="0.01" {...field} className={commonInputStyles}/>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -272,7 +275,7 @@ export function AddItemDialog({
                         <FormItem>
                           <FormLabel>Selling Price (Rs.)</FormLabel>
                           <FormControl>
-                            <Input type="number" step="0.01" {...field} />
+                            <Input type="number" step="0.01" {...field} className={commonInputStyles}/>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -286,17 +289,17 @@ export function AddItemDialog({
                         <FormItem>
                           <FormLabel>Re-order Level</FormLabel>
                           <FormControl>
-                            <Input type="number" {...field} />
+                            <Input type="number" {...field} className={commonInputStyles} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  <DialogFooter className="mt-6">
+                  <DialogFooter className="mt-6 gap-2">
                     <DialogClose asChild>
-                      <Button type="button" variant="secondary">Cancel</Button>
+                      <Button type="button" variant="outline" className={commonButtonStyles}>Cancel</Button>
                     </DialogClose>
-                    <Button type="submit">{isEditMode ? 'Save Changes' : 'Add Product'}</Button>
+                    <Button type="submit" className={commonButtonStyles}>{isEditMode ? 'Save Changes' : 'Add Product'}</Button>
                   </DialogFooter>
                 </form>
               </Form>
@@ -311,7 +314,7 @@ export function AddItemDialog({
                       <FormItem>
                         <FormLabel>Service Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Full Service Package" {...field} />
+                          <Input placeholder="e.g., Full Service Package" {...field} className={commonInputStyles}/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -334,11 +337,11 @@ export function AddItemDialog({
                           value={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className={commonInputStyles}>
                               <SelectValue placeholder="Select a vehicle category" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="rounded-none border-zinc-200">
                             {vehicleCategories.map(category => (
                               <SelectItem key={category} value={category}>{category}</SelectItem>
                             ))}
@@ -365,7 +368,7 @@ export function AddItemDialog({
                       <FormItem>
                         <FormLabel>Description (Optional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Comprehensive vehicle maintenance" {...field} />
+                          <Input placeholder="e.g., Comprehensive vehicle maintenance" {...field} className={commonInputStyles}/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -378,17 +381,17 @@ export function AddItemDialog({
                       <FormItem>
                         <FormLabel>Price (Rs.)</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" {...field} />
+                          <Input type="number" step="0.01" {...field} className={commonInputStyles} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <DialogFooter className="mt-6">
+                  <DialogFooter className="mt-6 gap-2">
                     <DialogClose asChild>
-                      <Button type="button" variant="secondary">Cancel</Button>
+                      <Button type="button" variant="outline" className={commonButtonStyles}>Cancel</Button>
                     </DialogClose>
-                    <Button type="submit">{isEditMode ? 'Save Changes' : 'Add Service'}</Button>
+                    <Button type="submit" className={commonButtonStyles}>{isEditMode ? 'Save Changes' : 'Add Service'}</Button>
                   </DialogFooter>
                 </form>
               </Form>
@@ -397,9 +400,9 @@ export function AddItemDialog({
         </DialogContent>
       </Dialog>
       <AlertDialog open={showNewProductCategoryDialog} onOpenChange={setShowNewProductCategoryDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-none border-zinc-200">
           <AlertDialogHeader>
-            <AlertDialogTitle>Add a new category</AlertDialogTitle>
+            <AlertDialogTitle className="font-light tracking-tight text-xl">Add a new category</AlertDialogTitle>
             <AlertDialogDescription>
               Enter the name for the new product category you want to create.
             </AlertDialogDescription>
@@ -414,17 +417,18 @@ export function AddItemDialog({
                 handleAddNewProductCategory();
               }
             }}
+            className={commonInputStyles}
           />
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAddNewProductCategory}>Add</AlertDialogAction>
+          <AlertDialogFooter className="mt-4 gap-2">
+            <AlertDialogCancel className={commonButtonStyles}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAddNewProductCategory} className={commonButtonStyles}>Add</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <AlertDialog open={showNewVehicleCategoryDialog} onOpenChange={setShowNewVehicleCategoryDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-none border-zinc-200">
           <AlertDialogHeader>
-            <AlertDialogTitle>Add a new vehicle category</AlertDialogTitle>
+            <AlertDialogTitle className="font-light tracking-tight text-xl">Add a new vehicle category</AlertDialogTitle>
             <AlertDialogDescription>
               Enter the name for the new vehicle category you want to create.
             </AlertDialogDescription>
@@ -439,13 +443,16 @@ export function AddItemDialog({
                 handleAddNewVehicleCategory();
               }
             }}
+             className={commonInputStyles}
           />
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAddNewVehicleCategory}>Add</AlertDialogAction>
+          <AlertDialogFooter className="mt-4 gap-2">
+            <AlertDialogCancel className={commonButtonStyles}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAddNewVehicleCategory} className={commonButtonStyles}>Add</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
   );
 }
+
+    

@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,64 +45,67 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
   
   const renderSkeleton = () => (
     Array.from({ length: 5 }).map((_, index) => (
-      <TableRow key={index}>
-        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-        {type === "product" && <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>}
-        <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
-        {type === "product" && <TableCell className="text-right"><Skeleton className="h-5 w-12 ml-auto" /></TableCell>}
-        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-        <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+      <TableRow key={index} className="border-zinc-100">
+        <TableCell className="py-4 px-0"><Skeleton className="h-5 w-32" /></TableCell>
+        <TableCell className="py-4 px-0 hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+        <TableCell className="py-4 px-0 hidden sm:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+        {type === "product" && <TableCell className="py-4 px-0 text-right"><Skeleton className="h-5 w-12 ml-auto" /></TableCell>}
+        <TableCell className="py-4 px-0 text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+        <TableCell className="py-4 px-0"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
       </TableRow>
     ))
   );
 
   return (
-    <div className="overflow-x-auto mt-4 rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-white/40">
-            <TableHead className="text-secondary-text">Name</TableHead>
-            {type === 'product' && <TableHead className="hidden sm:table-cell text-secondary-text">SKU</TableHead>}
-            <TableHead className="hidden sm:table-cell text-secondary-text">
+          <TableRow className="border-zinc-100">
+            <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Name</TableHead>
+            {type === 'product' && <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest hidden sm:table-cell">SKU</TableHead>}
+            <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest hidden sm:table-cell">
               {type === 'product' ? 'Category' : 'Vehicle Category'}
             </TableHead>
-            {type === "product" && <TableHead className="text-right text-secondary-text">Stock</TableHead>}
-            <TableHead className="text-right text-secondary-text">Price</TableHead>
-            <TableHead>
+            {type === "product" && <TableHead className="p-0 h-8 text-right text-xs font-normal text-zinc-400 uppercase tracking-widest">Stock</TableHead>}
+            <TableHead className="p-0 h-8 text-right text-xs font-normal text-zinc-400 uppercase tracking-widest">Price</TableHead>
+            <TableHead className="p-0 h-8">
               <span className="sr-only">Actions</span>
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? renderSkeleton() : data.map((item) => (
-            <TableRow key={item.id} className="border-white/40">
-              <TableCell className="font-medium text-primary-text">{item.name}</TableCell>
-              {type === 'product' && <TableCell className="hidden sm:table-cell text-primary-text">{(item as WithId<Product>).sku}</TableCell>}
-              <TableCell className="hidden sm:table-cell text-primary-text">
+            <TableRow key={item.id} className="border-zinc-100">
+              <TableCell className="py-4 px-0 font-medium">{item.name}</TableCell>
+              {type === 'product' && <TableCell className="hidden sm:table-cell py-4 px-0">{ (item as WithId<Product>).sku}</TableCell>}
+              <TableCell className="hidden sm:table-cell py-4 px-0">
                 {type === 'product' ? (item as WithId<Product>).category : (item as WithId<Service>).vehicleCategory}
               </TableCell>
               {type === "product" && (item as WithId<Product>).stock !== undefined && (
-                <TableCell className="text-right">
-                  <Badge 
-                    variant={(item as WithId<Product>).stock < (item as WithId<Product>).stockThreshold ? "destructive" : "secondary"}
-                    className="text-xs font-medium"
+                <TableCell className="text-right py-4 px-0">
+                  <span
+                    className={
+                      (item as WithId<Product>).stock < (item as WithId<Product>).stockThreshold
+                        ? "text-red-600 font-medium"
+                        : "text-zinc-600"
+                    }
                   >
                     {(item as WithId<Product>).stock}
-                  </Badge>
+                  </span>
                 </TableCell>
               )}
-              <TableCell className="text-right text-primary-text">{formatPrice(getPrice(item))}</TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right py-4 px-0 font-mono">{formatPrice(getPrice(item))}</TableCell>
+              <TableCell className="text-right py-4 px-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
                       <MoreHorizontal className="h-4 w-4" />
                       <span className="sr-only">Actions</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEdit(item)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(item.id, type)} className="text-destructive focus:text-destructive focus:bg-destructive/10">Delete</DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="rounded-none border-zinc-200">
+                    <DropdownMenuItem onClick={() => onEdit(item)} className="text-xs">Edit</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(item.id, type)} className="text-xs text-red-600 focus:text-red-600">Delete</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -112,8 +114,8 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
         </TableBody>
       </Table>
        {!isLoading && data.length === 0 && (
-        <div className="text-center py-10 text-gray-500">
-          No {type}s found. Add one to get started.
+        <div className="text-center py-20 text-zinc-400 text-sm uppercase tracking-widest">
+          No {type}s found
         </div>
       )}
     </div>
