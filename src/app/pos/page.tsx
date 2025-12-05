@@ -102,7 +102,7 @@ export default function POSPage() {
       {/* GLOBAL TEXTURE: Subtle Noise is on body via layout */}
 
       {/* --- LEFT: CATALOG (65%) --- */}
-      <div className="relative z-10 w-[65%] flex flex-col pt-8 pl-12 pr-6">
+      <div className="relative z-10 w-[65%] flex flex-col pt-16 pl-12 pr-6">
         
         {/* Header Area */}
         <div className="flex justify-between items-start mb-16">
@@ -143,7 +143,7 @@ export default function POSPage() {
             
             {/* Grid */}
             <ScrollArea className="flex-1 -mr-4 pr-4">
-                <div className="grid grid-cols-3 gap-6 pb-20">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
                     {itemsToShow?.map((item) => (
                         <button 
                             key={item.id} 
@@ -246,7 +246,7 @@ export default function POSPage() {
                                         </div>
 
                                         {/* Remove (Text) */}
-                                        <button onClick={() => removeFromCart(item.cartId)} className="text-[9px] uppercase tracking-widest text-zinc-400 hover:text-red-600 transition-colors">
+                                        <button onClick={() => removeFromCart(item.cartId)} className="text-[9px] uppercase tracking-widest text-red-600 hover:text-red-800 transition-colors">
                                             Remove
                                         </button>
                                     </div>
