@@ -4,13 +4,27 @@
 import { useState, useMemo } from 'react';
 import { collection } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
-import type { Product, Service } from '@/lib/data';
+import type { Product, Service, Employee } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Search, Trash2 } from 'lucide-react';
+import { Search, Trash2, ChevronsUpDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+
 
 // --- Types ---
 type CartItem = WithId<Product | Service> & {
@@ -26,14 +40,20 @@ export default function POSPage() {
   // --- Data Fetching ---
   const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
   const servicesCollection = useMemoFirebase(() => collection(firestore, 'services'), [firestore]);
+  const employeesCollection = useMemoFirebase(() => collection(firestore, 'employees'), [firestore]);
+
   const { data: products } = useCollection<WithId<Product>>(productsCollection);
   const { data: services } = useCollection<WithId<Service>>(servicesCollection);
+  const { data: employees } = useCollection<WithId<Employee>>(employeesCollection);
 
   // --- State ---
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('services');
   const [globalDiscountPercent, setGlobalDiscountPercent] = useState<number>(0);
+  const [selectedEmployee, setSelectedEmployee] = useState<WithId<Employee> | null>(null);
+  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
+
 
   // --- Logic Helpers ---
   const formatPrice = (price: number) => {
@@ -191,8 +211,48 @@ export default function POSPage() {
         {/* Ticket Header */}
         <div className="pt-8 px-10 pb-4">
             <div className="flex justify-between items-baseline mb-4">
-                <span className="text-xs uppercase tracking-[0.2em] text-zinc-400">Ticket</span>
-                <span className="font-mono text-sm text-zinc-400">NO. {new Date().getTime().toString().slice(-4)}</span>
+                <span className="text-xs uppercase tracking-[0.2em] text-zinc-400">Job By</span>
+                <Popover open={employeePopoverOpen} onOpenChange={setEmployeePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="link"
+                      role="combobox"
+                      aria-expanded={employeePopoverOpen}
+                      className="p-0 h-auto font-mono text-sm text-zinc-400 hover:text-black focus:text-black"
+                    >
+                      {selectedEmployee ? selectedEmployee.name : "Select Employee"}
+                      <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0 rounded-none">
+                    <Command>
+                      <CommandInput placeholder="Search employee..." />
+                      <CommandList>
+                        <CommandEmpty>No employee found.</CommandEmpty>
+                        <CommandGroup>
+                          {employees?.map((employee) => (
+                            <CommandItem
+                              key={employee.id}
+                              value={employee.name}
+                              onSelect={() => {
+                                setSelectedEmployee(employee);
+                                setEmployeePopoverOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedEmployee?.id === employee.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {employee.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
             </div>
             <div className="w-full h-px bg-zinc-900" />
         </div>
