@@ -1,10 +1,4 @@
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarInset,
-} from "@/components/ui/sidebar";
-import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+
 import StatCard from "@/components/dashboard/StatCard";
 import RevenueChart from "@/components/dashboard/RevenueChart";
 import LowStockItems from "@/components/dashboard/LowStockItems";
@@ -18,43 +12,23 @@ import {
 
 export default function DashboardPage() {
   return (
-    // 1. SidebarProvider wraps the whole layout to manage sidebar state
-    <SidebarProvider>
-      <div className="flex min-h-screen">
-        {/* 2. DashboardSidebar component, hidden or minimized on small screens */}
-        <DashboardSidebar />
-        
-        {/* 3. SidebarInset takes up the remaining space, adjusting its margin/position based on sidebar state */}
-        <SidebarInset className="flex flex-1 flex-col bg-background">
-          <DashboardHeader />
-          
-          {/* 4. Main Content Area: Padding adjusted for better mobile view */}
-          <main className="flex-1 overflow-y-auto p-2 sm:p-4">
-            
-            {/* Stat Cards: Responsive grid layout */}
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
-              {statsData.map((stat) => (
-                <StatCard key={stat.title} {...stat} />
-              ))}
-            </div>
-            
-            {/* Charts/Low Stock: Responsive grid layout. `lg:grid-rows-1` ensures items in the same row have the same height. */}
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-rows-1">
-              <div className="lg:col-span-2 h-full">
-                <RevenueChart data={revenueData} />
-              </div>
-              <div className="h-full">
-                <LowStockItems data={lowStockItemsData} />
-              </div>
-            </div>
-            
-            {/* Recent Invoices: Full width, naturally responsive. */}
-            <div className="mt-4">
-              <RecentInvoices data={recentInvoicesData} />
-            </div>
-          </main>
-        </SidebarInset>
+    <main className="flex-1 overflow-y-auto p-2 sm:p-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+        {statsData.map((stat) => (
+          <StatCard key={stat.title} {...stat} />
+        ))}
       </div>
-    </SidebarProvider>
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-rows-1">
+        <div className="lg:col-span-2 h-full">
+          <RevenueChart data={revenueData} />
+        </div>
+        <div className="h-full">
+          <LowStockItems data={lowStockItemsData} />
+        </div>
+      </div>
+      <div className="mt-4">
+        <RecentInvoices data={recentInvoicesData} />
+      </div>
+    </main>
   );
 }

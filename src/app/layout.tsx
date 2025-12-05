@@ -1,7 +1,11 @@
+
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import { Inter } from "next/font/google";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +22,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
-        {children}
+        <SidebarProvider>
+          <div className="flex min-h-screen">
+            <DashboardSidebar />
+            <SidebarInset className="flex flex-1 flex-col bg-background">
+              <DashboardHeader />
+              {children}
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
         <Toaster />
       </body>
     </html>
