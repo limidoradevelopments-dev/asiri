@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { collection, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Plus } from "lucide-react";
+import { PlusCircle, Plus, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Product, Service } from "@/lib/data";
 import InventoryTable from "@/components/inventory/InventoryTable";
@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Input } from "@/components/ui/input";
 
 
 export default function InventoryPage() {
@@ -31,6 +32,28 @@ export default function InventoryPage() {
 
   const { data: products, isLoading: productsLoading } = useCollection<Product>(productsCollection);
   const { data: services, isLoading: servicesLoading } = useCollection<Service>(servicesCollection);
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+    if (!searchQuery) return products;
+
+    return products.filter(product =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [products, searchQuery]);
+
+  const filteredServices = useMemo(() => {
+    if (!services) return [];
+    if (!searchQuery) return services;
+    
+    return services.filter(service =>
+      service.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [services, searchQuery]);
+
 
   const categories = useMemo(() => {
     if (!products) return [];
@@ -92,7 +115,17 @@ export default function InventoryPage() {
 
   return (
     <>
-      <div className="flex sm:flex-row justify-between items-start sm:items-center mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search by name or SKU..."
+            className="pl-8 w-full"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
         <div className="flex items-center gap-4">
           <AddItemDialog 
             onUpsertItem={handleUpsertItem} 
@@ -121,7 +154,7 @@ export default function InventoryPage() {
         </TabsList>
         <TabsContent value="products">
           <InventoryTable 
-            data={products || []} 
+            data={filteredProducts} 
             type="product" 
             isLoading={productsLoading} 
             onEdit={handleEdit}
@@ -130,7 +163,7 @@ export default function InventoryPage() {
         </TabsContent>
         <TabsContent value="services">
           <InventoryTable 
-            data={services || []} 
+            data={filteredServices} 
             type="service" 
             isLoading={servicesLoading}
             onEdit={handleEdit}
