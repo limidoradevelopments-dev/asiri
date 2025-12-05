@@ -233,7 +233,7 @@ export default function POSPage() {
     setPaymentDialogOpen(true);
   };
   
-  const handleConfirmPayment = async (paymentDetails: { paymentMethod?: PaymentMethod, amountPaid: number, balanceDue: number, paymentStatus: InvoiceStatus }) => {
+  const handleConfirmPayment = async (paymentDetails: { paymentMethod: PaymentMethod, amountPaid: number, balanceDue: number, paymentStatus: InvoiceStatus, chequeNumber?: string, bank?: string }) => {
     if (!selectedCustomer || !selectedVehicle || !selectedEmployee) return;
 
     const invoiceItems = cart.map(item => {
@@ -616,7 +616,5 @@ export default function POSPage() {
     </div>
   );
 }
-
-    
 
     

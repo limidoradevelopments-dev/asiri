@@ -14,24 +14,43 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import type { PaymentMethod, InvoiceStatus } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { 
+  Banknote, 
+  CreditCard, 
+  Wallet, 
+  CheckCircle2, 
+  AlertCircle,
+  ArrowRight
+} from 'lucide-react';
+import type { PaymentMethod, InvoiceStatus } from '@/lib/data';
 
 type PaymentDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   totalAmount: number;
   onConfirmPayment: (paymentDetails: {
-    paymentMethod?: PaymentMethod;
+    paymentMethod: PaymentMethod;
     amountPaid: number;
     balanceDue: number;
     paymentStatus: InvoiceStatus;
+    changeDue: number; // Added for record keeping
+    chequeNumber?: string;
+    bank?: string;
   }) => void;
 };
 
+// --- Utilities ---
 const safeRound = (num: number): number => {
     return Math.round((num + Number.EPSILON) * 100) / 100;
+};
+
+const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+        style: 'decimal',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(amount);
 };
 
 export function PaymentDialog({
@@ -42,128 +61,232 @@ export function PaymentDialog({
 }: PaymentDialogProps) {
   const [amountPaid, setAmountPaid] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash');
+  const [chequeNumber, setChequeNumber] = useState('');
+  const [bank, setBank] = useState('');
 
+  // Reset state when dialog opens
   useEffect(() => {
     if (isOpen) {
-      setAmountPaid(totalAmount.toFixed(2));
+      setAmountPaid(''); // Start empty to force user interaction, or use totalAmount for auto-fill
+      setChequeNumber('');
+      setBank('');
     }
   }, [isOpen, totalAmount]);
 
-  const { balanceDue, paymentStatus } = useMemo(() => {
-    const paid = parseFloat(amountPaid) || 0;
-    const balance = safeRound(totalAmount - paid);
+  // --- Core Calculation Logic ---
+  const { balanceDue, changeDue, paymentStatus, numericPaid } = useMemo(() => {
+    const paid = Math.max(0, parseFloat(amountPaid) || 0);
+    const diff = safeRound(totalAmount - paid);
     
     let status: InvoiceStatus = 'Unpaid';
-    if (paid <= 0) {
+    let balance = 0;
+    let change = 0;
+
+    if (paid === 0) {
         status = 'Unpaid';
-    } else if (balance <= 0) {
-        status = 'Paid';
-    } else {
+        balance = totalAmount;
+    } else if (diff > 0) {
+        // Customer hasn't paid enough
         status = 'Partial';
+        balance = diff;
+    } else {
+        // Customer paid exact or excess
+        status = 'Paid';
+        change = Math.abs(diff); // The negative difference is the change
     }
 
-    return { balanceDue: Math.max(0, balance), paymentStatus: status };
+    return { 
+        balanceDue: balance, 
+        changeDue: change, 
+        paymentStatus: status,
+        numericPaid: paid
+    };
   }, [amountPaid, totalAmount]);
 
   const handleConfirm = () => {
     onConfirmPayment({
       paymentMethod,
-      amountPaid: parseFloat(amountPaid) || 0,
+      amountPaid: numericPaid,
       balanceDue,
       paymentStatus,
+      changeDue,
+      chequeNumber: paymentMethod === 'Check' ? chequeNumber : undefined,
+      bank: paymentMethod === 'Check' ? bank : undefined,
     });
     onOpenChange(false);
   };
-  
-  const formatPrice = (price: number) => {
-    return Math.max(0, price).toLocaleString("en-US", {
-      style: "decimal",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
 
-  const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
-  const statusColors: Record<InvoiceStatus, string> = {
-    Paid: 'bg-green-100 text-green-800',
-    Partial: 'bg-yellow-100 text-yellow-800',
-    Unpaid: 'bg-red-100 text-red-800',
+  const setExactAmount = () => {
+      setAmountPaid(totalAmount.toString());
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-none border-zinc-200">
-        <DialogHeader>
-          <DialogTitle className="font-light tracking-tight text-2xl">Process Payment</DialogTitle>
-          <DialogDescription>
-            Confirm payment details to finalize the invoice. Total due is LKR {formatPrice(totalAmount)}.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6 py-4">
-            {/* Payment Method */}
-            <div className="space-y-3">
-                <Label className="text-sm">Payment Method</Label>
-                <RadioGroup
-                    defaultValue="Cash"
-                    className="grid grid-cols-3 gap-4"
-                    value={paymentMethod}
-                    onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}
-                >
-                    {(['Cash', 'Card', 'Check'] as PaymentMethod[]).map((method) => (
-                        <div key={method}>
-                        <RadioGroupItem value={method} id={method} className="peer sr-only" />
-                        <Label
-                            htmlFor={method}
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                        >
-                            {method}
-                        </Label>
-                        </div>
-                    ))}
-                </RadioGroup>
+      <DialogContent className="sm:max-w-[500px] p-0 gap-0 overflow-hidden rounded-xl border-zinc-200 shadow-2xl">
+        
+        {/* --- Header: Hero Section --- */}
+        <div className="bg-zinc-950 text-white p-8 text-center flex flex-col items-center justify-center">
+            <span className="text-zinc-400 text-xs uppercase tracking-[0.2em] mb-2">Total Amount Due</span>
+            <div className="text-5xl font-light tracking-tighter flex items-baseline gap-1">
+                <span className="text-xl font-normal text-zinc-500">LKR</span>
+                {formatCurrency(totalAmount)}
             </div>
+        </div>
 
-            {/* Amount Paid */}
-            <div className="space-y-2">
-                <Label htmlFor="amount-paid">Amount Paid (LKR)</Label>
-                <Input
-                    id="amount-paid"
-                    type="number"
-                    value={amountPaid}
-                    onChange={(e) => setAmountPaid(e.target.value)}
-                    placeholder={totalAmount.toFixed(2)}
-                    className="rounded-none h-11 text-lg font-mono"
-                    step="0.01"
-                />
-            </div>
+        <div className="p-6 space-y-8 bg-white">
             
-             {/* Summary */}
-             <div className="space-y-3 rounded-md border border-zinc-200 bg-zinc-50 p-4">
-                <div className="flex justify-between items-center text-sm">
-                    <span className="text-zinc-500">Balance Due</span>
-                    <span className="font-mono font-medium">LKR {formatPrice(balanceDue)}</span>
+            {/* --- Payment Method Selection --- */}
+            <div className="space-y-3">
+                <Label className="text-xs uppercase tracking-widest text-zinc-500 font-semibold">Payment Method</Label>
+                <div className="grid grid-cols-3 gap-3">
+                    {[
+                        { id: 'Cash', icon: Banknote }, 
+                        { id: 'Card', icon: CreditCard }, 
+                        { id: 'Check', icon: Wallet }
+                    ].map((m) => {
+                        const Icon = m.icon;
+                        const isSelected = paymentMethod === m.id;
+                        return (
+                            <button
+                                key={m.id}
+                                onClick={() => setPaymentMethod(m.id as PaymentMethod)}
+                                className={cn(
+                                    "flex flex-col items-center justify-center gap-2 p-4 rounded-lg border transition-all duration-200",
+                                    isSelected 
+                                        ? "border-black bg-zinc-50 text-black shadow-sm ring-1 ring-black" 
+                                        : "border-zinc-200 text-zinc-400 hover:border-zinc-300 hover:bg-zinc-50"
+                                )}
+                            >
+                                <Icon className={cn("w-6 h-6", isSelected ? "text-black" : "text-zinc-400")} />
+                                <span className="text-xs font-medium uppercase tracking-wide">{m.id}</span>
+                            </button>
+                        )
+                    })}
                 </div>
-                 <div className="flex justify-between items-center text-sm">
-                    <span className="text-zinc-500">Payment Status</span>
-                    <span className={cn("px-2 py-1 text-xs font-semibold rounded-md", statusColors[paymentStatus])}>
-                        {paymentStatus}
-                    </span>
+            </div>
+
+            {/* --- Cheque Details (Conditional) --- */}
+            {paymentMethod === 'Check' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="chequeNumber" className="text-xs uppercase tracking-widest text-zinc-500">Cheque Number</Label>
+                  <Input
+                    id="chequeNumber"
+                    value={chequeNumber}
+                    onChange={(e) => setChequeNumber(e.target.value)}
+                    placeholder="123456"
+                    className="h-12 border-zinc-200 focus-visible:ring-black rounded-lg bg-zinc-50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bank" className="text-xs uppercase tracking-widest text-zinc-500">Bank</Label>
+                  <Input
+                    id="bank"
+                    value={bank}
+                    onChange={(e) => setBank(e.target.value)}
+                    placeholder="e.g., Commercial Bank"
+                    className="h-12 border-zinc-200 focus-visible:ring-black rounded-lg bg-zinc-50"
+                  />
+                </div>
+              </div>
+            )}
+
+
+            {/* --- Amount Input --- */}
+            <div className="space-y-3">
+                <div className="flex justify-between items-end">
+                    <Label className="text-xs uppercase tracking-widest text-zinc-500 font-semibold">Amount Received</Label>
+                    <button 
+                        onClick={setExactAmount}
+                        className="text-[10px] uppercase tracking-wider font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                        Click for Exact Amount
+                    </button>
+                </div>
+                
+                <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-mono text-lg">LKR</span>
+                    <Input
+                        type="number"
+                        value={amountPaid}
+                        onChange={(e) => setAmountPaid(e.target.value)}
+                        placeholder="0.00"
+                        className="pl-14 h-14 text-2xl font-mono border-zinc-200 focus-visible:ring-black rounded-lg bg-zinc-50"
+                        autoFocus
+                    />
+                </div>
+            </div>
+
+            {/* --- Dynamic Feedback Section (Change vs Balance) --- */}
+            <div className={cn(
+                "rounded-lg p-4 flex items-center justify-between border",
+                changeDue > 0 
+                    ? "bg-emerald-50 border-emerald-100" 
+                    : balanceDue > 0 
+                        ? "bg-red-50 border-red-100" 
+                        : "bg-zinc-50 border-zinc-100"
+            )}>
+                <div className="flex items-center gap-3">
+                    {changeDue > 0 ? (
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                            <ArrowRight className="w-5 h-5 -rotate-45" />
+                        </div>
+                    ) : balanceDue > 0 ? (
+                        <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                            <AlertCircle className="w-5 h-5" />
+                        </div>
+                    ) : (
+                        <div className="h-10 w-10 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-500">
+                            <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                    )}
+                    
+                    <div className="flex flex-col">
+                        <span className={cn(
+                            "text-xs uppercase tracking-widest font-bold",
+                            changeDue > 0 ? "text-emerald-700" : balanceDue > 0 ? "text-red-700" : "text-zinc-500"
+                        )}>
+                            {changeDue > 0 ? "Change Return" : balanceDue > 0 ? "Balance Due" : "Settled"}
+                        </span>
+                        <span className={cn(
+                            "text-lg font-mono font-medium leading-none mt-1",
+                            changeDue > 0 ? "text-emerald-900" : balanceDue > 0 ? "text-red-900" : "text-zinc-900"
+                        )}>
+                            LKR {formatCurrency(changeDue > 0 ? changeDue : balanceDue)}
+                        </span>
+                    </div>
+                </div>
+
+                <div className={cn(
+                    "px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold border",
+                    paymentStatus === 'Paid' ? "bg-black text-white border-black" : 
+                    paymentStatus === 'Partial' ? "bg-white text-red-600 border-red-200" : 
+                    "bg-zinc-100 text-zinc-400 border-zinc-200"
+                )}>
+                    {paymentStatus}
                 </div>
             </div>
         </div>
 
-        <DialogFooter className="gap-2">
+        {/* --- Footer --- */}
+        <DialogFooter className="p-4 bg-zinc-50 border-t border-zinc-100 gap-3 sm:gap-0">
           <DialogClose asChild>
-            <Button type="button" variant="outline" className={commonButtonStyles}>
+            <Button type="button" variant="outline" className="h-12 flex-1 sm:flex-none border-zinc-200 hover:bg-white hover:text-black">
               Cancel
             </Button>
           </DialogClose>
-          <Button onClick={handleConfirm} className={commonButtonStyles}>
-            Confirm & Create Invoice
+          <Button 
+            onClick={handleConfirm} 
+            className="h-12 px-8 flex-1 bg-black hover:bg-zinc-800 text-white uppercase tracking-widest text-xs font-bold"
+            disabled={paymentStatus === 'Unpaid' && numericPaid === 0} // Optional: Prevent 0 payments
+          >
+            Complete Transaction
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
 }
+
+    

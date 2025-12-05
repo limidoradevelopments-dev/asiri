@@ -178,6 +178,14 @@
         "balanceDue": {
             "type": "number",
             "description": "The remaining balance to be paid."
+        },
+        "chequeNumber": {
+          "type": "string",
+          "description": "The cheque number if payment method is Check."
+        },
+        "bank": {
+          "type": "string",
+          "description": "The bank name if payment method is Check."
         }
       },
       "required": [
@@ -492,3 +500,5 @@
     "reasoning": "The Firestore data structure is designed to support the ServicePulse Dashboard application. Key entities like Customers, Vehicles, Products, and Services are stored in separate top-level collections to maintain structural segregation and allow for independent security rules. This approach simplifies querying (e.g., listing all vehicles) and aligns with best practices for authorization independence, as access to one collection does not depend on data from another."
   }
 }
+
+    

@@ -97,6 +97,8 @@ export type Invoice = {
   paymentMethod?: PaymentMethod;
   amountPaid: number;
   balanceDue: number;
+  chequeNumber?: string;
+  bank?: string;
 };
 
 
@@ -197,3 +199,5 @@ export interface Vehicle {
   transmission?: 'Auto' | 'Manual';
   lastVisit?: number;
 }
+
+    
