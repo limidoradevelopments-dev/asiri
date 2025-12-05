@@ -28,7 +28,7 @@ const chartConfig = {
 
 export default function RevenueChart({ data }: RevenueChartProps) {
   return (
-    <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm">
+    <Card className="rounded-3xl bg-white/65 backdrop-blur-md border-white/40 shadow-sm flex flex-col h-full">
       <CardHeader>
         <CardTitle className="text-lg font-medium text-primary-text">
           Revenue Overview
@@ -37,13 +37,13 @@ export default function RevenueChart({ data }: RevenueChartProps) {
           Showing revenue for the last 7 days.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         {/*
           Key for responsiveness: w-full ensures it fits the card width.
           h-64 (256px) is the mobile/default height.
           sm:h-80 (320px) increases the height on small screens and up.
         */}
-        <ChartContainer config={chartConfig} className="w-full h-64 sm:h-80">
+        <ChartContainer config={chartConfig} className="w-full h-full min-h-64 sm:min-h-80">
           {/* ResponsiveContainer makes the BarChart scale its dimensions to its parent */}
           <ResponsiveContainer>
             <BarChart
