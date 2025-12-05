@@ -35,7 +35,8 @@ const productSchema = z.object({
   sku: z.string().min(1, 'SKU is required'),
   category: z.string().min(1, 'Category is required'),
   stockThreshold: z.coerce.number().int().min(0, 'Re-order level cannot be negative'),
-  price: z.coerce.number().min(0, 'Price cannot be negative'),
+  actualPrice: z.coerce.number().min(0, 'Price cannot be negative'),
+  sellingPrice: z.coerce.number().min(0, 'Price cannot be negative'),
 });
 
 const serviceSchema = z.object({
@@ -59,7 +60,8 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
       sku: '',
       category: '',
       stockThreshold: 0,
-      price: 0,
+      actualPrice: 0,
+      sellingPrice: 0,
     },
   });
 
@@ -155,10 +157,10 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
                 <div className="grid grid-cols-2 gap-4">
                    <FormField
                     control={productForm.control}
-                    name="price"
+                    name="actualPrice"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Price (Rs.)</FormLabel>
+                        <FormLabel>Actual Price (Rs.)</FormLabel>
                         <FormControl>
                           <Input type="number" step="0.01" {...field} />
                         </FormControl>
@@ -166,6 +168,21 @@ export function AddItemSheet({ children, onAddItem }: AddItemSheetProps) {
                       </FormItem>
                     )}
                   />
+                   <FormField
+                    control={productForm.control}
+                    name="sellingPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Selling Price (Rs.)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                    <FormField
                     control={productForm.control}
                     name="stockThreshold"

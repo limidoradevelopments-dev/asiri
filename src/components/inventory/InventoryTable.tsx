@@ -32,6 +32,13 @@ export default function InventoryTable({ data, type }: InventoryTableProps) {
     }).replace('LKR', 'Rs.');
   }
 
+  const getPrice = (item: Product | Service) => {
+    if (type === 'product') {
+      return (item as Product).sellingPrice;
+    }
+    return (item as Service).price;
+  };
+
   return (
     <div className="overflow-x-auto mt-4">
       <Table>
@@ -65,7 +72,7 @@ export default function InventoryTable({ data, type }: InventoryTableProps) {
                   </Badge>
                 </TableCell>
               )}
-              <TableCell className="text-right text-primary-text">{formatPrice(item.price)}</TableCell>
+              <TableCell className="text-right text-primary-text">{formatPrice(getPrice(item))}</TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

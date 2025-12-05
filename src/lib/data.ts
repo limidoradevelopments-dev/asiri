@@ -126,7 +126,8 @@ export type Product = {
   category: string;
   stock: number;
   stockThreshold: number;
-  price: number;
+  actualPrice: number;
+  sellingPrice: number;
 };
 
 export type Service = {
@@ -137,12 +138,12 @@ export type Service = {
 };
 
 export const productsData: Product[] = [
-  { id: 'PROD-001', name: 'Synthetic Oil 5L', sku: 'OIL-SYN-5L', category: 'Engine Oils', stock: 8, stockThreshold: 10, price: 12500.00 },
-  { id: 'PROD-002', name: 'Brake Pads Set (Front)', sku: 'BRK-PAD-F01', category: 'Brakes', stock: 4, stockThreshold: 5, price: 8500.00 },
-  { id: 'PROD-003', name: 'Standard Air Filter', sku: 'AIR-FIL-S12', category: 'Filters', stock: 12, stockThreshold: 15, price: 2500.00 },
-  { id: 'PROD-004', name: 'Spark Plugs (4-pack)', sku: 'SPK-PLG-04', category: 'Ignition', stock: 9, stockThreshold: 10, price: 4000.00 },
-  { id: 'PROD-005', name: 'Wiper Blades 22"', sku: 'WPR-BLD-22', category: 'Accessories', stock: 3, stockThreshold: 5, price: 3200.00 },
-  { id: 'PROD-006', name: 'Headlight Bulb H4', sku: 'BULB-H4-01', category: 'Lighting', stock: 25, stockThreshold: 20, price: 1500.00 },
+  { id: 'PROD-001', name: 'Synthetic Oil 5L', sku: 'OIL-SYN-5L', category: 'Engine Oils', stock: 8, stockThreshold: 10, actualPrice: 10000.00, sellingPrice: 12500.00 },
+  { id: 'PROD-002', name: 'Brake Pads Set (Front)', sku: 'BRK-PAD-F01', category: 'Brakes', stock: 4, stockThreshold: 5, actualPrice: 7000.00, sellingPrice: 8500.00 },
+  { id: 'PROD-003', name: 'Standard Air Filter', sku: 'AIR-FIL-S12', category: 'Filters', stock: 12, stockThreshold: 15, actualPrice: 2000.00, sellingPrice: 2500.00 },
+  { id: 'PROD-004', name: 'Spark Plugs (4-pack)', sku: 'SPK-PLG-04', category: 'Ignition', stock: 9, stockThreshold: 10, actualPrice: 3200.00, sellingPrice: 4000.00 },
+  { id: 'PROD-005', name: 'Wiper Blades 22"', sku: 'WPR-BLD-22', category: 'Accessories', stock: 3, stockThreshold: 5, actualPrice: 2500.00, sellingPrice: 3200.00 },
+  { id: 'PROD-006', name: 'Headlight Bulb H4', sku: 'BULB-H4-01', category: 'Lighting', stock: 25, stockThreshold: 20, actualPrice: 1200.00, sellingPrice: 1500.00 },
 ];
 
 export const servicesData: Service[] = [
