@@ -126,12 +126,12 @@ export default function POSPage() {
 
         {/* Minimal Tabs */}
         <Tabs defaultValue="services" value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
-            <TabsList className="bg-transparent justify-start gap-12 p-0 mb-8 w-full border-b border-zinc-100">
+            <TabsList className="bg-zinc-100 justify-start p-1 mb-8 w-full rounded-none">
                 {['services', 'products'].map((tab) => (
                     <TabsTrigger 
                         key={tab} 
                         value={tab}
-                        className="relative bg-transparent h-12 p-0 rounded-none text-sm font-medium uppercase tracking-widest text-zinc-300 data-[state=active]:text-black data-[state=active]:shadow-none hover:text-zinc-500 transition-colors"
+                        className="relative h-10 px-6 rounded-none text-sm font-medium uppercase tracking-widest text-zinc-400 data-[state=active]:text-white data-[state=active]:bg-black data-[state=active]:shadow-none hover:bg-zinc-200 transition-colors"
                     >
                         {tab}
                     </TabsTrigger>
