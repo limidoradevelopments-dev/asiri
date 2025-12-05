@@ -101,8 +101,8 @@ export default function POSPage() {
       
       {/* GLOBAL TEXTURE: Subtle Noise is on body via layout */}
 
-      {/* --- LEFT: CATALOG (65%) --- */}
-      <div className="relative z-10 w-[65%] flex flex-col pt-16 pl-12 pr-6">
+      {/* --- LEFT: CATALOG (55%) --- */}
+      <div className="relative z-10 w-[55%] flex flex-col pt-16 pl-12 pr-6">
         
         {/* Header Area */}
         <div className="flex justify-between items-start mb-16">
@@ -184,8 +184,8 @@ export default function POSPage() {
         </Tabs>
       </div>
 
-      {/* --- RIGHT: INVOICE (35%) --- */}
-      <div className="relative z-20 w-[35%] flex flex-col bg-white border-l border-zinc-100 h-full">
+      {/* --- RIGHT: INVOICE (45%) --- */}
+      <div className="relative z-20 w-[45%] flex flex-col bg-white border-l border-zinc-100 h-full">
         
         {/* Ticket Header */}
         <div className="pt-8 px-10 pb-8">
@@ -298,5 +298,7 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
 
     
