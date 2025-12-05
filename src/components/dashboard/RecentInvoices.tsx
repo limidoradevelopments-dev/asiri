@@ -28,13 +28,13 @@ import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type RecentInvoicesProps = {
-  data: Invoice[];
+  data: (Omit<Invoice, 'invoiceNumber' | 'customerId' | 'vehicleId' | 'employeeId' | 'items' | 'subtotal' | 'globalDiscountPercent' | 'globalDiscountAmount' | 'balanceDue' | 'paymentMethod'> & { customer: string, amount: number, status: 'Paid' | 'Pending' | 'Overdue'})[];
 };
 
-const statusStyles: Record<Invoice["status"], string> = {
+const statusStyles: Record<Invoice['paymentStatus'], string> = {
   Paid: "bg-green-100 text-green-800",
-  Pending: "bg-yellow-100 text-yellow-800",
-  Overdue: "bg-red-100 text-red-800",
+  Partial: "bg-yellow-100 text-yellow-800",
+  Unpaid: "bg-red-100 text-red-800",
 };
 
 
@@ -69,13 +69,13 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
                   <TableCell className="py-3 px-0">{invoice.customer}</TableCell>
                   <TableCell className="py-3 px-0">
                     <Badge 
-                      className={cn("capitalize text-xs font-medium rounded-md", statusStyles[invoice.status])}
+                      className={cn("capitalize text-xs font-medium rounded-md", statusStyles[invoice.paymentStatus])}
                       variant="outline"
                     >
-                      {invoice.status}
+                      {invoice.paymentStatus}
                     </Badge>
                   </TableCell>
-                  <TableCell className="py-3 px-0">{format(invoice.date, "MMM d, yyyy")}</TableCell>
+                  <TableCell className="py-3 px-0">{format(new Date(invoice.date), "MMM d, yyyy")}</TableCell>
                   <TableCell className="text-right py-3 px-0 font-mono">
                     {invoice.amount.toLocaleString("en-US", {
                       style: "currency",

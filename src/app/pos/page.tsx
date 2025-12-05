@@ -4,10 +4,9 @@
 import { useState, useMemo } from 'react';
 import { collection, doc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
-import type { Product, Service, Employee, Customer, Vehicle, Invoice } from '@/lib/data';
+import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMethod, InvoiceStatus } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,13 +26,28 @@ import {
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { AddCustomerVehicleDialog } from '@/components/pos/AddCustomerVehicleDialog';
 import { useToast } from '@/hooks/use-toast';
+import { PaymentDialog } from '@/components/pos/PaymentDialog';
 
 // --- Types ---
 type CartItem = WithId<Product | Service> & {
   cartId: string;
   quantity: number;
   type: 'product' | 'service';
-  discountAmount: number;
+  discountAmount: number; // Discount per UNIT
+};
+
+// --- Math & Helper Utilities ---
+
+// Solves floating point math issues (e.g., 0.1 + 0.2 !== 0.3)
+const safeRound = (num: number): number => {
+  return Math.round((num + Number.EPSILON) * 100) / 100;
+};
+
+// Safely gets price regardless of Product (sellingPrice) or Service (price)
+const getItemPrice = (item: WithId<Product> | WithId<Service> | CartItem): number => {
+  if ('sellingPrice' in item) return (item as WithId<Product>).sellingPrice;
+  if ('price' in item) return (item as WithId<Service>).price;
+  return 0;
 };
 
 export default function POSPage() {
@@ -64,52 +78,53 @@ export default function POSPage() {
   const [isCustomerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<WithId<Customer> | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<WithId<Vehicle> | null>(null);
+  const [isPaymentDialogOpen, setPaymentDialogOpen] = useState(false);
+
 
   // --- Logic Helpers ---
   const formatPrice = (price: number) => {
     return Math.max(0, price).toLocaleString("en-US", {
       style: "decimal",
       minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     });
   };
 
   const addToCart = (item: WithId<Product> | WithId<Service>, type: 'product' | 'service') => {
     setCart((prev) => {
-        const existing = prev.find((i) => i.id === item.id);
-        const stock = type === 'product' ? (item as WithId<Product>).stock : Infinity;
-        
-        if (existing) {
-            // Check stock before increasing quantity
-            if (existing.quantity < stock) {
-                return prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
-            }
-            // If stock limit reached, do nothing
-            return prev;
+      const existing = prev.find((i) => i.id === item.id);
+      const stock = type === 'product' ? (item as WithId<Product>).stock : Infinity;
+      
+      if (existing) {
+        // Strict stock check
+        if (existing.quantity < stock) {
+          return prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
         }
-        
-        // Check stock before adding new item
-        if (stock > 0) {
-            return [...prev, {
-                ...item,
-                cartId: `${item.id}-${Date.now()}`,
-                quantity: 1,
-                type,
-                discountAmount: 0
-            }];
-        }
-        // If out of stock, do nothing
-        return prev;
+        return prev; // Stock limit reached
+      }
+      
+      if (stock > 0) {
+        return [...prev, {
+          ...item,
+          cartId: `${item.id}-${Date.now()}`,
+          quantity: 1,
+          type,
+          discountAmount: 0
+        }];
+      }
+      return prev; // Out of stock
     });
   };
 
   const updateQty = (id: string, newQuantity: number) => {
     setCart(prev => prev.map(item => {
-        if (item.cartId === id) {
-            const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
-            // Quantity cannot be less than 1 and not more than stock
-            return { ...item, quantity: Math.max(1, Math.min(newQuantity, stock)) };
-        }
-        return item;
+      if (item.cartId === id) {
+        const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
+        // Ensure quantity is integer, at least 1, and max stock
+        const validQty = Math.max(1, Math.min(Math.floor(newQuantity), stock));
+        return { ...item, quantity: validQty };
+      }
+      return item;
     }));
   };
   
@@ -121,8 +136,9 @@ export default function POSPage() {
     const val = parseFloat(newAmount);
     setCart(prev => prev.map(item => {
       if (item.cartId === id) {
-        const originalPrice = 'sellingPrice' in item ? (item as any).sellingPrice : (item as any).price;
+        const originalPrice = getItemPrice(item);
         const amount = isNaN(val) ? 0 : Math.max(0, val);
+        // CRITICAL: Discount cannot exceed the unit price
         const effectiveDiscount = Math.min(amount, originalPrice);
         return { ...item, discountAmount: effectiveDiscount };
       }
@@ -147,15 +163,26 @@ export default function POSPage() {
     }
   };
 
-  // --- Calculations ---
-  const subtotalBeforeGlobalDiscount = cart.reduce((acc, item) => {
-    const originalPrice = 'sellingPrice' in item ? (item as any).sellingPrice : (item as any).price;
-    const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
-    return acc + (discountedPricePerUnit * item.quantity);
-  }, 0);
+  // --- Core Financial Calculations ---
+  // We use useMemo to ensure these values are recalculated consistently only when cart changes
+  const totals = useMemo(() => {
+    const subtotalBeforeGlobalDiscount = cart.reduce((acc, item) => {
+      const originalPrice = getItemPrice(item);
+      const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
+      // Calculate line total, THEN add to accumulator
+      const lineTotal = safeRound(discountedPricePerUnit * item.quantity);
+      return safeRound(acc + lineTotal);
+    }, 0);
 
-  const globalDiscountAmount = subtotalBeforeGlobalDiscount * (globalDiscountPercent / 100);
-  const total = subtotalBeforeGlobalDiscount - globalDiscountAmount;
+    const globalDiscountAmount = safeRound(subtotalBeforeGlobalDiscount * (globalDiscountPercent / 100));
+    const total = safeRound(subtotalBeforeGlobalDiscount - globalDiscountAmount);
+
+    return {
+      subtotal: subtotalBeforeGlobalDiscount,
+      globalDiscountAmount,
+      total
+    };
+  }, [cart, globalDiscountPercent]);
 
   const itemsToShow = useMemo(() => {
     const list = activeTab === 'services' ? services : products;
@@ -172,6 +199,7 @@ export default function POSPage() {
   };
 
   const handleProcessPayment = () => {
+    // 1. Basic Validation
     if (!selectedCustomer || !selectedVehicle || !selectedEmployee || cart.length === 0) {
       toast({
         variant: 'destructive',
@@ -181,16 +209,45 @@ export default function POSPage() {
       return;
     }
 
+    // 2. FINAL STOCK VALIDATION
+    const outOfStockItems: string[] = [];
+    cart.forEach(cartItem => {
+        if (cartItem.type === 'product') {
+            const liveProduct = products?.find(p => p.id === cartItem.id);
+            if (!liveProduct || liveProduct.stock < cartItem.quantity) {
+                outOfStockItems.push(cartItem.name);
+            }
+        }
+    });
+
+    if (outOfStockItems.length > 0) {
+        toast({
+            variant: 'destructive',
+            title: 'Stock Error',
+            description: `Insufficient stock for: ${outOfStockItems.join(', ')}. Please update cart.`,
+        });
+        return;
+    }
+
+    // 3. Open Payment Dialog
+    setPaymentDialogOpen(true);
+  };
+  
+  const handleConfirmPayment = async (paymentDetails: { paymentMethod?: PaymentMethod, amountPaid: number, balanceDue: number, paymentStatus: InvoiceStatus }) => {
+    if (!selectedCustomer || !selectedVehicle || !selectedEmployee) return;
+
     const invoiceItems = cart.map(item => {
-      const originalPrice = 'sellingPrice' in item ? (item as any).sellingPrice : (item as any).price;
+      const originalPrice = getItemPrice(item);
       const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
+      const lineTotal = safeRound(discountedPricePerUnit * item.quantity);
+      
       return {
         itemId: item.id,
         name: item.name,
         quantity: item.quantity,
         unitPrice: originalPrice,
         discount: item.discountAmount,
-        total: discountedPricePerUnit * item.quantity,
+        total: lineTotal,
       };
     });
 
@@ -201,13 +258,15 @@ export default function POSPage() {
       employeeId: selectedEmployee.id,
       date: Date.now(),
       items: invoiceItems,
-      subtotal: subtotalBeforeGlobalDiscount,
+      subtotal: totals.subtotal,
       globalDiscountPercent,
-      globalDiscountAmount,
-      total,
+      globalDiscountAmount: totals.globalDiscountAmount,
+      total: totals.total,
+      ...paymentDetails
     };
     
-    addDocumentNonBlocking(invoicesCollection, invoice);
+    // 4. Execute Database Operations
+    await addDocumentNonBlocking(invoicesCollection, invoice);
 
     // Decrement stock for products in the cart
     cart.forEach(item => {
@@ -217,7 +276,6 @@ export default function POSPage() {
           stock: increment(-item.quantity)
         }).catch(error => {
           console.error(`Failed to update stock for product ${item.id}:`, error);
-          // Optionally, show a toast for stock update failure
         });
       }
     });
@@ -227,7 +285,7 @@ export default function POSPage() {
     
     toast({
       title: 'Invoice Created',
-      description: `Invoice for ${selectedCustomer.name} has been processed.`,
+      description: `Invoice for ${selectedCustomer.name} successfully processed for LKR ${formatPrice(totals.total)}.`,
     });
 
     resetState();
@@ -286,6 +344,7 @@ export default function POSPage() {
                         const cartQuantity = cart.find(ci => ci.id === item.id)?.quantity ?? 0;
                         const stock = isProduct ? item.stock : Infinity;
                         const isOutOfStock = stock <= 0;
+                        // Prevent adding if cart qty equals current stock
                         const cartLimitReached = isProduct && cartQuantity >= stock;
                         const isDisabled = isOutOfStock || cartLimitReached;
 
@@ -306,7 +365,7 @@ export default function POSPage() {
                                         {'category' in item ? item.category : 'vehicleCategory' in item ? item.vehicleCategory : (activeTab === 'services' ? 'SVC' : 'PRD')}
                                     </span>
                                     <span className="font-mono text-lg font-medium text-zinc-900">
-                                        {formatPrice('sellingPrice' in item ? item.sellingPrice : item.price)}
+                                        {formatPrice(getItemPrice(item))}
                                     </span>
                                 </div>
                                 
@@ -332,7 +391,9 @@ export default function POSPage() {
                                     </div>
                                     <div className="flex items-center gap-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
                                         {isDisabled ? (
-                                             <span className="text-[9px] uppercase tracking-widest font-bold text-red-500">Out of Stock</span>
+                                             <span className="text-[9px] uppercase tracking-widest font-bold text-red-500">
+                                                {isOutOfStock ? "Out of Stock" : "Limit Reached"}
+                                             </span>
                                         ): (
                                             <>
                                                 <span className="text-[9px] uppercase tracking-widest font-bold">Add</span>
@@ -439,22 +500,24 @@ export default function POSPage() {
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            {cart.map((item, index) => {
-                                const originalPrice = 'sellingPrice' in item ? (item as any).sellingPrice : (item as any).price;
+                            {cart.map((item) => {
+                                const originalPrice = getItemPrice(item);
                                 const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
                                 const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
+                                const lineTotal = discountedPricePerUnit * item.quantity;
 
                                 return (
                                     <div key={item.cartId} className="group py-4 border-b border-zinc-100 grid grid-cols-12 gap-4 items-center">
                                         <div className="col-span-5">
-                                            <span className="text-sm font-medium tracking-tight truncate">{item.name}</span>
+                                            <span className="text-sm font-medium tracking-tight truncate block" title={item.name}>{item.name}</span>
                                         </div>
                                         <div className="col-span-2 text-center">
                                             <input 
                                                 type="number"
                                                 className="w-16 text-center text-sm font-mono bg-zinc-100 border border-transparent hover:border-zinc-200 focus:border-black outline-none rounded-sm transition-colors py-1"
                                                 value={item.quantity}
-                                                onChange={(e) => updateQty(item.cartId, parseInt(e.target.value) || 1)}
+                                                onChange={(e) => updateQty(item.cartId, e.target.valueAsNumber || 0)}
+                                                onKeyDown={(e) => ["-", "e", "+", "."].includes(e.key) && e.preventDefault()}
                                                 min="1"
                                                 max={stock}
                                             />
@@ -469,10 +532,13 @@ export default function POSPage() {
                                                 placeholder="0.00"
                                                 value={item.discountAmount || ''}
                                                 onChange={(e) => updateItemDiscountAmount(item.cartId, e.target.value)}
+                                                onKeyDown={(e) => ["-", "e"].includes(e.key) && e.preventDefault()}
+                                                min="0"
+                                                max={originalPrice}
                                             />
                                         </div>
                                         <div className="col-span-2 font-mono text-sm w-24 text-right flex items-center justify-end">
-                                            <span>{formatPrice(discountedPricePerUnit * item.quantity)}</span>
+                                            <span>{formatPrice(lineTotal)}</span>
                                             <Button onClick={() => removeFromCart(item.cartId)} variant="ghost" size="icon" className="h-8 w-8 ml-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-none">
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
@@ -497,6 +563,7 @@ export default function POSPage() {
                         placeholder="0"
                         value={globalDiscountPercent || ''}
                         onChange={(e) => setGlobalDiscountPercent(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+                        onKeyDown={(e) => ["-", "e"].includes(e.key) && e.preventDefault()}
                     />
                     <span className="text-zinc-300">%</span>
                 </div>
@@ -509,8 +576,13 @@ export default function POSPage() {
                     <span className="text-xs uppercase tracking-widest text-zinc-400">LKR</span>
                 </div>
                 <div className="text-5xl font-light tracking-tighter leading-none">
-                    {formatPrice(total)}
+                    {formatPrice(totals.total)}
                 </div>
+                {totals.globalDiscountAmount > 0 && (
+                    <div className="flex justify-end text-xs text-red-400 font-mono mt-1">
+                        - {formatPrice(totals.globalDiscountAmount)} Discount Applied
+                    </div>
+                )}
             </div>
 
             {/* Pay Button - Full Width Text Block */}
@@ -530,9 +602,13 @@ export default function POSPage() {
             onSelect={handleSelectCustomerAndVehicle}
             onCreate={handleCreateCustomerAndVehicle}
           />
+          <PaymentDialog
+            isOpen={isPaymentDialogOpen}
+            onOpenChange={setPaymentDialogOpen}
+            totalAmount={totals.total}
+            onConfirmPayment={handleConfirmPayment}
+          />
       </div>
     </div>
   );
 }
-
-    

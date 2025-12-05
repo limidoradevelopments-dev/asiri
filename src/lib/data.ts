@@ -71,49 +71,85 @@ export const lowStockItemsData: LowStockItem[] = [
   { name: "Wiper Blades 22in", sku: "WPR-BLD-22", stock: 3, threshold: 5 },
 ];
 
+export type InvoiceStatus = 'Paid' | 'Partial' | 'Unpaid';
+export type PaymentMethod = 'Cash' | 'Card' | 'Check';
+
 export type Invoice = {
-  id: string;
-  customer: string;
-  date: Date;
-  amount: number;
-  status: "Paid" | "Pending" | "Overdue";
+  id: string; // This is for recentInvoicesData, Firestore will have its own ID.
+  invoiceNumber: string;
+  customerId: string;
+  vehicleId: string;
+  employeeId: string;
+  date: number;
+  items: {
+    itemId: string;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+    total: number;
+  }[];
+  subtotal: number;
+  globalDiscountPercent: number;
+  globalDiscountAmount: number;
+  total: number;
+  paymentStatus: InvoiceStatus;
+  paymentMethod?: PaymentMethod;
+  amountPaid: number;
+  balanceDue: number;
 };
 
-export const recentInvoicesData: Invoice[] = [
+
+export const recentInvoicesData: (Omit<Invoice, 'invoiceNumber' | 'customerId' | 'vehicleId' | 'employeeId' | 'items' | 'subtotal' | 'globalDiscountPercent' | 'globalDiscountAmount' | 'balanceDue' | 'paymentMethod'> & { customer: string, amount: number, status: 'Paid' | 'Pending' | 'Overdue'})[] = [
   {
     id: "INV-2024005",
     customer: "John Doe",
-    date: new Date(2024, 6, 25),
+    date: new Date(2024, 6, 25).getTime(),
     amount: 105000.0,
     status: "Paid",
+    paymentStatus: "Paid",
+    amountPaid: 105000.0,
+    total: 105000.0,
   },
   {
     id: "INV-2024004",
     customer: "Jane Smith",
-    date: new Date(2024, 6, 24),
+    date: new Date(2024, 6, 24).getTime(),
     amount: 37650.5,
     status: "Pending",
+    paymentStatus: "Partial",
+    amountPaid: 20000,
+    total: 37650.5,
   },
   {
     id: "INV-2024003",
     customer: "Michael Johnson",
-    date: new Date(2024, 6, 22),
+    date: new Date(2024, 6, 22).getTime(),
     amount: 267225.75,
     status: "Paid",
+    paymentStatus: "Paid",
+    amountPaid: 267225.75,
+    total: 267225.75,
   },
   {
     id: "INV-2024002",
     customer: "Emily Davis",
-    date: new Date(2024, 5, 15),
+    date: new Date(2024, 5, 15).getTime(),
     amount: 13500.0,
     status: "Overdue",
+    paymentStatus: "Unpaid",
+    amountPaid: 0,
+    total: 13500.0,
   },
   {
     id: "INV-2024001",
     customer: "Chris Brown",
-    date: new Date(2024, 6, 20),
+    date: new Date(2024, 6, 20).getTime(),
     amount: 186000.0,
     status: "Paid",
+    paymentStatus: "Paid",
+    amountPaid: 186000.0,
+    total: 186000.0,
   },
 ];
 
@@ -133,7 +169,7 @@ export interface Service {
   name: string;
   description?: string;
   price: number;
-  vehicleCategory: 'Car' | 'Van' | 'SUV' | 'Motorbike' | 'Other';
+  vehicleCategory: string;
 }
 
 export interface Employee {
