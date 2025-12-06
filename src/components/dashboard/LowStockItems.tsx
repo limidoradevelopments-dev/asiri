@@ -82,7 +82,7 @@ export default function LowStockItems({ data }: LowStockItemsProps) {
             </Table>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-sm text-zinc-400">All stock levels are healthy.</p>
+                <p className="text-sm text-green-500">All stock levels are healthy.</p>
             </div>
           )}
         </ScrollArea>
