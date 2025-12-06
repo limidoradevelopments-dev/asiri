@@ -57,26 +57,27 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
     if (selectedProduct && quantity > 0) {
       onAddStock(selectedProduct.id, quantity);
       setOpen(false);
-      // Reset state for next open
+    }
+  };
+  
+  // This useEffect resets the state when the dialog is closed.
+  // This is important to ensure the form is clean every time it's opened.
+  useEffect(() => {
+    if (!open) {
       setSelectedProduct(null);
       setQuantity(1);
       setSearch("");
+      setPopoverOpen(false);
     }
-  };
+  }, [open]);
 
   const commonInputStyles = "rounded-none h-11 text-base";
   const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      setOpen(isOpen);
-      if (!isOpen) {
-        setSelectedProduct(null);
-        setQuantity(1);
-        setSearch("");
-      }
-    }}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
+
       <DialogContent className="sm:max-w-md rounded-none border-zinc-200">
         <DialogHeader>
           <DialogTitle className="font-light tracking-tight text-2xl">Add Stock</DialogTitle>
@@ -86,9 +87,8 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Product Selector */}
           <div className="space-y-2">
-            <Label htmlFor="product">Product</Label>
+            <Label>Product</Label>
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -104,6 +104,8 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
 
               <PopoverContent 
                 className="w-[--radix-popover-trigger-width] p-0 rounded-none border-zinc-200"
+                // This is the key fix: It prevents the Popover from trying to steal
+                // focus from the Dialog, which was causing the UI to freeze.
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <Command>
@@ -120,9 +122,12 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
                         <CommandItem
                           key={product.id}
                           value={product.name}
+                          // This also helps prevent focus issues on selection.
+                          onMouseDown={(e) => e.preventDefault()} 
                           onSelect={() => {
                             setSelectedProduct(product);
                             setPopoverOpen(false);
+                            setSearch("");
                           }}
                         >
                           <Check
@@ -141,7 +146,6 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
             </Popover>
           </div>
 
-          {/* Quantity Input */}
           <div className="space-y-2">
             <Label htmlFor="quantity">Quantity to Add</Label>
             <Input
@@ -149,7 +153,7 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
               type="number"
               min={1}
               value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 0)}
+              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
               className={commonInputStyles}
             />
           </div>
@@ -157,7 +161,7 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
 
         <DialogFooter className="gap-2">
           <DialogClose asChild>
-            <Button type="button" variant="outline" className={commonButtonStyles}>Cancel</Button>
+            <Button variant="outline" className={commonButtonStyles}>Cancel</Button>
           </DialogClose>
           <Button
             type="button"
