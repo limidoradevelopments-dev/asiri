@@ -55,7 +55,7 @@ body {
     --ring: 240 6% 10%;
  
     /* RADIUS: 0px for that sharp, industrial Swiss look */
-    --radius: 0rem; 
+    --radius: 0.5rem; 
 
     /* Chart colors (Monochrome/Swiss accents if needed) */
     --chart-1: 0 0% 20%;
@@ -64,7 +64,7 @@ body {
     --chart-4: 0 0% 80%;
     --chart-5: 0 0% 90%;
     
-    /* Sidebar variables (Dark Theme by Default) */
+    /* Sidebar variables (Permanent Dark Theme) */
     --sidebar-background: 240 6% 10%; /* zinc-900 */
     --sidebar-foreground: 0 0% 98%; /* zinc-50 */
     --sidebar-primary: 0 0% 98%; /* White */
