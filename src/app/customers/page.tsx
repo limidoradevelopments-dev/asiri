@@ -101,21 +101,22 @@ export default function CustomersPage() {
   };
 
   const confirmDelete = () => {
-    if (itemToDelete) {
-      const { customer, vehicle } = itemToDelete;
-      
-      const vehicleDocRef = doc(firestore, 'vehicles', vehicle.id);
-      deleteDocumentNonBlocking(vehicleDocRef);
+    if (!itemToDelete) return;
 
-      // Check if this is the customer's only vehicle
-      const customerVehicles = vehicles?.filter(v => v.customerId === customer.id);
-      if (customerVehicles?.length === 1) {
-        const customerDocRef = doc(firestore, 'customers', customer.id);
-        deleteDocumentNonBlocking(customerDocRef);
-      }
-      
-      setItemToDelete(null);
+    const { customer, vehicle } = itemToDelete;
+    
+    const vehicleDocRef = doc(firestore, 'vehicles', vehicle.id);
+    deleteDocumentNonBlocking(vehicleDocRef);
+
+    // Check if this is the customer's only vehicle
+    const customerVehicles = vehicles?.filter(v => v.customerId === customer.id);
+    if (customerVehicles?.length === 1) {
+      const customerDocRef = doc(firestore, 'customers', customer.id);
+      deleteDocumentNonBlocking(customerDocRef);
     }
+    
+    // Close the dialog immediately for optimistic UI update
+    setItemToDelete(null);
   };
 
   const onDialogClose = (isOpen: boolean) => {

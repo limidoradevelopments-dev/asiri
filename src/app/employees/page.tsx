@@ -65,6 +65,7 @@ export default function EmployeesPage() {
     if (employeeToDelete) {
       const docRef = doc(firestore, 'employees', employeeToDelete);
       deleteDocumentNonBlocking(docRef);
+      // Close the dialog immediately for optimistic UI update
       setEmployeeToDelete(null);
     }
   };

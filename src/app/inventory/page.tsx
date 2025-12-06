@@ -139,6 +139,7 @@ export default function InventoryPage() {
     if (itemToDelete) {
       const docRef = doc(firestore, itemToDelete.type === 'product' ? 'products' : 'services', itemToDelete.id);
       deleteDocumentNonBlocking(docRef);
+      // Close the dialog immediately for optimistic UI update
       setItemToDelete(null);
     }
   };
