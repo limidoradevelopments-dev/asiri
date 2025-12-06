@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +25,28 @@ import { useToast } from "@/hooks/use-toast";
 
 type WithId<T> = T & { id: string };
 
+const ProductSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  sku: z.string(),
+  description: z.string().optional().nullable(),
+  stock: z.number(),
+  stockThreshold: z.number(),
+  actualPrice: z.number(),
+  sellingPrice: z.number(),
+});
+const ProductsSchema = z.array(ProductSchema);
+
+const ServiceSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    price: z.number(),
+    description: z.string().optional().nullable(),
+    vehicleCategory: z.enum(["Car", "Jeep/Van", "Bike"]).optional().nullable(),
+});
+const ServicesSchema = z.array(ServiceSchema);
+
+
 export default function InventoryPage() {
   const { toast } = useToast();
 
@@ -32,33 +55,58 @@ export default function InventoryPage() {
   const [productsLoading, setProductsLoading] = useState(true);
   const [servicesLoading, setServicesLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal: AbortSignal) => {
     try {
       setProductsLoading(true);
       setServicesLoading(true);
       const [productsRes, servicesRes] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/services'),
+        fetch('/api/products', { signal }),
+        fetch('/api/services', { signal }),
       ]);
+
       if (!productsRes.ok) throw new Error('Failed to fetch products');
       if (!servicesRes.ok) throw new Error('Failed to fetch services');
       
-      const productsData = await productsRes.json();
-      const servicesData = await servicesRes.json();
+      const productsJson = await productsRes.json();
+      const servicesJson = await servicesRes.json();
 
-      setProducts(productsData);
-      setServices(servicesData);
-    } catch (err) {
+      const validatedProducts = ProductsSchema.safeParse(productsJson);
+      const validatedServices = ServicesSchema.safeParse(servicesJson);
+
+      if (!validatedProducts.success) {
+        console.error("Product validation error:", validatedProducts.error);
+        throw new Error('Invalid product data received from server.');
+      }
+      if (!validatedServices.success) {
+        console.error("Service validation error:", validatedServices.error);
+        throw new Error('Invalid service data received from server.');
+      }
+
+      setProducts(validatedProducts.data as WithId<ProductType>[]);
+      setServices(validatedServices.data as WithId<ServiceType>[]);
+
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.log("Fetch aborted");
+        return;
+      }
       console.error(err);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch inventory data.' });
+      const message = err instanceof Error ? err.message : 'Could not fetch inventory data.';
+      toast({ variant: 'destructive', title: 'Error', description: message });
     } finally {
       setProductsLoading(false);
       setServicesLoading(false);
     }
-  }, [toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    
+    return () => {
+      controller.abort();
+    };
   }, [fetchData]);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,12 +147,14 @@ export default function InventoryPage() {
           const errorData = await res.json();
           throw new Error(errorData.error || 'Failed to save item.');
         }
-
+        
         toast({ title: id ? "Updated" : "Created", description: "Item saved successfully." });
-        await fetchData(); // Re-fetch data to get the latest state
+        const controller = new AbortController();
+        fetchData(controller.signal); // Re-fetch data to get the latest state
       } catch (err: any) {
         console.error("Upsert error:", err);
-        toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to save item.' });
+        const message = err instanceof Error ? err.message : 'Unknown error occurred while saving the item.';
+        toast({ variant: 'destructive', title: 'Error', description: message });
       } finally {
         setItemToEdit(null);
         setAddItemDialogOpen(false);
@@ -130,16 +180,17 @@ export default function InventoryPage() {
       }
 
       toast({ title: "Stock Updated", description: `Added ${quantity} to stock.` });
-      // We don't need to re-fetch because the optimistic update is usually correct with atomic increments.
-      // If server fails, the catch block will revert.
+      // The optimistic update is likely correct, but we'll get the true state from the server response
       const updatedProduct = await res.json();
       setProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p));
 
     } catch (err: any) {
       console.error("Add stock error:", err);
-      toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to update stock.' });
+      const message = err instanceof Error ? err.message : 'An unknown error occurred while adding stock.';
+      toast({ variant: 'destructive', title: 'Error', description: message });
       // Revert optimistic update by re-fetching
-      fetchData();
+      const controller = new AbortController();
+      fetchData(controller.signal);
     } finally {
       setAddStockDialogOpen(false);
     }
@@ -166,8 +217,10 @@ export default function InventoryPage() {
       // No re-fetch needed if optimistic update is trusted
     } catch (err) {
       console.error("Delete error:", err);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete item.' });
-      fetchData(); // Re-fetch to revert optimistic update
+      const message = err instanceof Error ? err.message : 'An unknown error occurred while deleting the item.';
+      toast({ variant: 'destructive', title: 'Error', description: message });
+      const controller = new AbortController();
+      fetchData(controller.signal); // Re-fetch to revert optimistic update
     } finally {
       setItemToDelete(null);
     }
