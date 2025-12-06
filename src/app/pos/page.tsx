@@ -6,7 +6,7 @@ import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMet
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive, PlusCircle, Car, Bike, Truck, Sparkles } from 'lucide-react';
+import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive, PlusCircle, Car, Bike, Truck, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -81,10 +81,8 @@ export default function POSPage() {
   const [products, setProducts] = useState<WithId<Product>[]>([]);
   const [services, setServices] = useState<WithId<Service>[]>([]);
   const [employees, setEmployees] = useState<WithId<Employee>[]>([]);
-  const [customers, setCustomers] = useState<WithId<Customer>[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [servicesLoading, setServicesLoading] = useState(true);
-  // vehicles are now fetched on-demand in the dialog
 
   // --- UI/Logic States ---
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -98,18 +96,6 @@ export default function POSPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<WithId<Customer> | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<WithId<Vehicle> | null>(null);
   const [isPaymentDialogOpen, setPaymentDialogOpen] = useState(false);
-
-
-  const fetchCustomers = useCallback(async () => {
-    try {
-        const res = await fetch('/api/customers');
-        if (!res.ok) throw new Error('Failed to fetch customers');
-        setCustomers(await res.json());
-    } catch (err) {
-        console.error(err);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch customer data.' });
-    }
-  }, [toast]);
 
 
   useEffect(() => {
@@ -129,8 +115,6 @@ export default function POSPage() {
         setProducts(await productsRes.json());
         setServices(await servicesRes.json());
         setEmployees(await employeesRes.json());
-        
-        await fetchCustomers();
 
       } catch (err) {
         console.error(err);
@@ -142,7 +126,7 @@ export default function POSPage() {
     };
     
     fetchInitialData();
-  }, [fetchCustomers, toast]);
+  }, [toast]);
 
 
   useEffect(() => {
@@ -237,36 +221,44 @@ export default function POSPage() {
   };
   
   const handleCreateCustomerAndVehicle = async (customerData: Omit<Customer, 'id'>, vehicleData: Omit<Vehicle, 'id' | 'customerId'>) => {
+    // This function is passed to the dialog, which will handle its own API calls.
+    // We just need to handle the success case.
     try {
-        const customerRes = await fetch('/api/customers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(customerData),
-        });
-        if (!customerRes.ok) throw new Error('Failed to create customer');
-        const newCustomer: WithId<Customer> = await customerRes.json();
+      const customerRes = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customerData),
+      });
 
-        const vehicleRes = await fetch('/api/vehicles', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...vehicleData, customerId: newCustomer.id }),
-        });
-        
-        if (!vehicleRes.ok) {
-            const errorData = await vehicleRes.json();
-             if (vehicleRes.status === 409) {
-                 throw new Error(errorData.error || 'This vehicle number plate already exists.');
-             }
-            throw new Error(errorData.error || 'Failed to create vehicle');
+      if (!customerRes.ok) {
+        const errorData = await customerRes.json();
+        throw new Error(errorData.error || 'Failed to create customer');
+      }
+      const newCustomer: WithId<Customer> = await customerRes.json();
+
+      const vehicleRes = await fetch('/api/vehicles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...vehicleData, customerId: newCustomer.id }),
+      });
+
+      if (!vehicleRes.ok) {
+        const errorData = await vehicleRes.json();
+        if (vehicleRes.status === 409) {
+          throw new Error(errorData.error || 'This vehicle number plate already exists.');
         }
-        const newVehicle: WithId<Vehicle> = await vehicleRes.json();
-        
-        // Re-fetch customers list and select the new ones
-        await fetchCustomers();
-        handleSelectCustomerAndVehicle(newCustomer, newVehicle);
+        throw new Error(errorData.error || 'Failed to create vehicle');
+      }
+      const newVehicle: WithId<Vehicle> = await vehicleRes.json();
+      
+      // On success, select the newly created entities
+      handleSelectCustomerAndVehicle(newCustomer, newVehicle);
+      toast({ title: "Success", description: "New customer and vehicle have been created and selected." });
 
     } catch (err: any) {
-        toast({ variant: 'destructive', title: 'Error', description: err.message || 'Could not create entry.' });
+      toast({ variant: 'destructive', title: 'Error', description: err.message });
+      // Re-throw to allow the dialog to handle its submitting state
+      throw err;
     }
   };
 
@@ -749,7 +741,6 @@ export default function POSPage() {
          <AddCustomerVehicleDialog
             isOpen={isCustomerDialogOpen}
             onOpenChange={setCustomerDialogOpen}
-            customers={customers || []}
             onSelect={handleSelectCustomerAndVehicle}
             onCreate={handleCreateCustomerAndVehicle}
           />
@@ -763,5 +754,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-    

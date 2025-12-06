@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useDebouncedCallback } from 'use-debounce';
+import { useToast } from '@/hooks/use-toast';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Full Name is required'),
@@ -40,17 +41,18 @@ type EnrichedVehicle = WithId<Vehicle> & { customer?: WithId<Customer> };
 type AddCustomerVehicleDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  customers: WithId<Customer>[];
   onSelect: (customer: WithId<Customer>, vehicle: WithId<Vehicle>) => void;
   onCreate: (customer: Omit<Customer, 'id'>, vehicle: Omit<Vehicle, 'id' | 'customerId'>) => Promise<void>;
 };
 
-export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, onSelect, onCreate }: AddCustomerVehicleDialogProps) {
+export function AddCustomerVehicleDialog({ isOpen, onOpenChange, onSelect, onCreate }: AddCustomerVehicleDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<EnrichedVehicle[]>([]);
+  const [customers, setCustomers] = useState<WithId<Customer>[]>([]);
+  const { toast } = useToast();
 
   const form = useForm({
     resolver: zodResolver(customerSchema.merge(vehicleSchema)),
@@ -61,8 +63,21 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, onSe
     },
   });
   
+  const fetchCustomers = useCallback(async () => {
+    try {
+        const res = await fetch('/api/customers');
+        if (!res.ok) throw new Error('Failed to fetch customers');
+        setCustomers(await res.json());
+    } catch (err) {
+        console.error(err);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch customer data.' });
+    }
+  }, [toast]);
+  
   useEffect(() => {
-    if(!isOpen) {
+    if(isOpen) {
+      fetchCustomers();
+    } else {
       form.reset();
       setSearchQuery('');
       setShowAddForm(false);
@@ -70,7 +85,7 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, onSe
       setSearchResults([]);
       setIsSearching(false);
     }
-  }, [isOpen, form]);
+  }, [isOpen, form, fetchCustomers]);
 
   const customerMap = useMemo(() => new Map(customers.map(c => [c.id, c])), [customers]);
 
@@ -121,8 +136,14 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, onSe
     } else {
         delete (finalVehicleData as Partial<Vehicle>).mileage;
     }
-    await onCreate(customerData, finalVehicleData);
-    setIsSubmitting(false);
+
+    try {
+      await onCreate(customerData, finalVehicleData);
+    } catch(err) {
+      // Error is handled by the parent, but we need to stop submitting state
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSelect = (vehicle: EnrichedVehicle) => {
@@ -134,10 +155,10 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, onSe
   const formatLastVisit = (timestamp: number | undefined) => {
     if (!timestamp) return 'No previous visits';
     try {
-      const date = new Date(timestamp);
-      const dateToFormat = timestamp > 1000000000000 ? date : new Date(timestamp * 1000);
-      if (isNaN(dateToFormat.getTime())) return 'Invalid date';
-      return `${format(dateToFormat, 'MMM d, yyyy')} (${formatDistanceToNow(dateToFormat, { addSuffix: true })})`;
+      // Firestore serverTimestamp can return a Timestamp object or a number
+      const date = typeof timestamp === 'number' ? new Date(timestamp) : (timestamp as any).toDate();
+      if (isNaN(date.getTime())) return 'Invalid date';
+      return `${format(date, 'MMM d, yyyy')} (${formatDistanceToNow(date, { addSuffix: true })})`;
     } catch(e) {
       return 'Invalid date';
     }
@@ -286,5 +307,3 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, onSe
     </Dialog>
   );
 }
-
-    
