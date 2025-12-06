@@ -363,9 +363,9 @@ export default function POSPage() {
   
   const filterButtons: { label: string; value: VehicleCategory | 'all'; icon: React.ElementType }[] = [
     { label: 'All', value: 'all', icon: Sparkles },
+    { label: 'Bike', value: 'Bike', icon: Bike },
     { label: 'Car', value: 'Car', icon: Car },
     { label: 'Jeep/Van', value: 'Jeep/Van', icon: Truck },
-    { label: 'Bike', value: 'Bike', icon: Bike },
   ];
 
   return (
