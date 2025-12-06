@@ -222,6 +222,20 @@ export default function POSPage() {
   }, 300);
 
   const updateCartItem = (cartId: string, updates: Partial<CartItem>) => {
+     if (updates.discountAmount !== undefined) {
+      const item = cart.find(i => i.cartId === cartId);
+      if (item) {
+        const originalPrice = getItemPrice(item);
+        if (updates.discountAmount > originalPrice) {
+          toast({
+            variant: 'destructive',
+            title: 'Invalid Discount',
+            description: "Discount cannot be greater than the item's price.",
+          });
+          updates.discountAmount = originalPrice;
+        }
+      }
+    }
      setCart(prev => prev.map(item => item.cartId === cartId ? {...item, ...updates} : item));
      debouncedUpdateCartItem(cartId, updates);
   }
@@ -774,3 +788,4 @@ export default function POSPage() {
     </div>
   );
 }
+
