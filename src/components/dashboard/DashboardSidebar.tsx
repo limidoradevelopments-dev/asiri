@@ -114,7 +114,7 @@ export default function DashboardSidebar() {
                       h-11 rounded-lg text-sm tracking-tight justify-start
                       data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground
                       hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground
-                      text-sidebar-foreground/70`,
+                      text-sidebar-foreground/70 `,
                       isCollapsed && "justify-center"
                   )}
                 >
@@ -131,7 +131,7 @@ export default function DashboardSidebar() {
                 side={isCollapsed ? "right" : "bottom"} 
                 align={isCollapsed ? "start" : "center"}
                 sideOffset={10}
-                className="bg-sidebar-background border-sidebar-border text-sidebar-foreground rounded-lg w-48"
+                className="bg-sidebar-background border-sidebar-border text-sidebar-foreground rounded-sm w-48 bg-black"
               >
                 {reportMenuItems.map(item => (
                     <DropdownMenuItem key={item.href} asChild>
