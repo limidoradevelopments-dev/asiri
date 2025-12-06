@@ -98,6 +98,7 @@ export default function POSPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<WithId<Customer> | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<WithId<Vehicle> | null>(null);
   const [isPaymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchInitialData = useCallback(async (signal: AbortSignal) => {
       try {
@@ -359,6 +360,8 @@ export default function POSPage() {
   const handleConfirmPayment = useCallback(async (paymentDetails: Omit<Parameters<typeof onConfirmPayment>[0], "changeDue"> & { changeGiven: number }) => {
     if (!selectedCustomer || !selectedVehicle || !selectedEmployee) return;
 
+    setIsProcessing(true);
+
     const invoiceItems = cart.map(item => {
       const originalPrice = getItemPrice(item);
       const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
@@ -434,6 +437,8 @@ export default function POSPage() {
     } catch(err: any) {
         const message = err instanceof Error ? err.message : 'Failed to save invoice.';
         toast({ variant: 'destructive', title: 'Error', description: message });
+    } finally {
+        setIsProcessing(false);
     }
   }, [selectedCustomer, selectedVehicle, selectedEmployee, cart, totals, globalDiscountPercent, resetState, toast]);
   
@@ -763,6 +768,7 @@ export default function POSPage() {
             onOpenChange={setPaymentDialogOpen}
             totalAmount={totals.total}
             onConfirmPayment={handleConfirmPayment}
+            isProcessing={isProcessing}
           />
       </div>
     </div>

@@ -47,25 +47,33 @@ export async function POST(req: NextRequest) {
 
     const invoiceData = validation.data;
 
-    // 1. Create Invoice
-    const createdInvoice = await db.create("invoices", invoiceData);
-
-    // 2. Decrement stock for products
+    // 1. Decrement stock for products first to ensure availability.
     const productItems = invoiceData.items.filter(item => !item.itemId.startsWith('custom-'));
 
+    // This is not a true atomic transaction, but it's a safer order of operations.
+    // For full atomicity, a Firestore transaction/batch write would be needed in db.ts.
     for (const item of productItems) {
-      // Use atomic decrement
-      await db.increment("products", item.itemId, "stock", -item.quantity);
+      try {
+        await db.increment("products", item.itemId, "stock", -item.quantity);
+      } catch (stockError) {
+        // If any stock update fails, we stop and return an error.
+        // NOTE: This doesn't roll back previous successful stock updates in this loop.
+        // A true transaction is needed for that.
+        console.error(`Stock update failed for item ${item.itemId}:`, stockError);
+        return NextResponse.json({ error: `Failed to update stock for ${item.name}. Please check inventory.` }, { status: 500 });
+      }
     }
     
-    // 3. Update vehicle's last visit
-    // Note: serverTimestamp() is a Firestore-specific value.
-    // The db abstraction might need to handle this if we switch DBs.
+    // 2. If all stock updates are successful, create the invoice.
+    const createdInvoice = await db.create("invoices", invoiceData);
+
+    // 3. Update vehicle's last visit.
     await db.update("vehicles", invoiceData.vehicleId, { lastVisit: serverTimestamp() });
 
     return NextResponse.json(createdInvoice, { status: 201 });
   } catch (err) {
     console.error("POST /api/invoices error:", err);
+    // This will catch errors from invoice creation or vehicle update.
     return NextResponse.json({ error: "Failed to create invoice" }, { status: 500 });
   }
 }

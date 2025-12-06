@@ -21,7 +21,8 @@ import {
   Wallet, 
   CheckCircle2, 
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import type { PaymentMethod, InvoiceStatus } from '@/lib/data';
 
@@ -38,6 +39,7 @@ type PaymentDialogProps = {
     chequeNumber?: string;
     bank?: string;
   }) => void;
+  isProcessing: boolean;
 };
 
 // --- Utilities ---
@@ -58,6 +60,7 @@ export function PaymentDialog({
   onOpenChange,
   totalAmount,
   onConfirmPayment,
+  isProcessing,
 }: PaymentDialogProps) {
   const [amountPaid, setAmountPaid] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash');
@@ -113,7 +116,7 @@ export function PaymentDialog({
       chequeNumber: paymentMethod === 'Check' ? chequeNumber : undefined,
       bank: paymentMethod === 'Check' ? bank : undefined,
     });
-    onOpenChange(false);
+    // Don't close the dialog immediately; let the parent handle it after processing.
   };
 
   const setExactAmount = () => {
@@ -271,16 +274,17 @@ export function PaymentDialog({
         {/* --- Footer --- */}
         <DialogFooter className="p-4 bg-zinc-50 border-t border-zinc-100 gap-3 sm:gap-0">
           <DialogClose asChild>
-            <Button type="button" variant="outline" className="h-12 flex-1 sm:flex-none border-zinc-200 hover:bg-white hover:text-black">
+            <Button type="button" variant="outline" className="h-12 flex-1 sm:flex-none border-zinc-200 hover:bg-white hover:text-black" disabled={isProcessing}>
               Cancel
             </Button>
           </DialogClose>
           <Button 
             onClick={handleConfirm} 
             className="h-12 px-8 flex-1 bg-black hover:bg-zinc-800 text-white uppercase tracking-widest text-xs font-bold"
-            disabled={paymentStatus === 'Unpaid' && numericPaid === 0 && paymentMethod !== 'Check'}
+            disabled={isProcessing || (paymentStatus === 'Unpaid' && numericPaid === 0 && paymentMethod !== 'Check')}
           >
-            Complete Transaction
+            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isProcessing ? 'Processing...' : 'Complete Transaction'}
           </Button>
         </DialogFooter>
 
