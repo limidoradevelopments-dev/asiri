@@ -1,7 +1,7 @@
 
-"use client";
+'use client';
 
-import { usePathname } from "next/navigation";
+import { usePathname } from 'next/navigation';
 import {
   Sidebar,
   SidebarHeader,
@@ -11,7 +11,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from '@/components/ui/sidebar';
 import {
   Wrench,
   LayoutDashboard,
@@ -21,25 +21,41 @@ import {
   Users,
   Car,
   FileText,
-} from "lucide-react";
-import Link from "next/link";
-import { Avatar, AvatarFallback } from "../ui/avatar";
-import { Button } from "../ui/button";
-import { cn } from "@/lib/utils";
+  BarChart2,
+  ChevronDown
+} from 'lucide-react';
+import Link from 'next/link';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Button } from '../ui/button';
+import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const menuItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/pos", label: "POS", icon: ShoppingCart },
-  { href: "/invoices", label: "Invoices", icon: FileText },
-  { href: "/inventory", label: "Inventory", icon: Package },
-  { href: "/customers", label: "Customers", icon: Car },
-  { href: "/employees", label: "Employees", icon: Users },
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/pos', label: 'POS', icon: ShoppingCart },
+  { href: '/invoices', label: 'Invoices', icon: FileText },
+  { href: '/inventory', label: 'Inventory', icon: Package },
+  { href: '/customers', label: 'Customers', icon: Car },
+  { href: '/employees', label: 'Employees', icon: Users },
 ];
+
+const reportMenuItems = [
+    { href: "/reports/profit-loss", label: "Profit & Loss" },
+    { href: "/reports/day-end", label: "Day End Report" },
+    { href: "/reports/customer", label: "Customer Report" },
+]
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
-  const { state, setOpen } = useSidebar();
+  const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
+  
+  const isReportsActive = reportMenuItems.some(item => pathname === item.href);
 
   return (
     <Sidebar
@@ -48,7 +64,7 @@ export default function DashboardSidebar() {
       className="bg-sidebar-background border-r border-sidebar-border transition-all duration-300 ease-in-out"
     >
       <SidebarHeader className="px-4 py-5 border-b border-sidebar-border h-[68px] flex items-center">
-        <div className={cn("flex items-center gap-3", isCollapsed && "justify-center w-full")}>
+        <div className={cn('flex items-center gap-3', isCollapsed && 'justify-center w-full')}>
           <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
             <Wrench className="h-5 w-5" />
           </div>
@@ -64,7 +80,6 @@ export default function DashboardSidebar() {
         <SidebarMenu className="space-y-1">
           {menuItems.map((item) => {
             const active = pathname === item.href;
-
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
@@ -76,7 +91,7 @@ export default function DashboardSidebar() {
                       data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground
                       hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground
                       text-sidebar-foreground/70`,
-                      isCollapsed && "justify-center"
+                      isCollapsed && 'justify-center'
                   )}
                 >
                   <Link href={item.href}>
@@ -87,13 +102,61 @@ export default function DashboardSidebar() {
               </SidebarMenuItem>
             );
           })}
+          
+          {/* Reports Dropdown Menu */}
+           <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  isActive={isReportsActive}
+                  tooltip="Reports"
+                  className={cn(`
+                      h-11 rounded-lg text-sm tracking-tight justify-start
+                      data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground
+                      hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground
+                      text-sidebar-foreground/70`,
+                      isCollapsed && "justify-center"
+                  )}
+                >
+                  <BarChart2 className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && (
+                    <div className="w-full flex justify-between items-center">
+                        <span>Reports</span>
+                        <ChevronDown className="w-4 h-4" />
+                    </div>
+                  )}
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                side={isCollapsed ? "right" : "bottom"} 
+                align={isCollapsed ? "start" : "center"}
+                sideOffset={10}
+                className="bg-sidebar-background border-sidebar-border text-sidebar-foreground rounded-lg w-48"
+              >
+                {reportMenuItems.map(item => (
+                    <DropdownMenuItem key={item.href} asChild>
+                        <Link 
+                            href={item.href} 
+                            className={cn(
+                                "cursor-pointer hover:bg-sidebar-accent/80",
+                                pathname === item.href && "bg-sidebar-accent"
+                            )}
+                        >
+                            {item.label}
+                        </Link>
+                    </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+
         </SidebarMenu>
       </SidebarContent>
 
       <SidebarFooter className="p-2 border-t border-sidebar-border space-y-1">
         <div className={cn(
-          "flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent",
-           isCollapsed && "justify-center"
+          'flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent',
+           isCollapsed && 'justify-center'
         )}>
           <Avatar className="h-9 w-9">
             <AvatarFallback>A</AvatarFallback>
@@ -112,8 +175,8 @@ export default function DashboardSidebar() {
         <SidebarMenuButton
           asChild
           className={cn(
-            "h-11 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground",
-            isCollapsed && "justify-center"
+            'h-11 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground',
+            isCollapsed && 'justify-center'
           )}
         >
           <Link href="#">
