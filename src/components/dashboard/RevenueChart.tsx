@@ -13,7 +13,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 
 type RevenueChartProps = {
   data: RevenueData[];
@@ -40,7 +40,7 @@ export default function RevenueChart({ data }: RevenueChartProps) {
       <CardContent className="p-0">
         <ChartContainer config={chartConfig} className="w-full h-[250px]">
           <ResponsiveContainer>
-            <BarChart
+            <AreaChart
               accessibilityLayer
               data={data}
               margin={{
@@ -50,6 +50,12 @@ export default function RevenueChart({ data }: RevenueChartProps) {
                 bottom: 5,
               }}
             >
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
               <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
               <XAxis
                 dataKey="date"
@@ -66,14 +72,21 @@ export default function RevenueChart({ data }: RevenueChartProps) {
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
               />
               <ChartTooltip
-                cursor={false}
+                cursor={true}
                 content={<ChartTooltipContent 
                     indicator="dot" 
                     className="rounded-none border-zinc-200 bg-background"
                 />}
               />
-              <Bar dataKey="revenue" fill="var(--color-revenue)" radius={0} barSize={30} />
-            </BarChart>
+              <Area 
+                dataKey="revenue" 
+                type="natural"
+                strokeWidth={2}
+                stroke="var(--color-revenue)" 
+                fillOpacity={1}
+                fill="url(#colorRevenue)"
+              />
+            </AreaChart>
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
