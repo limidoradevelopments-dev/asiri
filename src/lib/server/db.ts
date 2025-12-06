@@ -1,0 +1,73 @@
+
+import { initializeFirebase } from "@/firebase/server-init";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  DocumentData,
+  QuerySnapshot,
+} from "firebase/firestore";
+
+/**
+ * Minimal types to keep things flexible during migration.
+ * Extend these as your domain grows.
+ */
+export type DBRecord = Record<string, any>;
+
+function snapshotToArray(snapshot: QuerySnapshot<DocumentData>): DBRecord[] {
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * Firestore-based implementation that exposes generic CRUD
+ * operations keyed by collection name.
+ *
+ * When you migrate to another database, you can replace the
+ * internals of these functions and keep the same API surface.
+ */
+export const db = {
+  async getAll(collectionName: string): Promise<DBRecord[]> {
+    const { firestore } = initializeFirebase();
+    if (!firestore) throw new Error("Firestore not initialized");
+
+    const colRef = collection(firestore, collectionName);
+    const snap = await getDocs(colRef);
+    return snapshotToArray(snap);
+  },
+
+  async getOne(collectionName: string, id: string): Promise<DBRecord | null> {
+    const { firestore } = initializeFirebase();
+    if (!firestore) throw new Error("Firestore not initialized");
+    const docRef = doc(firestore, collectionName, id);
+    const snap = await getDoc(docRef);
+    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  },
+
+  async create(collectionName: string, payload: DBRecord) {
+    const { firestore } = initializeFirebase();
+    if (!firestore) throw new Error("Firestore not initialized");
+    const colRef = collection(firestore, collectionName);
+    const ref = await addDoc(colRef, payload);
+    return { id: ref.id, ...payload };
+  },
+
+  async update(collectionName: string, id: string, payload: DBRecord) {
+    const { firestore } = initializeFirebase();
+    if (!firestore) throw new Error("Firestore not initialized");
+    const docRef = doc(firestore, collectionName, id);
+    await updateDoc(docRef, payload);
+    return { id, ...payload };
+  },
+
+  async remove(collectionName: string, id: string) {
+    const { firestore } = initializeFirebase();
+    if (!firestore) throw new Error("Firestore not initialized");
+    const docRef = doc(firestore, collectionName, id);
+    await deleteDoc(docRef);
+    return { id };
+  },
+};
