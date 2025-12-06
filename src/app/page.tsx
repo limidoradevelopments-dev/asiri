@@ -23,7 +23,7 @@ export default function DashboardPage() {
 
   const { data: invoices, isLoading: invoicesLoading } = useCollection<Invoice>(invoicesCollection);
   const { data: products, isLoading: productsLoading } = useCollection<Product>(productsCollection);
-  const { data: customers, isLoading: customersLoading } = useCollection<Customer>(customersCollection);
+  const { data: customers, isLoading: customersLoading } = useCollection<WithId<Customer>>(customersCollection);
 
   const formatCurrency = (amount: number) => {
      if (typeof amount !== 'number') return 'Rs. 0.00';
