@@ -97,8 +97,7 @@ export default function InventoryPage() {
       setProductsLoading(false);
       setServicesLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -107,7 +106,8 @@ export default function InventoryPage() {
     return () => {
       controller.abort();
     };
-  }, [fetchData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddStockDialogOpen, setAddStockDialogOpen] = useState(false);
@@ -149,9 +149,13 @@ export default function InventoryPage() {
         }
         
         toast({ title: id ? "Updated" : "Created", description: "Item saved successfully." });
-        const controller = new AbortController();
-        fetchData(controller.signal); // Re-fetch data to get the latest state
+        
+        // Re-fetch data to get the latest state without showing main loaders
+        const refreshController = new AbortController();
+        fetchData(refreshController.signal);
+
       } catch (err: any) {
+        if (err.name === 'AbortError') return;
         console.error("Upsert error:", err);
         const message = err instanceof Error ? err.message : 'Unknown error occurred while saving the item.';
         toast({ variant: 'destructive', title: 'Error', description: message });
@@ -189,8 +193,8 @@ export default function InventoryPage() {
       const message = err instanceof Error ? err.message : 'An unknown error occurred while adding stock.';
       toast({ variant: 'destructive', title: 'Error', description: message });
       // Revert optimistic update by re-fetching
-      const controller = new AbortController();
-      fetchData(controller.signal);
+      const refreshController = new AbortController();
+      fetchData(refreshController.signal);
     } finally {
       setAddStockDialogOpen(false);
     }
@@ -219,8 +223,9 @@ export default function InventoryPage() {
       console.error("Delete error:", err);
       const message = err instanceof Error ? err.message : 'An unknown error occurred while deleting the item.';
       toast({ variant: 'destructive', title: 'Error', description: message });
-      const controller = new AbortController();
-      fetchData(controller.signal); // Re-fetch to revert optimistic update
+      // Re-fetch to revert optimistic update
+      const refreshController = new AbortController();
+      fetchData(refreshController.signal);
     } finally {
       setItemToDelete(null);
     }
