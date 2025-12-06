@@ -15,20 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { ChevronsUpDown, Check } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/lib/data';
 import { WithId } from '@/firebase';
@@ -37,28 +25,44 @@ type AddStockDialogProps = {
   children: React.ReactNode;
   products: WithId<Product>[];
   onAddStock: (productId: string, quantity: number) => void;
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
 };
 
-export function AddStockDialog({ children, products, onAddStock }: AddStockDialogProps) {
-  const [open, setOpen] = useState(false);
-  const [popoverOpen, setPopoverOpen] = useState(false);
+export function AddStockDialog({ 
+  children, 
+  products, 
+  onAddStock,
+  isOpen,
+  onOpenChange
+}: AddStockDialogProps) {
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<WithId<Product> | null>(null);
   const [quantity, setQuantity] = useState(1);
 
-  // This useEffect resets the state when the dialog is closed.
-  // This is important to ensure the form is clean every time it's opened.
+  // Reset state when the dialog is closed.
   useEffect(() => {
-    if (!open) {
+    if (!isOpen) {
+      setSearchQuery('');
       setSelectedProduct(null);
       setQuantity(1);
-      setPopoverOpen(false); // Also ensure the popover is closed
     }
-  }, [open]);
+  }, [isOpen]);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery) return products;
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(lowercasedQuery) ||
+        product.sku.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [products, searchQuery]);
 
   const handleUpdateStock = () => {
     if (selectedProduct && quantity > 0) {
       onAddStock(selectedProduct.id, quantity);
-      setOpen(false); // Close the dialog on success
+      onOpenChange(false); // Close the dialog on success
     }
   };
   
@@ -66,10 +70,10 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
   const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
 
-      <DialogContent className="sm:max-w-md rounded-none border-zinc-200">
+      <DialogContent className="sm:max-w-xl rounded-none border-zinc-200">
         <DialogHeader>
           <DialogTitle className="font-light tracking-tight text-2xl">Add Stock</DialogTitle>
           <DialogDescription className="text-zinc-500">
@@ -77,79 +81,76 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Product</Label>
-            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={popoverOpen}
-                  className={cn("w-full justify-between font-normal", commonInputStyles)}
-                >
-                  {selectedProduct ? selectedProduct.name : 'Select product...'}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-
-              <PopoverContent 
-                className="w-[--radix-popover-trigger-width] p-0 rounded-none border-zinc-200"
-                align="start"
-                // This prevents the dialog from trying to autofocus the first element in the popover,
-                // which is part of the conflict.
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
-                <Command>
-                  <CommandInput
-                    placeholder="Search product..."
-                    className="h-11 border-none focus-visible:ring-0"
-                  />
-                  <CommandList>
-                    <CommandEmpty>No product found.</CommandEmpty>
-                    <CommandGroup>
-                      {products.map(product => (
-                        <CommandItem
-                          key={product.id}
-                          value={product.name}
-                          onSelect={() => {
-                            setSelectedProduct(product);
-                            setPopoverOpen(false);
-                          }}
-                          // THE CRITICAL FIX: This prevents the dialog's focus trap from
-                          // intercepting the click before the Popover can handle it.
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                        >
-                          <Check
+        <div className="flex gap-6 py-4">
+            {/* Left side: Product Selection */}
+            <div className="w-1/2 flex flex-col">
+                <div className="relative group mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                    <Input
+                        placeholder="Search products..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={cn(commonInputStyles, "pl-10")}
+                    />
+                </div>
+                <ScrollArea className="flex-grow border rounded-none border-zinc-200 h-64">
+                   <div className="p-2">
+                     {filteredProducts.length > 0 ? (
+                        filteredProducts.map((product) => (
+                        <button
+                            key={product.id}
+                            onClick={() => setSelectedProduct(product)}
                             className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedProduct?.id === product.id ? "opacity-100" : "opacity-0"
+                                "w-full text-left p-2.5 rounded-sm transition-colors text-sm flex justify-between items-center",
+                                selectedProduct?.id === product.id
+                                    ? "bg-black text-white"
+                                    : "hover:bg-zinc-100"
                             )}
-                          />
-                          {product.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
+                        >
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className={cn("text-xs", selectedProduct?.id === product.id ? 'text-zinc-300' : 'text-zinc-400')}>{product.sku}</p>
+                          </div>
+                           <p className={cn("text-xs font-mono", selectedProduct?.id === product.id ? 'text-zinc-300' : 'text-zinc-400')}>
+                                Stock: {product.stock}
+                            </p>
+                        </button>
+                        ))
+                     ) : (
+                        <div className="text-center p-8 text-xs text-zinc-400 uppercase tracking-widest">
+                            No products found
+                        </div>
+                     )}
+                   </div>
+                </ScrollArea>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="quantity">Quantity to Add</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min={1}
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-              className={commonInputStyles}
-            />
-          </div>
+            {/* Right side: Quantity Input */}
+            <div className="w-1/2 flex flex-col justify-center items-center bg-zinc-50 p-6 rounded-sm">
+                {selectedProduct ? (
+                    <div className="w-full space-y-4 text-center">
+                        <p className="text-lg font-medium">{selectedProduct.name}</p>
+                        <div className="space-y-2">
+                            <Label htmlFor="quantity" className="text-xs uppercase tracking-widest text-zinc-500">
+                                Quantity to Add
+                            </Label>
+                            <Input
+                                id="quantity"
+                                type="number"
+                                min={1}
+                                value={quantity}
+                                onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+                                className={cn(commonInputStyles, "text-center text-2xl h-14")}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center text-sm text-zinc-400">
+                        <p>Select a product from the list to continue.</p>
+                    </div>
+                )}
+            </div>
         </div>
 
         <DialogFooter className="gap-2">
@@ -169,3 +170,5 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
     </Dialog>
   );
 }
+
+    

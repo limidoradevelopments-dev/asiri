@@ -35,6 +35,7 @@ export default function InventoryPage() {
   const { data: services, isLoading: servicesLoading } = useCollection<Service>(servicesCollection);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAddStockDialogOpen, setAddStockDialogOpen] = useState(false);
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
@@ -149,8 +150,14 @@ export default function InventoryPage() {
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-4">
-                    <AddStockDialog products={products ?? []} onAddStock={handleAddStock}>
+                     <AddStockDialog 
+                        products={products ?? []} 
+                        onAddStock={handleAddStock}
+                        isOpen={isAddStockDialogOpen}
+                        onOpenChange={setAddStockDialogOpen}
+                     >
                         <Button 
+                            onClick={() => setAddStockDialogOpen(true)}
                             variant="outline" 
                             className="h-10 px-6 rounded-none border-zinc-200 text-xs uppercase tracking-[0.15em] hover:bg-zinc-50 hover:text-black hover:border-black transition-all"
                         >
@@ -243,3 +250,5 @@ export default function InventoryPage() {
     </div>
   );
 }
+
+    
