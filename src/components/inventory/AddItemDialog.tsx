@@ -109,6 +109,7 @@ export function AddItemDialog({
   const isEditMode = !!itemToEdit;
   // Determine initial tab based on the item being edited
   const itemType = itemToEdit ? ('sku' in itemToEdit ? 'product' : 'service') : 'product';
+  const [activeTab, setActiveTab] = useState(itemType);
 
   const productForm = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -127,6 +128,8 @@ export function AddItemDialog({
   // Reset forms when dialog opens/closes or itemToEdit changes
   useEffect(() => {
     if (isOpen) {
+      const newActiveTab = itemToEdit ? ('sku' in itemToEdit ? 'product' : 'service') : 'product';
+      setActiveTab(newActiveTab);
       if (isEditMode && itemToEdit) {
         if ('sku' in itemToEdit) {
           // Editing Product
@@ -228,7 +231,7 @@ export function AddItemDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs defaultValue={itemType} className="mt-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
             <TabsList className="grid w-full grid-cols-2 bg-zinc-100 rounded-none h-11">
               <TabsTrigger 
                 value="product" 
@@ -287,17 +290,7 @@ export function AddItemDialog({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Category</FormLabel>
-                          <Select
-                            onValueChange={(value) => {
-                              if (value === 'add-new-trigger') {
-                                // Logic Fix: Close select, then open dialog. Do not update field value.
-                                setShowNewProductCategoryDialog(true);
-                              } else {
-                                field.onChange(value);
-                              }
-                            }}
-                            value={field.value}
-                          >
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger className={commonInputStyles}>
                                 <SelectValue placeholder="Select a category" />
@@ -312,6 +305,10 @@ export function AddItemDialog({
                               <SelectSeparator />
                               <SelectItem 
                                 value="add-new-trigger"
+                                onSelect={(e) => {
+                                  e.preventDefault();
+                                  setShowNewProductCategoryDialog(true);
+                                }}
                                 className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
                               >
                                 <div className="flex items-center">
@@ -423,16 +420,7 @@ export function AddItemDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Vehicle Category</FormLabel>
-                        <Select
-                           onValueChange={(value) => {
-                            if (value === 'add-new-trigger') {
-                              setShowNewVehicleCategoryDialog(true);
-                            } else {
-                              field.onChange(value);
-                            }
-                          }}
-                          value={field.value}
-                        >
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className={commonInputStyles}>
                               <SelectValue placeholder="Select a vehicle category" />
@@ -445,6 +433,10 @@ export function AddItemDialog({
                             <SelectSeparator />
                             <SelectItem 
                                 value="add-new-trigger"
+                                onSelect={(e) => {
+                                  e.preventDefault();
+                                  setShowNewVehicleCategoryDialog(true);
+                                }}
                                 className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
                             >
                                 <div className="flex items-center">
@@ -522,7 +514,7 @@ export function AddItemDialog({
             className={commonInputStyles}
           />
           <AlertDialogFooter className="mt-4 gap-2">
-            <AlertDialogCancel type="button" className={commonButtonStyles}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel type="button" onClick={() => setShowNewProductCategoryDialog(false)} className={commonButtonStyles}>Cancel</AlertDialogCancel>
             <AlertDialogAction type="button" onClick={handleAddNewProductCategory} className={commonButtonStyles}>Add Category</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -550,7 +542,7 @@ export function AddItemDialog({
              className={commonInputStyles}
           />
           <AlertDialogFooter className="mt-4 gap-2">
-            <AlertDialogCancel type="button" className={commonButtonStyles}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel type="button" onClick={() => setShowNewVehicleCategoryDialog(false)} className={commonButtonStyles}>Cancel</AlertDialogCancel>
             <AlertDialogAction type="button" onClick={handleAddNewVehicleCategory} className={commonButtonStyles}>Add Category</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
