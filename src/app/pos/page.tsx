@@ -211,7 +211,7 @@ export default function POSPage() {
 
         if ('discountAmount' in updates && updatedItem.discountAmount !== undefined) {
           const originalPrice = getItemPrice(item);
-          updatedItem.discountAmount = Math.min(updatedItem.discountAmount || 0, originalPrice);
+          updatedItem.discountAmount = Math.max(0, Math.min(updatedItem.discountAmount || 0, originalPrice));
         }
         
         return updatedItem;
@@ -283,8 +283,9 @@ export default function POSPage() {
       return safeRound(acc + lineTotal);
     }, 0);
 
-    const globalDiscountAmount = safeRound(subtotalBeforeGlobalDiscount * (globalDiscountPercent / 100));
-    const total = safeRound(subtotalBeforeGlobalDiscount - globalDiscountAmount);
+    const globalDiscountValue = Math.max(0, globalDiscountPercent || 0);
+    const globalDiscountAmount = safeRound(subtotalBeforeGlobalDiscount * (globalDiscountValue / 100));
+    const total = Math.max(0, safeRound(subtotalBeforeGlobalDiscount - globalDiscountAmount));
 
     return {
       subtotal: subtotalBeforeGlobalDiscount,
@@ -767,5 +768,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-    

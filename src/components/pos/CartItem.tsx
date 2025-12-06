@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CartItem, CustomCartItem } from '@/app/pos/page';
-import { getItemPrice } from '@/app/pos/page';
+import { getItemPrice, safeRound } from '@/app/pos/page';
 import { WithId } from '@/firebase';
 import type { Product } from '@/lib/data';
 
@@ -23,7 +23,7 @@ export const CartItem = React.memo(function CartItem({ item, onUpdate, onRemove,
     const originalPrice = getItemPrice(item);
     const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
     const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
-    const lineTotal = discountedPricePerUnit * item.quantity;
+    const lineTotal = safeRound(discountedPricePerUnit * item.quantity);
     const isCustom = item.type === 'custom';
 
     const handleInputChange = (field: keyof CartItem, value: string | number) => {
