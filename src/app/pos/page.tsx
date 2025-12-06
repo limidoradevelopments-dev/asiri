@@ -29,6 +29,7 @@ import { CartItem as CartItemComponent } from '@/components/pos/CartItem';
 import { useDebouncedCallback } from 'use-debounce';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 
 type WithId<T> = T & { id: string };
 
@@ -258,8 +259,8 @@ export default function POSPage() {
         const originalPrice = getItemPrice(item);
         if (updates.discountAmount > originalPrice) {
           toast({
-            variant: 'destructive',
-            title: 'Invalid Discount',
+            variant: "destructive",
+            title: "Invalid Discount",
             description: "Discount cannot be greater than the item's price.",
           });
           updates.discountAmount = originalPrice;
@@ -321,23 +322,33 @@ export default function POSPage() {
 
   // --- Core Financial Calculations ---
   const totals = useMemo(() => {
-    const subtotalBeforeGlobalDiscount = cart.reduce((acc, item) => {
-      const originalPrice = getItemPrice(item);
-      const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
-      const lineTotal = safeRound(discountedPricePerUnit * item.quantity);
-      return safeRound(acc + lineTotal);
+    const subtotal = cart.reduce((acc, item) => {
+      const price = getItemPrice(item);
+      return safeRound(acc + price * item.quantity);
+    }, 0);
+    
+    const totalItemDiscount = cart.reduce((acc, item) => {
+      return safeRound(acc + item.discountAmount * item.quantity);
     }, 0);
 
+    const subtotalAfterItemDiscount = safeRound(subtotal - totalItemDiscount);
+    
     const globalDiscountValue = Math.max(0, globalDiscountPercent || 0);
-    const globalDiscountAmount = safeRound(subtotalBeforeGlobalDiscount * (globalDiscountValue / 100));
-    const total = Math.max(0, safeRound(subtotalBeforeGlobalDiscount - globalDiscountAmount));
+    const globalDiscountAmount = safeRound(subtotalAfterItemDiscount * (globalDiscountValue / 100));
+
+    const total = Math.max(0, safeRound(subtotalAfterItemDiscount - globalDiscountAmount));
+    const totalDiscount = safeRound(totalItemDiscount + globalDiscountAmount);
 
     return {
-      subtotal: subtotalBeforeGlobalDiscount,
+      subtotal,
+      totalItemDiscount,
+      subtotalAfterItemDiscount,
       globalDiscountAmount,
-      total
+      total,
+      totalDiscount,
     };
   }, [cart, globalDiscountPercent]);
+
 
   const itemsToShow = useMemo(() => {
     let list: WithId<Service>[] | WithId<Product>[] | undefined;
@@ -768,35 +779,51 @@ export default function POSPage() {
         </div>
 
         <div className="p-10 bg-white z-20 border-t border-zinc-100">
-            <div className="flex justify-between items-center mb-6 text-sm">
-                <span className="text-zinc-400 uppercase tracking-widest text-xs">Global Discount</span>
-                <div className="flex items-center gap-2">
-                    <input 
-                        className="w-8 text-right bg-transparent border-b border-zinc-200 focus:border-black outline-none font-mono text-zinc-500 focus:text-black"
-                        placeholder="0"
-                        type='number'
-                        value={globalDiscountPercent || ''}
-                        onChange={(e) => setGlobalDiscountPercent(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
-                        onKeyDown={(e) => ["-", "e", "+"].includes(e.key) && e.preventDefault()}
-                    />
-                    <span className="text-zinc-300">%</span>
+            <div className="space-y-3 mb-6">
+                <div className="flex justify-between items-center text-sm">
+                    <span className="text-zinc-500">Subtotal</span>
+                    <span className="font-mono text-zinc-600">{formatPrice(totals.subtotal)}</span>
+                </div>
+                
+                {totals.totalItemDiscount > 0 && (
+                    <div className="flex justify-between items-center text-sm text-red-500">
+                        <span>Total Item Discount</span>
+                        <span className="font-mono">- {formatPrice(totals.totalItemDiscount)}</span>
+                    </div>
+                )}
+                
+                <div className="flex justify-between items-center text-sm">
+                    <span className="text-zinc-500">Global Discount</span>
+                    <div className="flex items-center gap-2">
+                        <input 
+                            className="w-8 text-right bg-transparent border-b border-zinc-200 focus:border-black outline-none font-mono text-zinc-500 focus:text-black"
+                            placeholder="0"
+                            type='number'
+                            value={globalDiscountPercent || ''}
+                            onChange={(e) => setGlobalDiscountPercent(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+                            onKeyDown={(e) => ["-", "e", "+"].includes(e.key) && e.preventDefault()}
+                        />
+                        <span className="text-zinc-400">%</span>
+                    </div>
                 </div>
             </div>
 
-            <div className="flex flex-col gap-2 mb-10">
-                <div className="flex justify-between items-baseline">
-                    <span className="text-sm uppercase tracking-widest font-bold">Total Due</span>
-                    <span className="text-xs uppercase tracking-widest text-zinc-400">LKR</span>
-                </div>
-                <div className="text-5xl font-light tracking-tighter leading-none">
-                    {formatPrice(totals.total)}
-                </div>
-                {totals.globalDiscountAmount > 0 && (
-                    <div className="flex justify-end text-xs text-red-400 font-mono mt-1">
-                        - {formatPrice(totals.globalDiscountAmount)} Discount Applied ({globalDiscountPercent}%)
-                    </div>
-                )}
+            <Separator className="mb-6"/>
+
+            <div className="flex justify-between items-baseline mb-2">
+                <span className="text-sm uppercase tracking-widest font-bold">Total Due</span>
+                <span className="text-xs uppercase tracking-widest text-zinc-400">LKR</span>
             </div>
+            <div className="text-5xl font-light tracking-tighter leading-none mb-6">
+                {formatPrice(totals.total)}
+            </div>
+
+             {totals.totalDiscount > 0 && (
+                <div className="text-right text-xs text-red-500 font-mono mb-6 -mt-4">
+                    You saved {formatPrice(totals.totalDiscount)} in total
+                </div>
+            )}
+
 
             <button 
                 onClick={handleProcessPayment}
@@ -827,8 +854,5 @@ export default function POSPage() {
     </div>
   );
 }
-
-
-
 
     
