@@ -57,6 +57,7 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
     if (selectedProduct && quantity > 0) {
       onAddStock(selectedProduct.id, quantity);
       setOpen(false);
+      // Reset state for next open
       setSelectedProduct(null);
       setQuantity(1);
       setSearch("");
