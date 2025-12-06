@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { collection, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
@@ -37,45 +37,48 @@ export default function EmployeesPage() {
     if (!employees) return [];
     if (!searchQuery) return employees;
 
+    const lowercasedQuery = searchQuery.toLowerCase();
     return employees.filter(employee =>
-      employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.mobile.toLowerCase().includes(searchQuery.toLowerCase())
+      employee.name.toLowerCase().includes(lowercasedQuery) ||
+      employee.mobile.toLowerCase().includes(lowercasedQuery)
     );
   }, [employees, searchQuery]);
   
-  const handleUpsertEmployee = (employee: Omit<Employee, 'id'>, id?: string) => {
+  const handleUpsertEmployee = useCallback((employee: Omit<Employee, 'id'>, id?: string) => {
     if (id) {
       const docRef = doc(firestore, 'employees', id);
       updateDocumentNonBlocking(docRef, { ...employee });
     } else {
-      addDocumentNonBlocking(employeesCollection, employee);
+      if (employeesCollection) {
+        addDocumentNonBlocking(employeesCollection, employee);
+      }
     }
-  };
+  }, [firestore, employeesCollection]);
 
-  const handleEdit = (employee: WithId<Employee>) => {
+  const handleEdit = useCallback((employee: WithId<Employee>) => {
     setEmployeeToEdit(employee);
     setAddEmployeeDialogOpen(true);
-  };
+  }, []);
   
-  const handleDeleteRequest = (id: string) => {
+  const handleDeleteRequest = useCallback((id: string) => {
     setEmployeeToDelete(id);
-  };
+  }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = useCallback(() => {
     if (employeeToDelete) {
       const docRef = doc(firestore, 'employees', employeeToDelete);
       deleteDocumentNonBlocking(docRef);
       // Close the dialog immediately for optimistic UI update
       setEmployeeToDelete(null);
     }
-  };
+  }, [employeeToDelete, firestore]);
 
-  const onDialogClose = (isOpen: boolean) => {
+  const onDialogClose = useCallback((isOpen: boolean) => {
     if (!isOpen) {
       setEmployeeToEdit(null);
     }
     setAddEmployeeDialogOpen(isOpen);
-  }
+  }, []);
 
   return (
     <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-8 pb-12">

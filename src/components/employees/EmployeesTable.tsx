@@ -1,4 +1,5 @@
 
+import { memo } from 'react';
 import type { Employee } from "@/lib/data";
 import { WithId } from "@/firebase";
 import {
@@ -26,6 +27,35 @@ type EmployeesTableProps = {
   onDelete: (id: string) => void;
 };
 
+const MemoizedRow = memo(function EmployeeTableRow({ employee, onEdit, onDelete }: {
+    employee: WithId<Employee>;
+    onEdit: (employee: WithId<Employee>) => void;
+    onDelete: (id: string) => void;
+}) {
+    return (
+        <TableRow className="border-zinc-100">
+            <TableCell className="py-4 px-0 font-medium">{employee.name}</TableCell>
+            <TableCell className="py-4 px-0">{employee.address}</TableCell>
+            <TableCell className="py-4 px-0">{employee.mobile}</TableCell>
+            <TableCell className="py-4 px-0 truncate max-w-xs">{employee.notes}</TableCell>
+            <TableCell className="text-right py-4 px-0">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Actions</span>
+                </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-none border-zinc-200">
+                <DropdownMenuItem onClick={() => onEdit(employee)} className="text-xs">Edit</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDelete(employee.id)} className="text-xs text-red-600 focus:text-red-600">Delete</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            </TableCell>
+        </TableRow>
+    );
+});
+
 export default function EmployeesTable({ data, isLoading, onEdit, onDelete }: EmployeesTableProps) {
   
   const renderSkeleton = () => (
@@ -44,7 +74,7 @@ export default function EmployeesTable({ data, isLoading, onEdit, onDelete }: Em
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-zinc-100">
+          <TableRow className="border-zinc-100 hover:bg-transparent">
             <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Name</TableHead>
             <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Address</TableHead>
             <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Mobile</TableHead>
@@ -56,26 +86,12 @@ export default function EmployeesTable({ data, isLoading, onEdit, onDelete }: Em
         </TableHeader>
         <TableBody>
           {isLoading ? renderSkeleton() : data.map((employee) => (
-            <TableRow key={employee.id} className="border-zinc-100">
-              <TableCell className="py-4 px-0 font-medium">{employee.name}</TableCell>
-              <TableCell className="py-4 px-0">{employee.address}</TableCell>
-              <TableCell className="py-4 px-0">{employee.mobile}</TableCell>
-              <TableCell className="py-4 px-0 truncate max-w-xs">{employee.notes}</TableCell>
-              <TableCell className="text-right py-4 px-0">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Actions</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-none border-zinc-200">
-                    <DropdownMenuItem onClick={() => onEdit(employee)} className="text-xs">Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(employee.id)} className="text-xs text-red-600 focus:text-red-600">Delete</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
+            <MemoizedRow 
+                key={employee.id}
+                employee={employee}
+                onEdit={onEdit}
+                onDelete={onDelete}
+            />
           ))}
         </TableBody>
       </Table>

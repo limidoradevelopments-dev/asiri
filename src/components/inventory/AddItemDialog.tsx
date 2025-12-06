@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,25 +29,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import type { Product, Service } from '@/lib/data';
 import { WithId } from '@/firebase';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectSeparator,
-} from '@/components/ui/select';
-import { PlusCircle } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Textarea } from '../ui/textarea';
 
 // --- Schemas ---
@@ -67,7 +49,6 @@ const serviceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   price: z.coerce.number().min(0, 'Price cannot be negative'),
-  vehicleCategory: z.string().min(1, 'Vehicle Category is required'),
 });
 
 // --- Types ---
@@ -75,10 +56,6 @@ const serviceSchema = z.object({
 type AddItemDialogProps = {
   children: React.ReactNode;
   onUpsertItem: (item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service', id?: string) => void;
-  productCategories: string[];
-  setProductCategories: React.Dispatch<React.SetStateAction<string[]>>;
-  vehicleCategories: string[];
-  setVehicleCategories: React.Dispatch<React.SetStateAction<string[]>>;
   itemToEdit?: WithId<Product> | WithId<Service> | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -89,20 +66,10 @@ type AddItemDialogProps = {
 export function AddItemDialog({
   children,
   onUpsertItem,
-  productCategories,
-  setProductCategories,
-  vehicleCategories,
-  setVehicleCategories,
   itemToEdit,
   isOpen,
   onOpenChange
 }: AddItemDialogProps) {
-  // State for nested dialogs
-  const [showNewProductCategoryDialog, setShowNewProductCategoryDialog] = useState(false);
-  const [newProductCategory, setNewProductCategory] = useState('');
-  
-  const [showNewVehicleCategoryDialog, setShowNewVehicleCategoryDialog] = useState(false);
-  const [newVehicleCategory, setNewVehicleCategory] = useState('');
   
   const { toast } = useToast();
   
@@ -119,7 +86,7 @@ export function AddItemDialog({
   const serviceForm = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
-      name: '', description: '', price: 0, vehicleCategory: '',
+      name: '', description: '', price: 0,
     },
   });
 
@@ -129,14 +96,14 @@ export function AddItemDialog({
         if ('sku' in itemToEdit) {
           productForm.reset({ ...(itemToEdit as WithId<Product>), description: (itemToEdit as WithId<Product>).description || "" });
         } else {
-          serviceForm.reset(itemToEdit);
+          serviceForm.reset(itemToEdit as WithId<Service>);
         }
       } else {
         productForm.reset({
           name: '', sku: '', description: '', stockThreshold: 5, actualPrice: 0, sellingPrice: 0,
         });
         serviceForm.reset({
-          name: '', description: '', price: 0, vehicleCategory: ''
+          name: '', description: '', price: 0,
         });
       }
     }
@@ -164,25 +131,8 @@ export function AddItemDialog({
     onOpenChange(false);
   };
 
-  const handleAddNewProductCategory = () => {
-    if (newProductCategory.trim() && !productCategories.includes(newProductCategory)) {
-      setProductCategories((prev) => [...prev, newProductCategory]);
-    }
-    setShowNewProductCategoryDialog(false);
-    setNewProductCategory('');
-  };
-
-  const handleAddNewVehicleCategory = () => {
-    if (newVehicleCategory.trim() && !vehicleCategories.includes(newVehicleCategory)) {
-      setVehicleCategories((prev) => [...prev, newVehicleCategory]);
-      serviceForm.setValue('vehicleCategory', newVehicleCategory);
-      serviceForm.clearErrors('vehicleCategory');
-    }
-    setShowNewVehicleCategoryDialog(false);
-    setNewVehicleCategory('');
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevents form submission on pressing Enter in an input field
     if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type !== 'submit') {
       e.preventDefault();
     }
@@ -195,14 +145,7 @@ export function AddItemDialog({
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent 
-          className="sm:max-w-lg rounded-none border-zinc-200"
-          onPointerDownOutside={(e) => {
-            if (showNewProductCategoryDialog || showNewVehicleCategoryDialog) {
-              e.preventDefault();
-            }
-          }}
-        >
+        <DialogContent className="sm:max-w-lg rounded-none border-zinc-200">
           <DialogHeader>
             <DialogTitle className="font-light tracking-tight text-2xl">
               {isEditMode ? 'Edit Item' : 'Add New Item'}
@@ -348,58 +291,12 @@ export function AddItemDialog({
                   />
                   <FormField
                     control={serviceForm.control}
-                    name="vehicleCategory"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vehicle Category</FormLabel>
-                        <Select
-                           onValueChange={(value) => {
-                                if (value === 'add-new-trigger') {
-                                    setShowNewVehicleCategoryDialog(true);
-                                } else {
-                                    field.onChange(value);
-                                }
-                           }}
-                           onOpenChange={(isOpen) => {
-                                if (!isOpen && field.value === 'add-new-trigger') {
-                                    field.onChange('');
-                                }
-                           }}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className={commonInputStyles}>
-                              <SelectValue placeholder="Select a vehicle category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="rounded-none border-zinc-200">
-                            {vehicleCategories.map(category => (
-                              <SelectItem key={category} value={category}>{category}</SelectItem>
-                            ))}
-                            <SelectSeparator />
-                            <SelectItem 
-                                value="add-new-trigger"
-                                onSelect={(e) => e.preventDefault()}
-                                className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
-                            >
-                                <div className="flex items-center">
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
-                                </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={serviceForm.control}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Description (Optional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Comprehensive vehicle maintenance" {...field} className={commonInputStyles}/>
+                          <Textarea placeholder="e.g., Comprehensive vehicle maintenance including oil change, filter replacement..." {...field} className="rounded-none text-base" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -432,62 +329,6 @@ export function AddItemDialog({
           </Tabs>
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={showNewProductCategoryDialog} onOpenChange={setShowNewProductCategoryDialog}>
-        <AlertDialogContent className="rounded-none border-zinc-200 z-[100]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-light tracking-tight text-xl">Add New Product Category</AlertDialogTitle>
-            <AlertDialogDescription>
-              Create a new category for your products.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Input
-            autoFocus
-            placeholder="e.g., Brakes"
-            value={newProductCategory}
-            onChange={(e) => setNewProductCategory(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddNewProductCategory();
-              }
-            }}
-            className={commonInputStyles}
-          />
-          <AlertDialogFooter className="mt-4 gap-2">
-            <AlertDialogCancel type="button" className={commonButtonStyles}>Cancel</AlertDialogCancel>
-            <AlertDialogAction type="button" onClick={handleAddNewProductCategory} className={commonButtonStyles}>Add Category</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={showNewVehicleCategoryDialog} onOpenChange={setShowNewVehicleCategoryDialog}>
-        <AlertDialogContent className="rounded-none border-zinc-200 z-[100]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-light tracking-tight text-xl">Add New Vehicle Category</AlertDialogTitle>
-            <AlertDialogDescription>
-              Create a new category for vehicle types.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Input
-            autoFocus
-            placeholder="e.g., Truck"
-            value={newVehicleCategory}
-            onChange={(e) => setNewVehicleCategory(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddNewVehicleCategory();
-              }
-            }}
-             className={commonInputStyles}
-          />
-          <AlertDialogFooter className="mt-4 gap-2">
-            <AlertDialogCancel type="button" className={commonButtonStyles}>Cancel</AlertDialogCancel>
-            <AlertDialogAction type="button" onClick={handleAddNewVehicleCategory} className={commonButtonStyles}>Add Category</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

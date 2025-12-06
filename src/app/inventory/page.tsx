@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { collection, doc, increment, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
@@ -40,9 +40,10 @@ export default function InventoryPage() {
     if (!products) return [];
     if (!searchQuery) return products;
 
+    const lowercasedQuery = searchQuery.toLowerCase();
     return products.filter(product =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.sku && product.sku.toLowerCase().includes(searchQuery.toLowerCase()))
+      product.name.toLowerCase().includes(lowercasedQuery) ||
+      (product.sku && product.sku.toLowerCase().includes(lowercasedQuery))
     );
   }, [products, searchQuery]);
 
@@ -50,38 +51,17 @@ export default function InventoryPage() {
     if (!services) return [];
     if (!searchQuery) return services;
     
+    const lowercasedQuery = searchQuery.toLowerCase();
     return services.filter(service =>
-      service.name.toLowerCase().includes(searchQuery.toLowerCase())
+      service.name.toLowerCase().includes(lowercasedQuery)
     );
   }, [services, searchQuery]);
 
-
-  const productCategories = useMemo(() => {
-    if (!products) return [];
-    const categories = products.map(p => p.description).filter((c): c is string => !!c);
-    return [...new Set(categories)];
-  }, [products]);
-
-  const vehicleCategories = useMemo(() => {
-    if (!services) return [];
-    return [...new Set(services.map(s => s.vehicleCategory))];
-  }, [services]);
-
-  const [localProductCategories, setLocalProductCategories] = useState<string[]>([]);
-  const [localVehicleCategories, setLocalVehicleCategories] = useState<string[]>([]);
   const [itemToEdit, setItemToEdit] = useState<WithId<Product> | WithId<Service> | null>(null);
   const [isAddItemDialogOpen, setAddItemDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{id: string, type: 'product' | 'service'} | null>(null);
 
-  const allProductCategories = useMemo(() => {
-    return [...new Set([...productCategories, ...localProductCategories])];
-  }, [productCategories, localProductCategories]);
-
-  const allVehicleCategories = useMemo(() => {
-    return [...new Set([...vehicleCategories, ...localVehicleCategories])];
-  }, [vehicleCategories, localVehicleCategories]);
-
-  const handleUpsertItem = (item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service', id?: string) => {
+  const handleUpsertItem = useCallback((item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service', id?: string) => {
     if (id) {
       // Update existing item
       const docRef = doc(firestore, type === 'product' ? 'products' : 'services', id);
@@ -92,18 +72,14 @@ export default function InventoryPage() {
       if (collectionRef) {
           addDocumentNonBlocking(collectionRef, item);
       }
-      if (type === 'service') {
-        const newCategory = (item as Service).vehicleCategory;
-        if (!allVehicleCategories.includes(newCategory)) {
-          setLocalVehicleCategories(prev => [...prev, newCategory]);
-        }
-      }
     }
-  };
+  }, [firestore, productsCollection, servicesCollection]);
 
-  const handleAddStock = async (productId: string, quantity: number) => {
+  const handleAddStock = useCallback(async (productId: string, quantity: number) => {
     const productRef = doc(firestore, 'products', productId);
     try {
+      // NOTE: Unlike other updates, this one IS awaited. 
+      // This is a design choice to ensure the toast only shows on successful update.
       await updateDoc(productRef, {
         stock: increment(quantity)
       });
@@ -119,18 +95,18 @@ export default function InventoryPage() {
         description: "Failed to update stock.",
       });
     }
-  };
+  }, [firestore, toast]);
 
-  const handleEdit = (item: WithId<Product> | WithId<Service>) => {
+  const handleEdit = useCallback((item: WithId<Product> | WithId<Service>) => {
     setItemToEdit(item);
     setAddItemDialogOpen(true);
-  };
+  }, []);
   
-  const handleDeleteRequest = (id: string, type: 'product' | 'service') => {
+  const handleDeleteRequest = useCallback((id: string, type: 'product' | 'service') => {
     setItemToDelete({ id, type });
-  };
+  }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = useCallback(() => {
     if (!itemToDelete) return;
 
     const docRef = doc(firestore, itemToDelete.type === 'product' ? 'products' : 'services', itemToDelete.id);
@@ -138,15 +114,15 @@ export default function InventoryPage() {
     
     // Close the dialog immediately for optimistic UI update
     setItemToDelete(null);
-  };
+  }, [itemToDelete, firestore]);
 
 
-  const onDialogClose = (isOpen: boolean) => {
+  const onDialogClose = useCallback((isOpen: boolean) => {
     if (!isOpen) {
       setItemToEdit(null);
     }
     setAddItemDialogOpen(isOpen);
-  }
+  }, []);
 
   return (
     <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-8 pb-12">
@@ -185,10 +161,6 @@ export default function InventoryPage() {
 
                     <AddItemDialog 
                         onUpsertItem={handleUpsertItem} 
-                        productCategories={allProductCategories} 
-                        setProductCategories={setLocalProductCategories}
-                        vehicleCategories={allVehicleCategories}
-                        setVehicleCategories={setLocalVehicleCategories}
                         itemToEdit={itemToEdit}
                         isOpen={isAddItemDialogOpen}
                         onOpenChange={onDialogClose}

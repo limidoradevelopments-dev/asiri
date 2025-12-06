@@ -24,7 +24,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 
-type EnrichedInvoice = WithId<Invoice> & {
+export type EnrichedInvoice = WithId<Invoice> & {
   customerName?: string;
   vehicleNumberPlate?: string;
   employeeName?: string;
@@ -55,13 +55,13 @@ export function InvoicesTable({ data, isLoading, onViewDetails }: InvoicesTableP
   const renderSkeleton = () => (
     Array.from({ length: 10 }).map((_, index) => (
       <TableRow key={index} className="border-zinc-100">
-        <TableCell className="py-3 px-2"><Skeleton className="h-5 w-24" /></TableCell>
-        <TableCell className="py-3 px-2"><Skeleton className="h-5 w-32" /></TableCell>
-        <TableCell className="py-3 px-2"><Skeleton className="h-5 w-28" /></TableCell>
-        <TableCell className="py-3 px-2"><Skeleton className="h-5 w-24" /></TableCell>
-        <TableCell className="py-3 px-2"><Skeleton className="h-5 w-20" /></TableCell>
-        <TableCell className="py-3 px-2 text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
-        <TableCell className="py-3 px-2"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+        <TableCell className="p-2 h-12"><Skeleton className="h-5 w-24" /></TableCell>
+        <TableCell className="p-2 h-12"><Skeleton className="h-5 w-32" /></TableCell>
+        <TableCell className="p-2 h-12"><Skeleton className="h-5 w-28" /></TableCell>
+        <TableCell className="p-2 h-12"><Skeleton className="h-5 w-24" /></TableCell>
+        <TableCell className="p-2 h-12"><Skeleton className="h-5 w-20" /></TableCell>
+        <TableCell className="p-2 h-12 text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+        <TableCell className="p-2 h-12"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
       </TableRow>
     ))
   );
@@ -70,7 +70,7 @@ export function InvoicesTable({ data, isLoading, onViewDetails }: InvoicesTableP
     <div className="overflow-x-auto border border-zinc-200 bg-white">
       <Table>
         <TableHeader className="bg-zinc-50">
-          <TableRow className="border-zinc-200">
+          <TableRow className="border-zinc-200 hover:bg-transparent">
             <TableHead className="p-2 h-11 text-xs font-medium text-zinc-500 uppercase tracking-wider">Invoice #</TableHead>
             <TableHead className="p-2 h-11 text-xs font-medium text-zinc-500 uppercase tracking-wider">Customer</TableHead>
             <TableHead className="p-2 h-11 text-xs font-medium text-zinc-500 uppercase tracking-wider">Vehicle</TableHead>
@@ -83,17 +83,17 @@ export function InvoicesTable({ data, isLoading, onViewDetails }: InvoicesTableP
         <TableBody>
           {isLoading ? renderSkeleton() : data.map((invoice) => (
             <TableRow key={invoice.id} className="border-zinc-100 text-sm hover:bg-zinc-50/50 cursor-pointer" onClick={() => onViewDetails(invoice)}>
-              <TableCell className="py-3 px-2 font-mono text-blue-600 hover:underline text-xs">{invoice.invoiceNumber}</TableCell>
-              <TableCell className="py-3 px-2 font-medium">{invoice.customerName}</TableCell>
-              <TableCell className="py-3 px-2">{invoice.vehicleNumberPlate}</TableCell>
-              <TableCell className="py-3 px-2">{format(new Date(invoice.date), "MMM d, yyyy")}</TableCell>
-              <TableCell className="py-3 px-2">
+              <TableCell className="p-2 h-12 font-mono text-blue-600 hover:underline text-xs">{invoice.invoiceNumber}</TableCell>
+              <TableCell className="p-2 h-12 font-medium">{invoice.customerName}</TableCell>
+              <TableCell className="p-2 h-12">{invoice.vehicleNumberPlate}</TableCell>
+              <TableCell className="p-2 h-12">{format(new Date(invoice.date), "MMM d, yyyy")}</TableCell>
+              <TableCell className="p-2 h-12">
                 <Badge className={cn("capitalize text-xs font-semibold rounded-md border", statusStyles[invoice.paymentStatus])} variant="outline">
                     {invoice.paymentStatus}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right py-3 px-2 font-mono">{formatPrice(invoice.total)}</TableCell>
-              <TableCell className="text-right py-3 px-2" onClick={(e) => e.stopPropagation()}>
+              <TableCell className="text-right p-2 h-12 font-mono">{formatPrice(invoice.total)}</TableCell>
+              <TableCell className="text-right p-2 h-12" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -103,7 +103,7 @@ export function InvoicesTable({ data, isLoading, onViewDetails }: InvoicesTableP
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="rounded-none border-zinc-200">
                     <DropdownMenuItem onClick={() => onViewDetails(invoice)} className="text-xs">View Details</DropdownMenuItem>
-                    <DropdownMenuItem className="text-xs">Print Invoice</DropdownMenuItem>
+                    <DropdownMenuItem disabled className="text-xs">Print Invoice</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -112,7 +112,7 @@ export function InvoicesTable({ data, isLoading, onViewDetails }: InvoicesTableP
         </TableBody>
       </Table>
       {!isLoading && data.length === 0 && (
-        <div className="text-center py-20 text-zinc-400 text-sm uppercase tracking-widest">
+        <div className="flex items-center justify-center text-center py-20 text-zinc-400 text-sm uppercase tracking-widest">
           No invoices found for this filter
         </div>
       )}

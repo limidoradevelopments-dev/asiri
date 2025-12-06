@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { collection, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CustomerVehicleDetailsDialog } from "@/components/customers/CustomerVehicleDetailsDialog";
 
-type CustomerWithVehicle = {
+export type CustomerWithVehicle = {
   customer: WithId<Customer>;
   vehicle: WithId<Vehicle>;
 };
@@ -56,7 +56,6 @@ export default function CustomersPage() {
 
 
   const filteredData = useMemo(() => {
-    if (!combinedData) return [];
     if (!searchQuery) return combinedData;
 
     const lowercasedQuery = searchQuery.toLowerCase();
@@ -68,7 +67,7 @@ export default function CustomersPage() {
     );
   }, [combinedData, searchQuery]);
   
-  const handleUpsert = async (customerData: Omit<Customer, 'id'>, vehicleData: Partial<Omit<Vehicle, 'id' | 'customerId'>>, customerId?: string, vehicleId?: string) => {
+  const handleUpsert = useCallback(async (customerData: Omit<Customer, 'id'>, vehicleData: Partial<Omit<Vehicle, 'id' | 'customerId'>>, customerId?: string, vehicleId?: string) => {
     if (customerId && vehicleId) {
       // Editing
       const customerDocRef = doc(firestore, 'customers', customerId);
@@ -79,28 +78,30 @@ export default function CustomersPage() {
 
     } else {
       // Creating
-      const customerRef = await addDocumentNonBlocking(customersCollection, customerData);
-      if(customerRef) {
-        const newVehicleData = { ...vehicleData, customerId: customerRef.id };
-        await addDocumentNonBlocking(vehiclesCollection, newVehicleData);
+      if(customersCollection && vehiclesCollection) {
+        const customerRef = await addDocumentNonBlocking(customersCollection, customerData);
+        if(customerRef) {
+          const newVehicleData = { ...vehicleData, customerId: customerRef.id };
+          await addDocumentNonBlocking(vehiclesCollection, newVehicleData);
+        }
       }
     }
-  };
+  }, [firestore, customersCollection, vehiclesCollection]);
 
-  const handleEdit = (item: CustomerWithVehicle) => {
+  const handleEdit = useCallback((item: CustomerWithVehicle) => {
     setItemToEdit(item);
     setAddDialogOpen(true);
-  };
+  }, []);
   
-  const handleDeleteRequest = (item: CustomerWithVehicle) => {
+  const handleDeleteRequest = useCallback((item: CustomerWithVehicle) => {
     setItemToDelete(item);
-  };
+  }, []);
 
-  const handleViewDetails = (item: CustomerWithVehicle) => {
+  const handleViewDetails = useCallback((item: CustomerWithVehicle) => {
     setItemToView(item);
-  };
+  }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = useCallback(() => {
     if (!itemToDelete) return;
 
     const { customer, vehicle } = itemToDelete;
@@ -117,14 +118,14 @@ export default function CustomersPage() {
     
     // Close the dialog immediately for optimistic UI update
     setItemToDelete(null);
-  };
+  }, [itemToDelete, firestore, vehicles]);
 
-  const onDialogClose = (isOpen: boolean) => {
+  const onDialogClose = useCallback((isOpen: boolean) => {
     if (!isOpen) {
       setItemToEdit(null);
     }
     setAddDialogOpen(isOpen);
-  }
+  }, []);
   
   const isLoading = customersLoading || vehiclesLoading;
 

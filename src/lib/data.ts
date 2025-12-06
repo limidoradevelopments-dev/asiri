@@ -94,9 +94,9 @@ export type Invoice = {
   globalDiscountAmount: number;
   total: number;
   paymentStatus: InvoiceStatus;
-  paymentMethod?: PaymentMethod;
   amountPaid: number;
   balanceDue: number;
+  paymentMethod?: PaymentMethod;
   chequeNumber?: string;
   bank?: string;
 };
@@ -169,9 +169,8 @@ export interface Product {
 
 export interface Service {
   name: string;
-  description?: string;
   price: number;
-  vehicleCategory: string;
+  description?: string;
 }
 
 export interface Employee {

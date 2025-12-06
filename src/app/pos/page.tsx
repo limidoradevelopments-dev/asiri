@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { collection, doc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
-import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMethod, InvoiceStatus } from '@/lib/data';
+import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMethod } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -28,36 +28,38 @@ import { AddCustomerVehicleDialog } from '@/components/pos/AddCustomerVehicleDia
 import { useToast } from '@/hooks/use-toast';
 import { PaymentDialog } from '@/components/pos/PaymentDialog';
 import { Input } from '@/components/ui/input';
+import { CartItem as CartItemComponent } from '@/components/pos/CartItem';
+import { useDebouncedCallback } from 'use-debounce';
 
 // --- Types ---
-type CartItemBase = {
+export type CartItemBase = {
   cartId: string;
   quantity: number;
   discountAmount: number; // Discount per UNIT
 };
 
-type StandardCartItem = CartItemBase & WithId<Product | Service> & {
+export type StandardCartItem = CartItemBase & WithId<Product | Service> & {
   type: 'product' | 'service';
 };
 
-type CustomCartItem = CartItemBase & {
+export type CustomCartItem = CartItemBase & {
   name: string;
   unitPrice: number;
   type: 'custom';
 };
 
-type CartItem = StandardCartItem | CustomCartItem;
+export type CartItem = StandardCartItem | CustomCartItem;
 
 
 // --- Math & Helper Utilities ---
 
 // Solves floating point math issues (e.g., 0.1 + 0.2 !== 0.3)
-const safeRound = (num: number): number => {
+export const safeRound = (num: number): number => {
   return Math.round((num + Number.EPSILON) * 100) / 100;
 };
 
 // Safely gets price regardless of Product (sellingPrice) or Service (price)
-const getItemPrice = (item: CartItem): number => {
+export const getItemPrice = (item: CartItem): number => {
   if (item.type === 'custom') return item.unitPrice;
   if ('sellingPrice' in item) return (item as WithId<Product>).sellingPrice;
   if ('price' in item) return (item as WithId<Service>).price;
@@ -149,8 +151,8 @@ export default function POSPage() {
     };
     setCart(prev => [...prev, newCustomItem]);
   };
-
-  const updateCartItem = (cartId: string, updates: Partial<CartItem>) => {
+  
+  const debouncedUpdateCartItem = useDebouncedCallback((cartId: string, updates: Partial<CartItem>) => {
     setCart(prev => prev.map(item => {
       if (item.cartId === cartId) {
         const updatedItem = { ...item, ...updates };
@@ -169,7 +171,12 @@ export default function POSPage() {
       }
       return item;
     }));
-  };
+  }, 300);
+
+  const updateCartItem = (cartId: string, updates: Partial<CartItem>) => {
+     setCart(prev => prev.map(item => item.cartId === cartId ? {...item, ...updates} : item));
+     debouncedUpdateCartItem(cartId, updates);
+  }
   
   const removeFromCart = (id: string) => {
     setCart(prev => prev.filter(item => item.cartId !== id));
@@ -182,11 +189,14 @@ export default function POSPage() {
   };
   
   const handleCreateCustomerAndVehicle = async (customerData: Omit<Customer, 'id'>, vehicleData: Omit<Vehicle, 'id' | 'customerId'>) => {
+    if(!customersCollection || !vehiclesCollection) return;
     const customerRef = await addDocumentNonBlocking(customersCollection, customerData);
     if(customerRef) {
       const newVehicleData = { ...vehicleData, customerId: customerRef.id };
       const vehicleRef = await addDocumentNonBlocking(vehiclesCollection, newVehicleData);
       if(vehicleRef) {
+        // We manually create the new objects to pass to the selection handler,
+        // because the firestore hooks won't update with the new data immediately.
         handleSelectCustomerAndVehicle({ ...customerData, id: customerRef.id }, { ...newVehicleData, id: vehicleRef.id });
       }
     }
@@ -216,17 +226,18 @@ export default function POSPage() {
   const itemsToShow = useMemo(() => {
     const list = activeTab === 'services' ? services : products;
     if (!searchQuery) return list;
-    return list?.filter((i: any) => i.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return list?.filter((i: any) => i.name.toLowerCase().includes(lowercasedQuery));
   }, [activeTab, services, products, searchQuery]);
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setCart([]);
     setGlobalDiscountPercent(0);
     setSelectedEmployee(null);
     setSelectedCustomer(null);
     setSelectedVehicle(null);
     setPaymentDialogOpen(false);
-  };
+  }, []);
 
   const handleProcessPayment = () => {
     // 1. Basic Validation
@@ -248,8 +259,8 @@ export default function POSPage() {
                 errors.push(`Insufficient stock for: ${cartItem.name}`);
             }
         }
-        if (cartItem.type === 'custom' && !cartItem.name.trim()) {
-            errors.push('A custom job is missing a name.');
+        if (cartItem.type === 'custom' && (!cartItem.name.trim() || cartItem.unitPrice <= 0)) {
+            errors.push('A custom job is missing a name or has an invalid price.');
         }
     });
 
@@ -266,8 +277,8 @@ export default function POSPage() {
     setPaymentDialogOpen(true);
   };
   
-  const handleConfirmPayment = async (paymentDetails: { paymentMethod: PaymentMethod, amountPaid: number, balanceDue: number, paymentStatus: InvoiceStatus, changeDue: number, chequeNumber?: string, bank?: string }) => {
-    if (!selectedCustomer || !selectedVehicle || !selectedEmployee) return;
+  const handleConfirmPayment = useCallback(async (paymentDetails: Omit<Parameters<typeof onConfirmPayment>[0], "changeDue">) => {
+    if (!selectedCustomer || !selectedVehicle || !selectedEmployee || !invoicesCollection || !firestore) return;
 
     const invoiceItems = cart.map(item => {
       const originalPrice = getItemPrice(item);
@@ -284,7 +295,6 @@ export default function POSPage() {
       };
     });
 
-    // DEFINITIVE FIX: Construct a base invoice, then conditionally add cheque details.
     const invoice: Omit<Invoice, 'id'> = {
       invoiceNumber: `INV-${Date.now()}`,
       customerId: selectedCustomer.id,
@@ -300,12 +310,11 @@ export default function POSPage() {
       amountPaid: paymentDetails.amountPaid,
       balanceDue: paymentDetails.balanceDue,
       paymentMethod: paymentDetails.paymentMethod,
+      ...(paymentDetails.paymentMethod === 'Check' && { 
+        chequeNumber: paymentDetails.chequeNumber, 
+        bank: paymentDetails.bank 
+      }),
     };
-    
-    if (paymentDetails.paymentMethod === 'Check' && paymentDetails.chequeNumber && paymentDetails.bank) {
-      invoice.chequeNumber = paymentDetails.chequeNumber;
-      invoice.bank = paymentDetails.bank;
-    }
     
     // 4. Execute Database Operations
     await addDocumentNonBlocking(invoicesCollection, invoice);
@@ -314,13 +323,10 @@ export default function POSPage() {
     for (const item of cart) {
       if (item.type === 'product') {
         const productRef = doc(firestore, 'products', item.id);
-        try {
-          await updateDoc(productRef, {
+        // This is a non-blocking operation on purpose. We don't need to wait for it.
+        updateDoc(productRef, {
             stock: increment(-item.quantity)
-          });
-        } catch (error) {
-           console.error(`Failed to update stock for product ${item.id}:`, error);
-        }
+        }).catch(err => console.error(`Failed to update stock for ${item.id}`, err));
       }
     }
 
@@ -333,7 +339,7 @@ export default function POSPage() {
     });
 
     resetState();
-  };
+  }, [selectedCustomer, selectedVehicle, selectedEmployee, cart, totals, globalDiscountPercent, invoicesCollection, firestore, resetState, toast]);
 
   return (
     <div className="flex h-screen w-full bg-background font-sans overflow-hidden">
@@ -407,7 +413,7 @@ export default function POSPage() {
                                 {/* Top Row: Category & Price */}
                                 <div className="flex justify-between items-start w-full">
                                     <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-300 group-hover:text-black transition-colors border border-zinc-100 group-hover:border-zinc-900 px-1.5 py-0.5 rounded-sm">
-                                        {'category' in item ? item.category : 'vehicleCategory' in item ? item.vehicleCategory : (activeTab === 'services' ? 'SVC' : 'PRD')}
+                                        {'description' in item && item.description ? item.description : (activeTab === 'services' ? 'SVC' : 'PRD')}
                                     </span>
                                     <span className="font-mono text-lg font-medium text-zinc-900">
                                         {formatPrice(getItemPrice(item as any))}
@@ -464,7 +470,7 @@ export default function POSPage() {
                 <span className="text-xs uppercase tracking-[0.2em] text-zinc-400">Customer</span>
                  <Button
                     variant="link"
-                    className="p-0 h-auto font-mono text-sm text-zinc-400 hover:text-black focus:text-black flex items-center"
+                    className="p-0 h-auto text-sm text-zinc-400 hover:text-black focus:text-black flex items-center"
                     onClick={() => setCustomerDialogOpen(true)}
                   >
                     {selectedCustomer && selectedVehicle ? (
@@ -485,7 +491,7 @@ export default function POSPage() {
                       variant="link"
                       role="combobox"
                       aria-expanded={employeePopoverOpen}
-                      className="p-0 h-auto font-mono text-sm text-zinc-400 hover:text-black focus:text-black"
+                      className="p-0 h-auto text-sm text-zinc-400 hover:text-black focus:text-black"
                     >
                       {selectedEmployee ? selectedEmployee.name : "Select Employee"}
                       <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
@@ -550,76 +556,16 @@ export default function POSPage() {
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            {cart.map((item) => {
-                                const originalPrice = getItemPrice(item);
-                                const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
-                                const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
-                                const lineTotal = discountedPricePerUnit * item.quantity;
-                                const isCustom = item.type === 'custom';
-
-                                return (
-                                    <div key={item.cartId} className="group py-4 border-b border-zinc-100 grid grid-cols-12 gap-4 items-center">
-                                        <div className="col-span-5">
-                                            {isCustom ? (
-                                                <Input
-                                                    ref={item.name === '' ? customNameInputRef : null}
-                                                    type="text"
-                                                    placeholder="Custom Job Name"
-                                                    value={item.name}
-                                                    onChange={(e) => updateCartItem(item.cartId, { name: e.target.value })}
-                                                    className="h-auto p-0 text-sm bg-transparent border-none focus-visible:ring-0"
-                                                />
-                                            ) : (
-                                                <span className="text-sm font-medium tracking-tight truncate block" title={item.name}>{item.name}</span>
-                                            )}
-                                        </div>
-                                        <div className="col-span-2 text-center">
-                                            <input 
-                                                type="number"
-                                                className="w-16 text-center text-sm font-mono bg-zinc-100 border border-transparent hover:border-zinc-200 focus:border-black outline-none rounded-sm transition-colors py-1"
-                                                value={item.quantity}
-                                                onChange={(e) => updateCartItem(item.cartId, { quantity: e.target.valueAsNumber || 0 })}
-                                                onKeyDown={(e) => ["-", "e", "+", "."].includes(e.key) && e.preventDefault()}
-                                                min="1"
-                                                max={stock}
-                                            />
-                                        </div>
-                                        <div className="col-span-2 font-mono text-sm text-right">
-                                            {isCustom ? (
-                                                 <input 
-                                                    type="number"
-                                                    className="w-full text-right text-sm font-mono bg-transparent border-b border-transparent hover:border-zinc-200 focus:border-black outline-none transition-colors p-0"
-                                                    placeholder="0.00"
-                                                    value={(item as CustomCartItem).unitPrice || ''}
-                                                    onChange={(e) => updateCartItem(item.cartId, { unitPrice: parseFloat(e.target.value) || 0})}
-                                                    onKeyDown={(e) => ["-", "e"].includes(e.key) && e.preventDefault()}
-                                                    min="0"
-                                                />
-                                            ) : (
-                                                formatPrice(originalPrice)
-                                            )}
-                                        </div>
-                                         <div className="col-span-1 text-right">
-                                            <input 
-                                                type="number"
-                                                className="w-12 text-right text-xs font-mono bg-transparent border-b border-transparent hover:border-zinc-200 focus:border-black outline-none transition-colors p-0"
-                                                placeholder="0.00"
-                                                value={item.discountAmount || ''}
-                                                onChange={(e) => updateCartItem(item.cartId, { discountAmount: parseFloat(e.target.value) || 0 })}
-                                                onKeyDown={(e) => ["-", "e"].includes(e.key) && e.preventDefault()}
-                                                min="0"
-                                                max={originalPrice}
-                                            />
-                                        </div>
-                                        <div className="col-span-2 font-mono text-sm w-24 text-right flex items-center justify-end">
-                                            <span>{formatPrice(lineTotal)}</span>
-                                            <Button onClick={() => removeFromCart(item.cartId)} variant="ghost" size="icon" className="h-8 w-8 ml-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-none">
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            {cart.map((item) => (
+                                <CartItemComponent 
+                                  key={item.cartId}
+                                  item={item}
+                                  onUpdate={updateCartItem}
+                                  onRemove={removeFromCart}
+                                  formatPrice={formatPrice}
+                                  customNameInputRef={item.type === 'custom' && item.name === '' ? customNameInputRef : null}
+                                />
+                            ))}
                         </div>
                     )}
                  </div>
@@ -635,9 +581,10 @@ export default function POSPage() {
                     <input 
                         className="w-8 text-right bg-transparent border-b border-zinc-200 focus:border-black outline-none font-mono text-zinc-500 focus:text-black"
                         placeholder="0"
+                        type='number'
                         value={globalDiscountPercent || ''}
                         onChange={(e) => setGlobalDiscountPercent(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
-                        onKeyDown={(e) => ["-", "e"].includes(e.key) && e.preventDefault()}
+                        onKeyDown={(e) => ["-", "e", "+"].includes(e.key) && e.preventDefault()}
                     />
                     <span className="text-zinc-300">%</span>
                 </div>
@@ -662,13 +609,10 @@ export default function POSPage() {
             {/* Pay Button - Full Width Text Block */}
             <button 
                 onClick={handleProcessPayment}
-                // CHANGE: Only disable if the cart is empty. 
-                // Let handleProcessPayment() show the error toast if Customer/Employee is missing.
                 disabled={cart.length === 0} 
                 className={cn(
                     "w-full py-4 bg-black text-white text-sm uppercase tracking-[0.3em] hover:bg-zinc-800 transition-all rounded-none shadow-none",
                     "disabled:bg-zinc-100 disabled:text-zinc-300",
-                    // Optional: Add visual indication if info is missing but cart has items
                     (cart.length > 0 && (!selectedCustomer || !selectedEmployee || !selectedVehicle)) && "bg-zinc-800 opacity-90"
                 )}
             >
@@ -693,7 +637,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-    
-
-    

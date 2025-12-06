@@ -318,23 +318,18 @@
           "type": "string",
           "description": "The name of the service."
         },
-        "description": {
-          "type": "string",
-          "description": "An optional description of the service."
-        },
         "price": {
           "type": "number",
           "description": "The price of the service."
         },
-        "vehicleCategory": {
+        "description": {
           "type": "string",
-          "description": "The category of vehicle the service applies to."
+          "description": "An optional description of the service."
         }
       },
       "required": [
         "name",
-        "price",
-        "vehicleCategory"
+        "price"
       ]
     },
     "Employee": {
