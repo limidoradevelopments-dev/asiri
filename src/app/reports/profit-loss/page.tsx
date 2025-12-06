@@ -8,7 +8,7 @@ import { DateRange } from 'react-day-picker';
 import { addDays, format, startOfDay, endOfDay } from 'date-fns';
 
 import StatCard from '@/components/dashboard/StatCard';
-import { DollarSign, TrendingUp, TrendingDown, Download, ArrowUpDown, Percent } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Download, ArrowUpDown, Percent, Check, ChevronsUpDown, X } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +22,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 // --- Types ---
 type ProfitLossItem = {
@@ -53,8 +55,10 @@ export default function ProfitLossPage() {
     from: startOfDay(addDays(new Date(), -30)),
     to: new Date(),
   });
-
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'date', direction: 'desc' });
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [productPopoverOpen, setProductPopoverOpen] = useState(false);
+
 
   // 2. Data Fetching
   const invoicesCollection = useMemoFirebase(() => collection(firestore, 'invoices'), [firestore]);
@@ -85,12 +89,12 @@ export default function ProfitLossPage() {
       if (invoice.date < fromDate || invoice.date > toDate) continue;
 
       for (const item of invoice.items) {
+        // NEW: Product Filter
+        if (selectedProductId && item.itemId !== selectedProductId) continue;
+        
         const product = productMap.get(item.itemId);
         
         // Cost Calculation Logic
-        // CRITICAL: Ideal scenario is invoice item has a 'buyPrice' snapshot. 
-        // If not, we fall back to current product actualPrice.
-        // We use (item as any).buyPrice to check if your historical data has this field.
         const historicalCost = (item as any).buyPrice ?? product?.actualPrice;
 
         if (historicalCost !== undefined) {
@@ -147,7 +151,7 @@ export default function ProfitLossPage() {
     };
 
     return { summary: finalSummary, items: data, isLoading: false };
-  }, [invoices, products, dateRange, invoicesLoading, productsLoading, sortConfig]);
+  }, [invoices, products, dateRange, invoicesLoading, productsLoading, sortConfig, selectedProductId]);
 
   // 4. Handlers
   const handleSort = (key: keyof ProfitLossItem) => {
@@ -191,6 +195,11 @@ export default function ProfitLossPage() {
   const formatCurrency = (amount: number) => {
      return `Rs. ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
+  
+  const selectedProductName = useMemo(() => {
+    if (!selectedProductId || !products) return 'All Products';
+    return products.find(p => p.id === selectedProductId)?.name || 'All Products';
+  }, [selectedProductId, products]);
 
   // 5. Render Helpers
   const renderStatSkeletons = () => (
@@ -216,6 +225,64 @@ export default function ProfitLossPage() {
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 font-medium">Financial Performance Report</p>
             </div>
             <div className="flex items-center gap-3">
+                <Popover open={productPopoverOpen} onOpenChange={setProductPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={productPopoverOpen}
+                      className="w-[250px] justify-between rounded-none h-11 border-zinc-200 text-base"
+                    >
+                      <span className="truncate">{selectedProductName}</span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0 rounded-none">
+                    <Command>
+                      <CommandInput placeholder="Search product..." />
+                      <CommandList>
+                        <CommandEmpty>No product found.</CommandEmpty>
+                        <CommandGroup>
+                           <CommandItem
+                              key="all"
+                              value="all"
+                              onSelect={() => {
+                                setSelectedProductId(null);
+                                setProductPopoverOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  !selectedProductId ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              All Products
+                            </CommandItem>
+                          {products?.map((product) => (
+                            <CommandItem
+                              key={product.id}
+                              value={product.name}
+                              onSelect={() => {
+                                setSelectedProductId(product.id);
+                                setProductPopoverOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedProductId === product.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {product.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
                 <DateRangePicker dateRange={dateRange} onDateChange={setDateRange} />
                 <Button variant="outline" size="icon" onClick={handleExportCSV} disabled={processedData.items.length === 0} title="Export CSV">
                     <Download className="h-4 w-4 text-zinc-600" />
@@ -233,7 +300,10 @@ export default function ProfitLossPage() {
                   title="Net Profit" 
                   value={formatCurrency(processedData.summary.totalProfit)} 
                   icon={TrendingUp}
-                  className={cn("bg-zinc-50 shadow-md border-zinc-200", processedData.summary.totalProfit >= 0 ? "text-green-700" : "text-red-600")}
+                  className={cn(
+                      "bg-zinc-50 shadow-md border-zinc-200", 
+                      processedData.summary.totalProfit >= 0 ? "text-green-700" : "text-red-600"
+                  )}
                 />
               </>
             )}
