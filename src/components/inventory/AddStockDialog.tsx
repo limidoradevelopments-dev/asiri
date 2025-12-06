@@ -118,6 +118,7 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
                           // intercepting the click before the Popover can handle it.
                           onMouseDown={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                           }}
                         >
                           <Check
