@@ -136,16 +136,16 @@ body {
   }
 
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: hsl(var(--primary));
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--border) / 0.5);
+    background-color: hsl(var(--muted-foreground) / 0.5);
     border-radius: 10px;
     transition: background-color 0.2s ease-in-out;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--border));
+    background-color: hsl(var(--muted-foreground));
   }
 }
