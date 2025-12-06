@@ -44,14 +44,16 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<WithId<Product> | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [search, setSearch] = useState("");
 
-  const filteredProducts = useMemo(() => {
-    if (!search) return products;
-    return products.filter(product =>
-      product.name.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [products, search]);
+  // This useEffect resets the state when the dialog is closed.
+  // This is important to ensure the form is clean every time it's opened.
+  useEffect(() => {
+    if (!open) {
+      setSelectedProduct(null);
+      setQuantity(1);
+      setPopoverOpen(false);
+    }
+  }, [open]);
 
   const handleUpdateStock = () => {
     if (selectedProduct && quantity > 0) {
@@ -60,17 +62,6 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
     }
   };
   
-  // This useEffect resets the state when the dialog is closed.
-  // This is important to ensure the form is clean every time it's opened.
-  useEffect(() => {
-    if (!open) {
-      setSelectedProduct(null);
-      setQuantity(1);
-      setSearch("");
-      setPopoverOpen(false);
-    }
-  }, [open]);
-
   const commonInputStyles = "rounded-none h-11 text-base";
   const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
 
@@ -104,33 +95,29 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
 
               <PopoverContent 
                 className="w-[--radix-popover-trigger-width] p-0 rounded-none border-zinc-200"
-                // This is a key prop to prevent the dialog from stealing focus on open
+                align="start"
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <Command>
                   <CommandInput
                     placeholder="Search product..."
-                    className="h-11"
-                    value={search}
-                    onValueChange={setSearch}
+                    className="h-11 border-none focus-visible:ring-0"
                   />
                   <CommandList>
                     <CommandEmpty>No product found.</CommandEmpty>
                     <CommandGroup>
-                      {filteredProducts.map(product => (
+                      {products.map(product => (
                         <CommandItem
                           key={product.id}
                           value={product.name}
-                          // This is the critical fix. It prevents the dialog's focus trap
-                          // from intercepting the click before the Popover can handle it.
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
                           onSelect={() => {
                             setSelectedProduct(product);
                             setPopoverOpen(false);
-                            setSearch("");
+                          }}
+                          // THE CRITICAL FIX: This prevents the dialog's focus trap from
+                          // intercepting the click before the Popover can handle it.
+                          onMouseDown={(e) => {
+                            e.preventDefault();
                           }}
                         >
                           <Check
