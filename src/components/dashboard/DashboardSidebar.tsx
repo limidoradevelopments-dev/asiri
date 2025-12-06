@@ -49,7 +49,7 @@ export default function DashboardSidebar() {
     >
       <SidebarHeader className="px-4 py-5 border-b border-sidebar-border h-[68px] flex items-center">
         <div className={cn("flex items-center gap-3", isCollapsed && "justify-center w-full")}>
-          <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+          <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
             <Wrench className="h-5 w-5" />
           </div>
           {!isCollapsed && (
