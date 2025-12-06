@@ -58,7 +58,7 @@ type CustomerWithVehicle = {
 
 type AddCustomerVehicleDialogProps = {
   children: React.ReactNode;
-  onUpsert: (customer: Omit<Customer, 'id'>, vehicle: Omit<Vehicle, 'id' | 'customerId'>, customerId?: string, vehicleId?: string) => void;
+  onUpsert: (customer: Omit<Customer, 'id'>, vehicle: Partial<Omit<Vehicle, 'id' | 'customerId'>>, customerId?: string, vehicleId?: string) => void;
   itemToEdit?: CustomerWithVehicle | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -115,10 +115,16 @@ export function AddCustomerVehicleDialog({
     const { name, phone, address, nic, ...vehicleData } = values;
     const customerData = { name, phone, address, nic };
     
-    const finalVehicleData: Omit<Vehicle, 'id' | 'customerId'> = {
+    const finalVehicleData: Partial<Omit<Vehicle, 'id' | 'customerId'>> = {
         ...vehicleData,
-        mileage: vehicleData.mileage ? Number(vehicleData.mileage) : undefined,
     };
+
+    if (vehicleData.mileage) {
+        finalVehicleData.mileage = Number(vehicleData.mileage);
+    } else {
+        delete (finalVehicleData as Partial<Vehicle>).mileage;
+    }
+
 
     onUpsert(customerData, finalVehicleData, itemToEdit?.customer.id, itemToEdit?.vehicle.id);
     toast({ title: isEditMode ? 'Entry Updated' : 'Entry Added', description: `${customerData.name}'s vehicle has been saved.` });

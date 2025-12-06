@@ -68,7 +68,7 @@ export default function CustomersPage() {
     );
   }, [combinedData, searchQuery]);
   
-  const handleUpsert = async (customerData: Omit<Customer, 'id'>, vehicleData: Omit<Vehicle, 'id' | 'customerId'>, customerId?: string, vehicleId?: string) => {
+  const handleUpsert = async (customerData: Omit<Customer, 'id'>, vehicleData: Partial<Omit<Vehicle, 'id' | 'customerId'>>, customerId?: string, vehicleId?: string) => {
     if (customerId && vehicleId) {
       // Editing
       const customerDocRef = doc(firestore, 'customers', customerId);
@@ -157,6 +157,7 @@ export default function CustomersPage() {
                         onOpenChange={onDialogClose}
                       >
                         <Button 
+                            onClick={() => setAddDialogOpen(true)}
                             className="h-10 px-6 rounded-none bg-black text-white text-xs uppercase tracking-[0.15em] hover:bg-zinc-800 transition-all shadow-none"
                         >
                             <Plus className="mr-2 h-3 w-3" />
