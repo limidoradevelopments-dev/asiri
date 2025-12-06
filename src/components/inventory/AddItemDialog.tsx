@@ -127,7 +127,7 @@ export function AddItemDialog({
     if (isOpen) {
       if (isEditMode && itemToEdit) {
         if ('sku' in itemToEdit) {
-          productForm.reset({ ...itemToEdit, stock: itemToEdit.stock || 0 });
+          productForm.reset({ ...itemToEdit, stock: itemToEdit.stock || 0, category: itemToEdit.category || "" });
         } else {
           serviceForm.reset(itemToEdit);
         }
@@ -265,7 +265,13 @@ export function AddItemDialog({
                         <FormItem>
                           <FormLabel>Category (Optional)</FormLabel>
                           <Select
-                            onValueChange={field.onChange}
+                            onValueChange={(value) => {
+                                if (value === 'add-new-trigger') {
+                                    setShowNewProductCategoryDialog(true);
+                                } else {
+                                    field.onChange(value);
+                                }
+                            }}
                             value={field.value}
                           >
                             <FormControl>
@@ -280,10 +286,6 @@ export function AddItemDialog({
                               <SelectSeparator />
                               <SelectItem 
                                 value="add-new-trigger"
-                                onSelect={(e) => {
-                                    e.preventDefault();
-                                    setShowNewProductCategoryDialog(true);
-                                }}
                                 className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
                               >
                                 <div className="flex items-center">
@@ -391,7 +393,13 @@ export function AddItemDialog({
                       <FormItem>
                         <FormLabel>Vehicle Category</FormLabel>
                         <Select
-                           onValueChange={field.onChange}
+                           onValueChange={(value) => {
+                                if (value === 'add-new-trigger') {
+                                    setShowNewVehicleCategoryDialog(true);
+                                } else {
+                                    field.onChange(value);
+                                }
+                           }}
                           value={field.value}
                         >
                           <FormControl>
@@ -406,10 +414,6 @@ export function AddItemDialog({
                             <SelectSeparator />
                             <SelectItem 
                                 value="add-new-trigger"
-                                onSelect={(e) => {
-                                    e.preventDefault();
-                                    setShowNewVehicleCategoryDialog(true);
-                                }}
                                 className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
                             >
                                 <div className="flex items-center">
