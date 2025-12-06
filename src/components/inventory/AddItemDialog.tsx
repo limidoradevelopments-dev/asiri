@@ -221,7 +221,13 @@ export function AddItemDialog({
                       <FormItem>
                         <FormLabel>Category</FormLabel>
                         <Select
-                          onValueChange={field.onChange}
+                          onValueChange={(value) => {
+                            if (value === 'add-new-trigger') {
+                              setShowNewProductCategoryDialog(true);
+                            } else {
+                              field.onChange(value);
+                            }
+                          }}
                           value={field.value}
                         >
                           <FormControl>
@@ -236,11 +242,8 @@ export function AddItemDialog({
                               </SelectItem>
                             ))}
                              <SelectItem 
-                                value="add-new-trigger" 
-                                onSelect={(e) => {
-                                    e.preventDefault();
-                                    setShowNewProductCategoryDialog(true);
-                                }}
+                                value="add-new-trigger"
+                                onSelect={(e) => e.preventDefault()}
                                 className="focus:bg-zinc-100"
                             >
                                 <div className="flex items-center">
@@ -325,8 +328,14 @@ export function AddItemDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Vehicle Category</FormLabel>
-                        <Select 
-                           onValueChange={field.onChange}
+                        <Select
+                           onValueChange={(value) => {
+                            if (value === 'add-new-trigger') {
+                              setShowNewVehicleCategoryDialog(true);
+                            } else {
+                              field.onChange(value);
+                            }
+                          }}
                           value={field.value}
                         >
                           <FormControl>
@@ -340,10 +349,7 @@ export function AddItemDialog({
                             ))}
                             <SelectItem 
                                 value="add-new-trigger" 
-                                onSelect={(e) => {
-                                    e.preventDefault();
-                                    setShowNewVehicleCategoryDialog(true);
-                                }}
+                                onSelect={(e) => e.preventDefault()}
                                 className="focus:bg-zinc-100"
                             >
                                 <div className="flex items-center">
@@ -449,5 +455,3 @@ export function AddItemDialog({
     </>
   );
 }
-
-    
