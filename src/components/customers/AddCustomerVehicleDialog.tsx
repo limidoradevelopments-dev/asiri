@@ -27,10 +27,8 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer, Vehicle } from '@/lib/data';
-import { WithId, useCollection, useMemoFirebase } from '@/firebase';
+import { WithId } from '@/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Full Name is required'),
@@ -72,9 +70,6 @@ export function AddCustomerVehicleDialog({
   onOpenChange 
 }: AddCustomerVehicleDialogProps) {
   const { toast } = useToast();
-  const firestore = useFirestore();
-  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
-  const { data: vehicles } = useCollection<Vehicle>(vehiclesCollection);
   
   const isEditMode = !!itemToEdit;
   
@@ -92,6 +87,7 @@ export function AddCustomerVehicleDialog({
       form.reset({
         ...itemToEdit.customer,
         ...itemToEdit.vehicle,
+        numberPlate: itemToEdit.vehicle.numberPlate.toUpperCase(),
       });
     } else {
       form.reset({
@@ -103,13 +99,23 @@ export function AddCustomerVehicleDialog({
   }, [itemToEdit, isEditMode, form, isOpen]);
 
 
-  const onSubmit = (values: z.infer<typeof combinedSchema>) => {
-    if (!isEditMode && vehicles?.some(v => v.numberPlate === values.numberPlate)) {
-        form.setError('numberPlate', {
-            type: 'manual',
-            message: 'A vehicle with this number plate already exists.',
-        });
+  const onSubmit = async (values: z.infer<typeof combinedSchema>) => {
+    // Client-side check before hitting the API for creating new vehicles
+    if (!isEditMode) {
+      try {
+        const res = await fetch(`/api/vehicles/search?query=${encodeURIComponent(values.numberPlate)}`);
+        const existingVehicles = await res.json();
+        if (existingVehicles.length > 0) {
+          form.setError('numberPlate', {
+              type: 'manual',
+              message: 'A vehicle with this number plate already exists.',
+          });
+          return;
+        }
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not verify vehicle uniqueness.' });
         return;
+      }
     }
     
     const { name, phone, address, nic, ...vehicleData } = values;
@@ -117,6 +123,7 @@ export function AddCustomerVehicleDialog({
     
     const finalVehicleData: Partial<Omit<Vehicle, 'id' | 'customerId'>> = {
         ...vehicleData,
+        numberPlate: vehicleData.numberPlate.toUpperCase(), // Store as uppercase
     };
 
     if (vehicleData.mileage) {
@@ -166,7 +173,7 @@ export function AddCustomerVehicleDialog({
                  <h3 className="text-lg font-medium tracking-tight border-b pb-2 mb-4 pt-6">Vehicle Details</h3>
                  <div className="grid grid-cols-3 gap-4">
                      <FormField control={form.control} name="numberPlate" render={({ field }) => (
-                      <FormItem><FormLabel>Vehicle Number Plate</FormLabel><FormControl><Input placeholder="e.g., ABC-1234" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Vehicle Number Plate</FormLabel><FormControl><Input placeholder="e.g., ABC-1234" {...field} className={commonInputStyles} onChange={(e) => field.onChange(e.target.value.toUpperCase())} /></FormControl><FormMessage /></FormItem>
                     )} />
                       <FormField control={form.control} name="make" render={({ field }) => (
                       <FormItem><FormLabel>Make (Brand)</FormLabel><FormControl><Input placeholder="e.g., Toyota" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>

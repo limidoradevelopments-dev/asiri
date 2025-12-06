@@ -251,7 +251,14 @@ export default function POSPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...vehicleData, customerId: newCustomer.id }),
         });
-        if (!vehicleRes.ok) throw new Error('Failed to create vehicle');
+        
+        if (!vehicleRes.ok) {
+            const errorData = await vehicleRes.json();
+             if (vehicleRes.status === 409) {
+                 throw new Error(errorData.error || 'This vehicle number plate already exists.');
+             }
+            throw new Error(errorData.error || 'Failed to create vehicle');
+        }
         const newVehicle: WithId<Vehicle> = await vehicleRes.json();
         
         // Re-fetch customers list and select the new ones

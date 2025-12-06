@@ -1,6 +1,8 @@
 // app/api/vehicles/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
+import { initializeFirebase } from "@/firebase/server-init";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 /**
  * GET /api/vehicles
@@ -30,8 +32,24 @@ export async function POST(req: NextRequest) {
     if (!payload.numberPlate || typeof payload.numberPlate !== "string") {
       return NextResponse.json({ error: "`numberPlate` is required" }, { status: 400 });
     }
+    
+    // --- UNIQUENESS CHECK ---
+    const { firestore } = initializeFirebase();
+    const vehiclesRef = collection(firestore, "vehicles");
+    const q = query(vehiclesRef, where("numberPlate", "==", payload.numberPlate.toUpperCase()));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+        return NextResponse.json({ error: "A vehicle with this number plate already exists." }, { status: 409 });
+    }
 
-    const created = await db.create("vehicles", payload);
+    // Ensure numberPlate is stored in uppercase for consistent searching
+    const dataToCreate = {
+        ...payload,
+        numberPlate: payload.numberPlate.toUpperCase(),
+    }
+
+    const created = await db.create("vehicles", dataToCreate);
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
     console.error("POST /api/vehicles error:", err);
