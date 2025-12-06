@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { collection, doc, increment, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
@@ -10,7 +10,7 @@ import type { Product, Service } from "@/lib/data";
 import InventoryTable from "@/components/inventory/InventoryTable";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 import { AddStockDialog } from "@/components/inventory/AddStockDialog";
-import { useFirestore, useCollection, useMemoFirebase, WithId } from "@/firebase";
+import { useFirestore, WithId } from "@/firebase";
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
   AlertDialog,
@@ -25,14 +25,48 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 export default function InventoryPage() {
-  const firestore = useFirestore();
+  const firestore = useFirestore(); // Keep for mutations for now
   const { toast } = useToast();
 
-  const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
-  const servicesCollection = useMemoFirebase(() => collection(firestore, 'services'), [firestore]);
+  const [products, setProducts] = useState<WithId<Product>[]>([]);
+  const [services, setServices] = useState<WithId<Service>[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setProductsLoading(true);
+        const response = await fetch('/api/products');
+        if (!response.ok) throw new Error('Failed to fetch products');
+        const data = await response.json();
+        setProducts(data);
+      } catch (error) {
+        console.error(error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch products.' });
+      } finally {
+        setProductsLoading(false);
+      }
+    };
 
-  const { data: products, isLoading: productsLoading } = useCollection<Product>(productsCollection);
-  const { data: services, isLoading: servicesLoading } = useCollection<Service>(servicesCollection);
+    const fetchServices = async () => {
+      try {
+        setServicesLoading(true);
+        const response = await fetch('/api/services');
+        if (!response.ok) throw new Error('Failed to fetch services');
+        const data = await response.json();
+        setServices(data);
+      } catch (error) {
+        console.error(error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch services.' });
+      } finally {
+        setServicesLoading(false);
+      }
+    };
+
+    fetchProducts();
+    fetchServices();
+  }, [toast]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddStockDialogOpen, setAddStockDialogOpen] = useState(false);
@@ -63,6 +97,9 @@ export default function InventoryPage() {
   const [itemToDelete, setItemToDelete] = useState<{id: string, type: 'product' | 'service'} | null>(null);
 
   const handleUpsertItem = useCallback((item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service', id?: string) => {
+    const productsCollection = collection(firestore, 'products');
+    const servicesCollection = collection(firestore, 'services');
+
     if (id) {
       // Update existing item
       const docRef = doc(firestore, type === 'product' ? 'products' : 'services', id);
@@ -74,13 +111,13 @@ export default function InventoryPage() {
           addDocumentNonBlocking(collectionRef, item);
       }
     }
-  }, [firestore, productsCollection, servicesCollection]);
+     // For now, we will rely on a full refresh, but a better way would be to update local state
+     window.location.reload();
+  }, [firestore]);
 
   const handleAddStock = useCallback(async (productId: string, quantity: number) => {
     const productRef = doc(firestore, 'products', productId);
     try {
-      // NOTE: Unlike other updates, this one IS awaited. 
-      // This is a design choice to ensure the toast only shows on successful update.
       await updateDoc(productRef, {
         stock: increment(quantity)
       });
@@ -88,6 +125,10 @@ export default function InventoryPage() {
         title: "Stock Updated",
         description: `Added ${quantity} to the stock.`,
       });
+      // Refresh data
+      const response = await fetch('/api/products');
+      const data = await response.json();
+      setProducts(data);
     } catch (error) {
       console.error("Error updating stock: ", error);
        toast({
@@ -113,8 +154,9 @@ export default function InventoryPage() {
     const docRef = doc(firestore, itemToDelete.type === 'product' ? 'products' : 'services', itemToDelete.id);
     deleteDocumentNonBlocking(docRef);
     
-    // Close the dialog immediately for optimistic UI update
+    // For now, we will rely on a full refresh, but a better way would be to update local state
     setItemToDelete(null);
+    window.location.reload();
   }, [itemToDelete, firestore]);
 
 
@@ -250,5 +292,3 @@ export default function InventoryPage() {
     </div>
   );
 }
-
-    
