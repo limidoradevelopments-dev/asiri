@@ -2,8 +2,6 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { collection, doc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
 import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMethod, VehicleCategory } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,7 +21,6 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { AddCustomerVehicleDialog } from '@/components/pos/AddCustomerVehicleDialog';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentDialog } from '@/components/pos/PaymentDialog';
@@ -32,6 +29,7 @@ import { CartItem as CartItemComponent } from '@/components/pos/CartItem';
 import { useDebouncedCallback } from 'use-debounce';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+type WithId<T> = T & { id: string };
 
 // --- Types ---
 export type CartItemBase = {
@@ -75,25 +73,17 @@ const categoryIcons: Record<VehicleCategory, React.ElementType> = {
 };
 
 export default function POSPage() {
-  const firestore = useFirestore();
   const { toast } = useToast();
   const customNameInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Data Fetching ---
-  const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
-  const servicesCollection = useMemoFirebase(() => collection(firestore, 'services'), [firestore]);
-  const employeesCollection = useMemoFirebase(() => collection(firestore, 'employees'), [firestore]);
-  const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
-  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
-  const invoicesCollection = useMemoFirebase(() => collection(firestore, 'invoices'), [firestore]);
+  // --- Data States (fetched from API) ---
+  const [products, setProducts] = useState<WithId<Product>[]>([]);
+  const [services, setServices] = useState<WithId<Service>[]>([]);
+  const [employees, setEmployees] = useState<WithId<Employee>[]>([]);
+  const [customers, setCustomers] = useState<WithId<Customer>[]>([]);
+  const [vehicles, setVehicles] = useState<WithId<Vehicle>[]>([]);
 
-  const { data: products } = useCollection<WithId<Product>>(productsCollection);
-  const { data: services } = useCollection<WithId<Service>>(servicesCollection);
-  const { data: employees } = useCollection<WithId<Employee>>(employeesCollection);
-  const { data: customers } = useCollection<WithId<Customer>>(customersCollection);
-  const { data: vehicles } = useCollection<WithId<Vehicle>>(vehiclesCollection);
-
-  // --- State ---
+  // --- UI/Logic States ---
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('services');
@@ -105,6 +95,39 @@ export default function POSPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<WithId<Customer> | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<WithId<Vehicle> | null>(null);
   const [isPaymentDialogOpen, setPaymentDialogOpen] = useState(false);
+
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [productsRes, servicesRes, employeesRes, customersRes, vehiclesRes] = await Promise.all([
+        fetch('/api/products'),
+        fetch('/api/services'),
+        fetch('/api/employees'),
+        fetch('/api/customers'),
+        fetch('/api/vehicles'),
+      ]);
+      if (!productsRes.ok) throw new Error('Failed to fetch products');
+      if (!servicesRes.ok) throw new Error('Failed to fetch services');
+      if (!employeesRes.ok) throw new Error('Failed to fetch employees');
+      if (!customersRes.ok) throw new Error('Failed to fetch customers');
+      if (!vehiclesRes.ok) throw new Error('Failed to fetch vehicles');
+
+      setProducts(await productsRes.json());
+      setServices(await servicesRes.json());
+      setEmployees(await employeesRes.json());
+      setCustomers(await customersRes.json());
+      setVehicles(await vehiclesRes.json());
+
+    } catch (err) {
+      console.error(err);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch initial POS data.' });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
 
   useEffect(() => {
     if (cart.some(item => item.type === 'custom' && item.name === '')) {
@@ -198,26 +221,40 @@ export default function POSPage() {
   };
   
   const handleCreateCustomerAndVehicle = async (customerData: Omit<Customer, 'id'>, vehicleData: Omit<Vehicle, 'id' | 'customerId'>) => {
-    if(!customersCollection || !vehiclesCollection) return;
-    const customerRef = await addDocumentNonBlocking(customersCollection, customerData);
-    if(customerRef) {
-      const newVehicleData = { ...vehicleData, customerId: customerRef.id };
-      const vehicleRef = await addDocumentNonBlocking(vehiclesCollection, newVehicleData);
-      if(vehicleRef) {
-        // We manually create the new objects to pass to the selection handler,
-        // because the firestore hooks won't update with the new data immediately.
-        handleSelectCustomerAndVehicle({ ...customerData, id: customerRef.id }, { ...newVehicleData, id: vehicleRef.id });
-      }
+    try {
+        const customerRes = await fetch('/api/customers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(customerData),
+        });
+        if (!customerRes.ok) throw new Error('Failed to create customer');
+        const newCustomer: WithId<Customer> = await customerRes.json();
+
+        const vehicleRes = await fetch('/api/vehicles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...vehicleData, customerId: newCustomer.id }),
+        });
+        if (!vehicleRes.ok) throw new Error('Failed to create vehicle');
+        const newVehicle: WithId<Vehicle> = await vehicleRes.json();
+        
+        // Add to local state for immediate UI update
+        setCustomers(prev => [...prev, newCustomer]);
+        setVehicles(prev => [...prev, newVehicle]);
+
+        // Select the newly created entities
+        handleSelectCustomerAndVehicle(newCustomer, newVehicle);
+
+    } catch (err: any) {
+        toast({ variant: 'destructive', title: 'Error', description: err.message || 'Could not create entry.' });
     }
   };
 
   // --- Core Financial Calculations ---
-  // We use useMemo to ensure these values are recalculated consistently only when cart changes
   const totals = useMemo(() => {
     const subtotalBeforeGlobalDiscount = cart.reduce((acc, item) => {
       const originalPrice = getItemPrice(item);
       const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
-      // Calculate line total, THEN add to accumulator
       const lineTotal = safeRound(discountedPricePerUnit * item.quantity);
       return safeRound(acc + lineTotal);
     }, 0);
@@ -260,7 +297,6 @@ export default function POSPage() {
   }, []);
 
   const handleProcessPayment = () => {
-    // 1. Basic Validation
     if (!selectedCustomer || !selectedVehicle || !selectedEmployee || cart.length === 0) {
       toast({
         variant: 'destructive',
@@ -270,7 +306,6 @@ export default function POSPage() {
       return;
     }
 
-    // 2. FINAL STOCK VALIDATION & CUSTOM ITEM VALIDATION
     const errors: string[] = [];
     cart.forEach(cartItem => {
         if (cartItem.type === 'product') {
@@ -293,12 +328,11 @@ export default function POSPage() {
         return;
     }
 
-    // 3. Open Payment Dialog
     setPaymentDialogOpen(true);
   };
   
   const handleConfirmPayment = useCallback(async (paymentDetails: Omit<Parameters<typeof onConfirmPayment>[0], "changeDue"> & { changeGiven: number }) => {
-    if (!selectedCustomer || !selectedVehicle || !selectedEmployee || !invoicesCollection || !firestore) return;
+    if (!selectedCustomer || !selectedVehicle || !selectedEmployee) return;
 
     const invoiceItems = cart.map(item => {
       const originalPrice = getItemPrice(item);
@@ -337,30 +371,45 @@ export default function POSPage() {
       }),
     };
     
-    // 4. Execute Database Operations
-    await addDocumentNonBlocking(invoicesCollection, invoice);
+    try {
+        const res = await fetch('/api/invoices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(invoice),
+        });
 
-    // Decrement stock for products in the cart
-    for (const item of cart) {
-      if (item.type === 'product') {
-        const productRef = doc(firestore, 'products', item.id);
-        // This is a non-blocking operation on purpose. We don't need to wait for it.
-        updateDoc(productRef, {
-            stock: increment(-item.quantity)
-        }).catch(err => console.error(`Failed to update stock for ${item.id}`, err));
-      }
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Failed to create invoice');
+        }
+        
+        toast({
+          title: 'Invoice Created',
+          description: `Invoice for ${selectedCustomer.name} successfully processed for LKR ${formatPrice(totals.total)}.`,
+        });
+
+        // Optimistically update product stock on client
+        setProducts(prevProducts => {
+            const newProducts = [...prevProducts];
+            cart.forEach(cartItem => {
+                if (cartItem.type === 'product') {
+                    const index = newProducts.findIndex(p => p.id === cartItem.id);
+                    if (index !== -1) {
+                        newProducts[index] = {
+                            ...newProducts[index],
+                            stock: newProducts[index].stock - cartItem.quantity,
+                        };
+                    }
+                }
+            });
+            return newProducts;
+        });
+
+        resetState();
+    } catch(err: any) {
+        toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to save invoice.' });
     }
-
-    const vehicleDocRef = doc(firestore, 'vehicles', selectedVehicle.id);
-    await updateDocumentNonBlocking(vehicleDocRef, { lastVisit: serverTimestamp() });
-    
-    toast({
-      title: 'Invoice Created',
-      description: `Invoice for ${selectedCustomer.name} successfully processed for LKR ${formatPrice(totals.total)}.`,
-    });
-
-    resetState();
-  }, [selectedCustomer, selectedVehicle, selectedEmployee, cart, totals, globalDiscountPercent, invoicesCollection, firestore, resetState, toast]);
+  }, [selectedCustomer, selectedVehicle, selectedEmployee, cart, totals, globalDiscountPercent, resetState, toast]);
   
   const filterButtons: { label: string; value: VehicleCategory | 'all'; icon: React.ElementType }[] = [
     { label: 'All', value: 'all', icon: Sparkles },
@@ -372,19 +421,15 @@ export default function POSPage() {
   return (
     <div className="flex h-screen w-full bg-background font-sans overflow-hidden">
       
-      {/* GLOBAL TEXTURE: Subtle Noise is on body via layout */}
-
-      {/* --- LEFT: CATALOG (55%) --- */}
+      {/* LEFT: CATALOG (55%) */}
       <div className="relative z-10 w-[55%] flex flex-col pt-8 pl-12 pr-6">
         
-        {/* Header Area */}
         <div className="flex justify-between items-start mb-6">
             <div>
                 <h1 className="text-5xl font-normal tracking-tighter mb-2">POINT OF SALE</h1>
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Create new invoices</p>
             </div>
             
-            {/* Search as a simple line */}
             <div className="relative group w-80">
                 <Search className="absolute left-0 bottom-3 h-4 w-4 text-zinc-400 group-focus-within:text-black transition-colors" />
                 <input
@@ -397,7 +442,6 @@ export default function POSPage() {
             </div>
         </div>
 
-        {/* Category Filters */}
         <div className="flex items-center justify-between mb-8">
             <div className={cn("flex items-center gap-2 transition-opacity", activeTab === 'products' && 'opacity-20 pointer-events-none')}>
                 {filterButtons.map(({ label, value, icon: Icon }) => (
@@ -426,7 +470,6 @@ export default function POSPage() {
             </div>
         </div>
 
-        {/* Minimal Tabs */}
         <Tabs defaultValue="services" value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
             <TabsList className="bg-zinc-100 justify-start p-1 w-full rounded-none">
                 <TabsTrigger
@@ -443,7 +486,6 @@ export default function POSPage() {
                 </TabsTrigger>
             </TabsList>
             
-            {/* Grid */}
             <ScrollArea className="flex-1 -mr-4 pr-4 mt-8">
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
                     {itemsToShow?.map((item) => {
@@ -468,7 +510,6 @@ export default function POSPage() {
                                     isDisabled && "bg-zinc-50 opacity-60 cursor-not-allowed"
                                 )}
                             >
-                                {/* Top Row: Category & Price */}
                                 <div className="flex justify-between items-start w-full">
                                     <div className='flex items-center gap-2'>
                                         {CategoryIcon && <CategoryIcon className="w-4 h-4 text-zinc-400" />}
@@ -481,7 +522,6 @@ export default function POSPage() {
                                     </span>
                                 </div>
                                 
-                                {/* Middle: Name */}
                                 <div className="flex-1 flex flex-col justify-center py-2">
                                     <h3 className="text-xl font-medium leading-tight tracking-tight line-clamp-2 text-zinc-800 group-hover:text-black">
                                         {item.name}
@@ -491,7 +531,6 @@ export default function POSPage() {
                                     )}
                                 </div>
 
-                                {/* Bottom: ID & Add Action / Stock */}
                                 <div className="w-full flex justify-between items-end border-t border-zinc-100 pt-3 mt-1 group-hover:border-zinc-200 transition-colors">
                                      <div className='flex items-center gap-2'>
                                         <span className="font-mono text-[10px] text-zinc-300">
@@ -530,10 +569,9 @@ export default function POSPage() {
         </Tabs>
       </div>
 
-      {/* --- RIGHT: INVOICE (45%) --- */}
+      {/* RIGHT: INVOICE (45%) */}
       <div className="relative z-20 w-[45%] flex flex-col bg-white border-l border-zinc-100 h-full">
         
-        {/* Ticket Header */}
         <div className="pt-8 px-10 pb-4">
             <div className="flex justify-between items-center mb-4">
                 <span className="text-xs uppercase tracking-[0.2em] text-zinc-400">Customer</span>
@@ -599,7 +637,6 @@ export default function POSPage() {
             <div className="w-full h-px bg-zinc-900" />
         </div>
         
-        {/* Cart Table Header */}
         <div className="px-10 py-2 bg-zinc-50 border-b border-t border-zinc-200">
             <div className="grid grid-cols-12 gap-4 text-xs uppercase tracking-widest text-zinc-400 font-medium">
                 <div className="col-span-5 flex items-center gap-2">
@@ -615,7 +652,6 @@ export default function POSPage() {
             </div>
         </div>
 
-        {/* Cart Items */}
         <div className="flex-1 overflow-hidden relative">
             <ScrollArea className="h-full">
                  <div className="px-10">
@@ -641,9 +677,7 @@ export default function POSPage() {
             </ScrollArea>
         </div>
 
-        {/* Footer / Totals */}
         <div className="p-10 bg-white z-20 border-t border-zinc-100">
-            {/* Global Discount */}
             <div className="flex justify-between items-center mb-6 text-sm">
                 <span className="text-zinc-400 uppercase tracking-widest text-xs">Global Discount</span>
                 <div className="flex items-center gap-2">
@@ -659,7 +693,6 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* Total Display */}
             <div className="flex flex-col gap-2 mb-10">
                 <div className="flex justify-between items-baseline">
                     <span className="text-sm uppercase tracking-widest font-bold">Total Due</span>
@@ -675,7 +708,6 @@ export default function POSPage() {
                 )}
             </div>
 
-            {/* Pay Button - Full Width Text Block */}
             <button 
                 onClick={handleProcessPayment}
                 disabled={cart.length === 0} 
@@ -706,5 +738,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-    
