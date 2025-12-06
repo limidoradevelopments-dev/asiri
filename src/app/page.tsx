@@ -79,10 +79,12 @@ export default function DashboardPage() {
             }
         }) ?? [];
     
+    const lowStockForComponent = lowStockItems.map(item => ({...item, threshold: item.stockThreshold}))
+
     return {
       stats,
       revenueData: revenueByDay,
-      lowStockItems,
+      lowStockItems: lowStockForComponent,
       recentInvoices,
     };
   }, [invoices, products, customers]);
