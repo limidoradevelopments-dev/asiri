@@ -60,6 +60,8 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
     }
   };
   
+  // This useEffect resets the state when the dialog is closed.
+  // This is important to ensure the form is clean every time it's opened.
   useEffect(() => {
     if (!open) {
       setSelectedProduct(null);
@@ -102,6 +104,7 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
 
               <PopoverContent 
                 className="w-[--radix-popover-trigger-width] p-0 rounded-none border-zinc-200"
+                // This is a key prop to prevent the dialog from stealing focus on open
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <Command>
@@ -118,7 +121,12 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
                         <CommandItem
                           key={product.id}
                           value={product.name}
-                          onMouseDown={(e) => e.preventDefault()} 
+                          // This is the critical fix. It prevents the dialog's focus trap
+                          // from intercepting the click before the Popover can handle it.
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
                           onSelect={() => {
                             setSelectedProduct(product);
                             setPopoverOpen(false);
