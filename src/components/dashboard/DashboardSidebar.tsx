@@ -138,7 +138,7 @@ export default function DashboardSidebar() {
                         <Link 
                             href={item.href} 
                             className={cn(
-                                "cursor-pointer hover:bg-sidebar-accent/80",
+                                "cursor-pointer focus:bg-sidebar-accent focus:text-sidebar-accent-foreground",
                                 pathname === item.href && "bg-sidebar-accent"
                             )}
                         >
