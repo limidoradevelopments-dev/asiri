@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { CartItem as CartItemComponent } from '@/components/pos/CartItem';
 import { useDebouncedCallback } from 'use-debounce';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type WithId<T> = T & { id: string };
 
@@ -81,6 +82,8 @@ export default function POSPage() {
   const [services, setServices] = useState<WithId<Service>[]>([]);
   const [employees, setEmployees] = useState<WithId<Employee>[]>([]);
   const [customers, setCustomers] = useState<WithId<Customer>[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [servicesLoading, setServicesLoading] = useState(true);
   // vehicles are now fetched on-demand in the dialog
 
   // --- UI/Logic States ---
@@ -112,6 +115,8 @@ export default function POSPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
+        setProductsLoading(true);
+        setServicesLoading(true);
         const [productsRes, servicesRes, employeesRes] = await Promise.all([
           fetch('/api/products'),
           fetch('/api/services'),
@@ -130,6 +135,9 @@ export default function POSPage() {
       } catch (err) {
         console.error(err);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch initial POS data.' });
+      } finally {
+        setProductsLoading(false);
+        setServicesLoading(false);
       }
     };
     
@@ -423,6 +431,14 @@ export default function POSPage() {
     { label: 'Jeep/Van', value: 'Jeep/Van', icon: Truck },
   ];
 
+  const isLoading = productsLoading || servicesLoading;
+
+  const renderSkeletons = () => (
+    Array.from({ length: 9 }).map((_, i) => (
+      <Skeleton key={i} className="h-[180px] w-full" />
+    ))
+  );
+
   return (
     <div className="flex h-screen w-full bg-background font-sans overflow-hidden">
       
@@ -491,7 +507,7 @@ export default function POSPage() {
             
             <ScrollArea className="flex-1 -mr-4 pr-4 mt-8">
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
-                    {itemsToShow?.map((item) => {
+                    {isLoading ? renderSkeletons() : itemsToShow?.map((item) => {
                         const isProduct = 'stock' in item;
                         const isService = 'price' in item;
                         const cartItem = cart.find(ci => ci.type !== 'custom' && ci.id === item.id);
@@ -562,7 +578,7 @@ export default function POSPage() {
                             </button>
                         );
                     })}
-                     {itemsToShow?.length === 0 && (
+                     {!isLoading && itemsToShow?.length === 0 && (
                         <div className="col-span-full text-center py-20 text-zinc-400 text-sm uppercase tracking-widest">
                             No items match your filter
                         </div>
