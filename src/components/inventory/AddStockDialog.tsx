@@ -60,8 +60,6 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
     }
   };
   
-  // This useEffect resets the state when the dialog is closed.
-  // This is important to ensure the form is clean every time it's opened.
   useEffect(() => {
     if (!open) {
       setSelectedProduct(null);
