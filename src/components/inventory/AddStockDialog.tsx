@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -104,8 +104,6 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
 
               <PopoverContent 
                 className="w-[--radix-popover-trigger-width] p-0 rounded-none border-zinc-200"
-                // This is the key fix: It prevents the Popover from trying to steal
-                // focus from the Dialog, which was causing the UI to freeze.
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <Command>
@@ -122,7 +120,6 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
                         <CommandItem
                           key={product.id}
                           value={product.name}
-                          // This also helps prevent focus issues on selection.
                           onMouseDown={(e) => e.preventDefault()} 
                           onSelect={() => {
                             setSelectedProduct(product);
