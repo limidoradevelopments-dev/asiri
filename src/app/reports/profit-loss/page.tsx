@@ -1,15 +1,14 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection } from 'firebase/firestore';
+import { collection, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import type { Invoice, Product } from '@/lib/data';
+import type { Invoice, Product } from '@/lib/data'; // Ensure Invoice type has 'status' and items have 'buyPrice'
 import { DateRange } from 'react-day-picker';
 import { addDays, format, startOfDay, endOfDay } from 'date-fns';
 
 import StatCard from '@/components/dashboard/StatCard';
-import { DollarSign, TrendingUp, TrendingDown, Download, ArrowUpDown, Percent, Check, ChevronsUpDown, X } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Download, ArrowUpDown, Check, ChevronsUpDown } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,9 +25,24 @@ import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
-// --- Types ---
+// --- Improved Types ---
+// Extend your base types here to ensure Type Safety without using 'any'
+interface ExtendedInvoiceItem {
+  itemId: string;
+  name: string;
+  quantity: number;
+  price: number;
+  total: number;
+  buyPrice?: number; // Critical for P&L
+}
+
+interface ExtendedInvoice extends Omit<Invoice, 'items'> {
+  items: ExtendedInvoiceItem[];
+  status?: string; // e.g., 'paid', 'pending', 'cancelled'
+}
+
 type ProfitLossItem = {
-  id: string; // Unique key for list rendering
+  id: string;
   invoiceNumber: string;
   date: number;
   productName: string;
@@ -37,6 +51,7 @@ type ProfitLossItem = {
   revenue: number;
   profit: number;
   marginPercent: number;
+  isEstimateCost: boolean; // To flag if we had to guess the cost
 };
 
 type SortConfig = {
@@ -45,7 +60,6 @@ type SortConfig = {
 } | null;
 
 // --- Utility: Safe Currency Math ---
-// Prevents floating point errors (e.g. 0.1 + 0.2 = 0.300000004)
 const safeRound = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
 
 export default function ProfitLossPage() {
@@ -54,24 +68,40 @@ export default function ProfitLossPage() {
   // 1. State
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfDay(addDays(new Date(), -30)),
-    to: new Date(),
+    to: endOfDay(new Date()),
   });
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'date', direction: 'desc' });
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [productPopoverOpen, setProductPopoverOpen] = useState(false);
 
+  // 2. Data Fetching (Optimized)
+  
+  // Calculate timestamps for the query to prevent downloading entire database
+  const queryStart = dateRange?.from ? startOfDay(dateRange.from).getTime() : 0;
+  const queryEnd = dateRange?.to ? endOfDay(dateRange.to).getTime() : Date.now();
 
-  // 2. Data Fetching
-  const invoicesCollection = useMemoFirebase(() => collection(firestore, 'invoices'), [firestore]);
+  // Memoize the query to prevent infinite loops
+  const invoicesQuery = useMemoFirebase(() => {
+    if (!dateRange?.from) return null;
+    
+    return query(
+      collection(firestore, 'invoices'),
+      where('date', '>=', queryStart),
+      where('date', '<=', queryEnd)
+      // Note: If you want to orderBy('date', 'desc') here, Firestore requires a composite index.
+      // We will sort in memory for flexibility since we already filtered by date range.
+    );
+  }, [firestore, queryStart, queryEnd]);
+
   const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
 
-  const { data: invoices, isLoading: invoicesLoading } = useCollection<Invoice>(invoicesCollection);
+  const { data: rawInvoices, isLoading: invoicesLoading } = useCollection<ExtendedInvoice>(invoicesQuery);
   const { data: products, isLoading: productsLoading } = useCollection<Product>(productsCollection);
 
   // 3. Calculation & Logic
   const processedData = useMemo(() => {
     const loading = invoicesLoading || productsLoading;
-    if (loading || !invoices || !products || !dateRange?.from) {
+    if (loading || !rawInvoices || !products) {
       return { 
         items: [], 
         summary: { totalRevenue: 0, totalCost: 0, totalProfit: 0, totalLoss: 0, netMargin: 0 }, 
@@ -82,81 +112,88 @@ export default function ProfitLossPage() {
     const productMap = new Map(products.map(p => [p.id, p]));
     let data: ProfitLossItem[] = [];
 
-    const fromDate = startOfDay(dateRange.from).getTime();
-    const toDate = (dateRange.to ? endOfDay(dateRange.to) : endOfDay(new Date())).getTime();
+    for (const invoice of rawInvoices) {
+      // ACCURACY CHECK 1: Ignore cancelled invoices
+      if (invoice.status === 'cancelled' || invoice.status === 'refunded') continue;
 
-    for (const invoice of invoices) {
-      // Date Filter
-      if (invoice.date < fromDate || invoice.date > toDate) continue;
+      // Safety check for date (redundant due to query, but good for safety)
+      if (invoice.date < queryStart || invoice.date > queryEnd) continue;
 
       for (const item of invoice.items) {
-        // NEW: Product Filter
+        // Filter by specific product if selected
         if (selectedProductId && item.itemId !== selectedProductId) continue;
         
         const product = productMap.get(item.itemId);
         
-        // Cost Calculation Logic
-        const historicalCost = (item as any).buyPrice ?? product?.actualPrice;
+        // ACCURACY CHECK 2: Determine Cost Basis
+        // Priority: 1. Item buyPrice (Historical) -> 2. Current Product buyPrice -> 0 (Safety)
+        let historicalCost = item.buyPrice;
+        let isEstimate = false;
 
-        if (historicalCost !== undefined) {
-          const quantity = item.quantity;
-          const costOfGoods = safeRound(quantity * historicalCost);
-          
-          // Revenue: Handle discounts if they exist at item level, otherwise total
-          const revenue = safeRound(item.total); 
-          const profit = safeRound(revenue - costOfGoods);
-          
-          // Avoid division by zero
-          const marginPercent = revenue !== 0 ? safeRound((profit / revenue) * 100) : 0;
-
-          data.push({
-            id: `${invoice.id}-${item.itemId}`, // Unique ID
-            invoiceNumber: invoice.invoiceNumber,
-            date: invoice.date,
-            productName: item.name,
-            quantity,
-            costOfGoods,
-            revenue,
-            profit,
-            marginPercent
-          });
+        if (historicalCost === undefined || historicalCost === null) {
+          historicalCost = product?.actualPrice ?? 0;
+          isEstimate = true; // Flag this row because cost might be inaccurate
         }
+
+        const quantity = item.quantity || 0;
+        const costOfGoods = safeRound(quantity * historicalCost);
+        
+        // Revenue: Ensure we use the item total (which should account for item-specific discounts)
+        const revenue = safeRound(item.total); 
+        const profit = safeRound(revenue - costOfGoods);
+        
+        // Margin Calculation
+        const marginPercent = revenue !== 0 ? safeRound((profit / revenue) * 100) : 0;
+
+        data.push({
+          id: `${invoice.id}-${item.itemId}`,
+          invoiceNumber: invoice.invoiceNumber,
+          date: invoice.date,
+          productName: item.name || product?.name || 'Unknown Product',
+          quantity,
+          costOfGoods,
+          revenue,
+          profit,
+          marginPercent,
+          isEstimateCost: isEstimate
+        });
       }
     }
 
-    // Sort Data
+    // Sort Data in Memory
     if (sortConfig) {
       data.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+        const valA = a[sortConfig.key];
+        const valB = b[sortConfig.key];
+        
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
 
     // Calculate Totals
     const summary = data.reduce((acc, item) => {
-        acc.totalRevenue += item.revenue;
-        acc.totalCost += item.costOfGoods;
-        acc.totalProfit += item.profit;
+        acc.totalRevenue = safeRound(acc.totalRevenue + item.revenue);
+        acc.totalCost = safeRound(acc.totalCost + item.costOfGoods);
+        acc.totalProfit = safeRound(acc.totalProfit + item.profit);
+        
         if (item.profit < 0) {
-            acc.totalLoss += item.profit; // item.profit is already negative
+            // Summing up pure losses for display purposes
+            acc.totalLoss = safeRound(acc.totalLoss + Math.abs(item.profit));
         }
         return acc;
     }, { totalRevenue: 0, totalCost: 0, totalProfit: 0, totalLoss: 0 });
 
-    // Final Math Safety on Totals
     const finalSummary = {
-        totalRevenue: safeRound(summary.totalRevenue),
-        totalCost: safeRound(summary.totalCost),
-        totalProfit: safeRound(summary.totalProfit),
-        totalLoss: safeRound(summary.totalLoss),
+        ...summary,
         netMargin: summary.totalRevenue > 0 
           ? safeRound((summary.totalProfit / summary.totalRevenue) * 100) 
           : 0
     };
 
     return { summary: finalSummary, items: data, isLoading: false };
-  }, [invoices, products, dateRange, invoicesLoading, productsLoading, sortConfig, selectedProductId]);
+  }, [rawInvoices, products, invoicesLoading, productsLoading, sortConfig, selectedProductId, queryStart, queryEnd]);
 
   // 4. Handlers
   const handleSort = (key: keyof ProfitLossItem) => {
@@ -169,32 +206,26 @@ export default function ProfitLossPage() {
   const handleExportCSV = () => {
     if (processedData.items.length === 0) return;
     
-    const headers = ['Date', 'Invoice', 'Product', 'Quantity', 'Cost', 'Revenue', 'Profit', 'Margin %'];
+    const headers = ['Date', 'Invoice', 'Product', 'Quantity', 'Cost (COGS)', 'Revenue', 'Profit', 'Margin %', 'Cost Source'];
     const rows = processedData.items.map(item => [
       format(item.date, 'yyyy-MM-dd'),
       item.invoiceNumber,
-      `"${item.productName.replace(/"/g, '""')}"`, // Escape quotes
+      `"${item.productName.replace(/"/g, '""')}"`,
       item.quantity,
       item.costOfGoods.toFixed(2),
       item.revenue.toFixed(2),
       item.profit.toFixed(2),
-      `${item.marginPercent}%`
+      `${item.marginPercent}%`,
+      item.isEstimateCost ? 'Current Price (Est)' : 'Historical Price'
     ]);
 
-    const csvContent = [
-      headers.join(','), 
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `profit_loss_${format(new Date(), 'yyyyMMdd')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `profit_loss_${format(new Date(), 'yyyyMMdd')}.csv`;
     link.click();
-    document.body.removeChild(link);
   };
 
   const formatCurrency = (amount: number) => {
@@ -249,21 +280,16 @@ export default function ProfitLossPage() {
                         <CommandEmpty>No product found.</CommandEmpty>
                         <CommandGroup>
                            <CommandItem
-                              key="all"
-                              value="all"
-                              onSelect={() => {
-                                setSelectedProductId(null);
-                                setProductPopoverOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  !selectedProductId ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              All Products
-                            </CommandItem>
+                             key="all"
+                             value="all"
+                             onSelect={() => {
+                               setSelectedProductId(null);
+                               setProductPopoverOpen(false);
+                             }}
+                           >
+                             <Check className={cn("mr-2 h-4 w-4", !selectedProductId ? "opacity-100" : "opacity-0")} />
+                             All Products
+                           </CommandItem>
                           {products?.map((product) => (
                             <CommandItem
                               key={product.id}
@@ -273,12 +299,7 @@ export default function ProfitLossPage() {
                                 setProductPopoverOpen(false);
                               }}
                             >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedProductId === product.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
+                              <Check className={cn("mr-2 h-4 w-4", selectedProductId === product.id ? "opacity-100" : "opacity-0")} />
                               {product.name}
                             </CommandItem>
                           ))}
@@ -302,7 +323,7 @@ export default function ProfitLossPage() {
                 <StatCard title="Total Revenue" value={formatCurrency(processedData.summary.totalRevenue)} icon={DollarSign} />
                 <StatCard title="Total Cost (COGS)" value={formatCurrency(processedData.summary.totalCost)} icon={TrendingDown} />
                 <StatCard 
-                  title="Total Loss" 
+                  title="Total Loss (Negative Items)" 
                   value={formatCurrency(processedData.summary.totalLoss)} 
                   icon={TrendingDown}
                   className="text-red-600"
@@ -353,7 +374,6 @@ export default function ProfitLossPage() {
                  </TableHeader>
                  <TableBody>
                    {processedData.isLoading ? (
-                     // Skeleton Rows
                      Array.from({ length: 8 }).map((_, i) => (
                         <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
                      ))
@@ -373,7 +393,12 @@ export default function ProfitLossPage() {
                             {format(item.date, "yyyy-MM-dd")}
                             <div className="text-[10px] text-zinc-300">{item.invoiceNumber}</div>
                          </TableCell>
-                         <TableCell className="font-medium text-zinc-700 text-sm">{item.productName}</TableCell>
+                         <TableCell className="font-medium text-zinc-700 text-sm">
+                            {item.productName}
+                            {item.isEstimateCost && (
+                                <span title="Historical Cost missing. Calculated using current Product Price." className="ml-2 text-[10px] text-amber-500 border border-amber-200 px-1 rounded">Est.</span>
+                            )}
+                         </TableCell>
                          <TableCell className="text-center font-mono text-xs text-zinc-500">{item.quantity}</TableCell>
                          <TableCell className="text-right font-mono text-xs text-zinc-500">{formatCurrency(item.costOfGoods)}</TableCell>
                          <TableCell className="text-right font-mono text-xs text-zinc-600">{formatCurrency(item.revenue)}</TableCell>
@@ -383,7 +408,6 @@ export default function ProfitLossPage() {
                                item.profit >= 0 ? "text-emerald-700" : "text-rose-600"
                            )}>
                              {formatCurrency(item.profit)}
-                             {/* Show margin percentage specifically on hover or always if meaningful */}
                              <span className={cn("text-[10px] font-normal opacity-50")}>
                                 {item.marginPercent}%
                              </span>
