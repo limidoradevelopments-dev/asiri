@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogDescription,
   DialogFooter,
-  DialogClose
+  DialogTrigger,
+  DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,14 +51,14 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
     if (!open) {
       setSelectedProduct(null);
       setQuantity(1);
-      setPopoverOpen(false);
+      setPopoverOpen(false); // Also ensure the popover is closed
     }
   }, [open]);
 
   const handleUpdateStock = () => {
     if (selectedProduct && quantity > 0) {
       onAddStock(selectedProduct.id, quantity);
-      setOpen(false);
+      setOpen(false); // Close the dialog on success
     }
   };
   
@@ -96,6 +96,8 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
               <PopoverContent 
                 className="w-[--radix-popover-trigger-width] p-0 rounded-none border-zinc-200"
                 align="start"
+                // This prevents the dialog from trying to autofocus the first element in the popover,
+                // which is part of the conflict.
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <Command>
