@@ -47,6 +47,7 @@ export type CustomCartItem = CartItemBase & {
   name: string;
   unitPrice: number;
   type: 'custom';
+  stock: number; // Added for type consistency
 };
 
 export type CartItem = StandardCartItem | CustomCartItem;
@@ -164,27 +165,43 @@ export default function POSPage() {
   const addToCart = (item: WithId<Product> | WithId<Service>, type: 'product' | 'service') => {
     setCart((prev) => {
       const existing = prev.find((i) => i.type !== 'custom' && i.id === item.id);
-      const stock = type === 'product' ? (item as WithId<Product>).stock : Infinity;
+      
+      // Always check against the latest product state
+      let stock = Infinity;
+      if (type === 'product') {
+        const liveProduct = products.find(p => p.id === item.id);
+        stock = liveProduct ? liveProduct.stock : 0;
+      }
       
       if (existing) {
-        // Strict stock check
         if (existing.quantity < stock) {
           return prev.map((i) => i.cartId === existing.cartId ? { ...i, quantity: i.quantity + 1 } : i);
         }
-        return prev; // Stock limit reached
+        toast({
+          variant: 'destructive',
+          title: 'Stock Limit Reached',
+          description: `Cannot add more of ${item.name}.`,
+        });
+        return prev;
       }
       
       if (stock > 0) {
         const newItem: StandardCartItem = {
-          ...item,
+          ...(item as WithId<Product> | WithId<Service>),
           cartId: `${item.id}-${Date.now()}`,
           quantity: 1,
           type,
           discountAmount: 0
         };
         return [...prev, newItem];
+      } else {
+         toast({
+          variant: 'destructive',
+          title: 'Out of Stock',
+          description: `${item.name} is currently out of stock.`,
+        });
       }
-      return prev; // Out of stock
+      return prev;
     });
   };
 
@@ -196,6 +213,7 @@ export default function POSPage() {
       unitPrice: 0,
       discountAmount: 0,
       type: 'custom',
+      stock: Infinity, // Custom jobs don't have stock
     };
     setCart(prev => [...prev, newCustomItem]);
   };
@@ -203,11 +221,23 @@ export default function POSPage() {
   const debouncedUpdateCartItem = useDebouncedCallback((cartId: string, updates: Partial<CartItem>) => {
     setCart(prev => prev.map(item => {
       if (item.cartId === cartId) {
-        const updatedItem = { ...item, ...updates };
-
-        if ('quantity' in updates && updatedItem.quantity !== undefined) {
-            const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
-            updatedItem.quantity = Math.max(1, Math.min(Math.floor(updatedItem.quantity || 1), stock));
+        let updatedItem = { ...item, ...updates };
+        
+        if (updatedItem.type === 'product') {
+          const liveProduct = products.find(p => p.id === updatedItem.id);
+          const stock = liveProduct ? liveProduct.stock : 0;
+          if (updatedItem.quantity > stock) {
+            toast({
+              variant: 'destructive',
+              title: 'Stock Limit Exceeded',
+              description: `Only ${stock} units of ${updatedItem.name} available.`,
+            });
+            updatedItem.quantity = stock;
+          }
+        }
+        
+        if (updatedItem.quantity < 1) {
+            updatedItem.quantity = 1;
         }
 
         if ('discountAmount' in updates && updatedItem.discountAmount !== undefined) {
@@ -337,6 +367,15 @@ export default function POSPage() {
   }, []);
 
   const handleProcessPayment = () => {
+    if (totals.total <= 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Transaction',
+        description: 'Cannot process a transaction with a total of zero.',
+      });
+      return;
+    }
+    
     if (!selectedCustomer || !selectedVehicle || !selectedEmployee || cart.length === 0) {
       toast({
         variant: 'destructive',
@@ -788,4 +827,5 @@ export default function POSPage() {
     </div>
   );
 }
+
 
