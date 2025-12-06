@@ -221,13 +221,7 @@ export function AddItemDialog({
                       <FormItem>
                         <FormLabel>Category</FormLabel>
                         <Select
-                          onValueChange={(value) => {
-                            if (value === 'add-new') {
-                              setShowNewProductCategoryDialog(true);
-                            } else {
-                              field.onChange(value);
-                            }
-                          }}
+                          onValueChange={field.onChange}
                           value={field.value}
                         >
                           <FormControl>
@@ -241,16 +235,18 @@ export function AddItemDialog({
                                 {category}
                               </SelectItem>
                             ))}
-                             <button
-                              type="button"
-                              className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setShowNewProductCategoryDialog(true);
-                              }}
+                             <SelectItem 
+                                value="add-new-trigger" 
+                                onSelect={(e) => {
+                                    e.preventDefault();
+                                    setShowNewProductCategoryDialog(true);
+                                }}
+                                className="focus:bg-zinc-100"
                             >
-                              <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
-                            </button>
+                                <div className="flex items-center">
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
+                                </div>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -330,13 +326,7 @@ export function AddItemDialog({
                       <FormItem>
                         <FormLabel>Vehicle Category</FormLabel>
                         <Select 
-                          onValueChange={(value) => {
-                            if (value === 'add-new') {
-                              setShowNewVehicleCategoryDialog(true);
-                            } else {
-                              field.onChange(value);
-                            }
-                          }} 
+                           onValueChange={field.onChange}
                           value={field.value}
                         >
                           <FormControl>
@@ -348,16 +338,18 @@ export function AddItemDialog({
                             {vehicleCategories.map(category => (
                               <SelectItem key={category} value={category}>{category}</SelectItem>
                             ))}
-                            <button
-                              type="button"
-                              className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setShowNewVehicleCategoryDialog(true);
-                              }}
+                            <SelectItem 
+                                value="add-new-trigger" 
+                                onSelect={(e) => {
+                                    e.preventDefault();
+                                    setShowNewVehicleCategoryDialog(true);
+                                }}
+                                className="focus:bg-zinc-100"
                             >
-                              <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
-                            </button>
+                                <div className="flex items-center">
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
+                                </div>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -457,7 +449,5 @@ export function AddItemDialog({
     </>
   );
 }
-
-    
 
     

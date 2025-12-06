@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -11,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus, Loader2 } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -47,6 +46,9 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
 
+  // NEW: loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm({
     resolver: zodResolver(customerSchema.merge(vehicleSchema)),
     defaultValues: { 
@@ -61,6 +63,7 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
       form.reset();
       setSearchQuery('');
       setShowAddForm(false);
+      setIsSubmitting(false);
     }
   }, [isOpen, form]);
 
@@ -69,14 +72,17 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
     return vehicles.filter(v => v.numberPlate.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [searchQuery, vehicles]);
 
-  const onSubmit = (values: z.infer<typeof customerSchema> & z.infer<typeof vehicleSchema>) => {
-     if (vehicles?.some(v => v.numberPlate === values.numberPlate)) {
+  const onSubmit = async (values: z.infer<typeof customerSchema> & z.infer<typeof vehicleSchema>) => {
+    if (vehicles?.some(v => v.numberPlate === values.numberPlate)) {
         form.setError('numberPlate', {
             type: 'manual',
             message: 'A vehicle with this number plate already exists.',
         });
         return;
     }
+
+    setIsSubmitting(true); // start loading
+
     const { name, phone, address, nic, ...vehicleData } = values;
     const customerData = { name, phone, address, nic };
     
@@ -89,8 +95,10 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
     } else {
         delete (finalVehicleData as Partial<Vehicle>).mileage;
     }
-    
-    onCreate(customerData, finalVehicleData);
+
+    await onCreate(customerData, finalVehicleData);
+
+    setIsSubmitting(false); // stop loading
   };
 
   const handleSelect = (vehicle: WithId<Vehicle>) => {
@@ -104,7 +112,6 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
     if (!timestamp) return 'No previous visits';
     try {
       const date = new Date(timestamp);
-      // Check if timestamp is in seconds, convert to milliseconds
       const dateToFormat = timestamp > 1000000000000 ? date : new Date(timestamp * 1000);
       if (isNaN(dateToFormat.getTime())) return 'Invalid date';
       return `${format(dateToFormat, 'MMM d, yyyy')} (${formatDistanceToNow(dateToFormat, { addSuffix: true })})`;
@@ -112,7 +119,6 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
       return 'Invalid date';
     }
   };
-
 
   const commonInputStyles = "rounded-none h-11 text-base";
   const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
@@ -241,8 +247,15 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
                 </div>
 
               <DialogFooter className="mt-8 gap-2 sticky bottom-0 bg-background py-4">
-                <Button type="button" variant="outline" onClick={() => setShowAddForm(false)} className={commonButtonStyles}>Back to Search</Button>
-                <Button type="submit" className={commonButtonStyles}>Create and Select</Button>
+                <Button type="button" variant="outline" onClick={() => setShowAddForm(false)} className={commonButtonStyles}>
+                  Back to Search
+                </Button>
+
+                {/* NEW: button with spinner */}
+                <Button type="submit" className={commonButtonStyles} disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSubmitting ? "Creating..." : "Create and Select"}
+                </Button>
               </DialogFooter>
             </form>
           </Form>
