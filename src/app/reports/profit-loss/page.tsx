@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -73,7 +74,7 @@ export default function ProfitLossPage() {
     if (loading || !invoices || !products || !dateRange?.from) {
       return { 
         items: [], 
-        summary: { totalRevenue: 0, totalCost: 0, totalProfit: 0, netMargin: 0 }, 
+        summary: { totalRevenue: 0, totalCost: 0, totalProfit: 0, totalLoss: 0, netMargin: 0 }, 
         isLoading: true 
       };
     }
@@ -137,14 +138,18 @@ export default function ProfitLossPage() {
         acc.totalRevenue += item.revenue;
         acc.totalCost += item.costOfGoods;
         acc.totalProfit += item.profit;
+        if (item.profit < 0) {
+            acc.totalLoss += item.profit; // item.profit is already negative
+        }
         return acc;
-    }, { totalRevenue: 0, totalCost: 0, totalProfit: 0 });
+    }, { totalRevenue: 0, totalCost: 0, totalProfit: 0, totalLoss: 0 });
 
     // Final Math Safety on Totals
     const finalSummary = {
         totalRevenue: safeRound(summary.totalRevenue),
         totalCost: safeRound(summary.totalCost),
         totalProfit: safeRound(summary.totalProfit),
+        totalLoss: safeRound(summary.totalLoss),
         netMargin: summary.totalRevenue > 0 
           ? safeRound((summary.totalProfit / summary.totalRevenue) * 100) 
           : 0
@@ -291,11 +296,17 @@ export default function ProfitLossPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-zinc-200 border border-zinc-200 mb-8 rounded-sm overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-200 border border-zinc-200 mb-8 rounded-sm overflow-hidden">
             {processedData.isLoading ? renderStatSkeletons() : (
               <>
                 <StatCard title="Total Revenue" value={formatCurrency(processedData.summary.totalRevenue)} icon={DollarSign} />
                 <StatCard title="Total Cost (COGS)" value={formatCurrency(processedData.summary.totalCost)} icon={TrendingDown} />
+                <StatCard 
+                  title="Total Loss" 
+                  value={formatCurrency(processedData.summary.totalLoss)} 
+                  icon={TrendingDown}
+                  className="text-red-600"
+                />
                 <StatCard 
                   title="Net Profit" 
                   value={formatCurrency(processedData.summary.totalProfit)} 
@@ -369,7 +380,7 @@ export default function ProfitLossPage() {
                          <TableCell className="text-right">
                            <div className={cn(
                                "font-mono text-sm font-semibold inline-flex flex-col items-end",
-                               item.profit > 0 ? "text-emerald-700" : "text-rose-600"
+                               item.profit >= 0 ? "text-emerald-700" : "text-rose-600"
                            )}>
                              {formatCurrency(item.profit)}
                              {/* Show margin percentage specifically on hover or always if meaningful */}

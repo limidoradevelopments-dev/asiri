@@ -76,7 +76,7 @@ export default function DashboardSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="p-2 flex-1">
+      <SidebarContent className="p-2 flex-1 ">
         <SidebarMenu className="space-y-1">
           {menuItems.map((item) => {
             const active = pathname === item.href;
