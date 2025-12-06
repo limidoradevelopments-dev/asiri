@@ -167,10 +167,13 @@ export interface Product {
   sellingPrice: number;
 }
 
+export type VehicleCategory = "Car" | "Jeep/Van" | "Bike";
+
 export interface Service {
   name: string;
   price: number;
   description?: string;
+  vehicleCategory?: VehicleCategory;
 }
 
 export interface Employee {

@@ -27,9 +27,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import type { Product, Service } from '@/lib/data';
+import type { Product, Service, VehicleCategory } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Car, Truck, Bike } from 'lucide-react';
 
 // --- Schemas ---
 
@@ -49,6 +51,7 @@ const serviceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   price: z.coerce.number().min(0, 'Price cannot be negative'),
+  vehicleCategory: z.enum(["Car", "Jeep/Van", "Bike"]).optional(),
 });
 
 // --- Types ---
@@ -86,7 +89,7 @@ export function AddItemDialog({
   const serviceForm = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
-      name: '', description: '', price: 0,
+      name: '', description: '', price: 0, vehicleCategory: undefined,
     },
   });
 
@@ -103,7 +106,7 @@ export function AddItemDialog({
           name: '', sku: '', description: '', stockThreshold: 5, actualPrice: 0, sellingPrice: 0,
         });
         serviceForm.reset({
-          name: '', description: '', price: 0,
+          name: '', description: '', price: 0, vehicleCategory: undefined
         });
       }
     }
@@ -140,6 +143,12 @@ export function AddItemDialog({
 
   const commonInputStyles = "rounded-none h-11 text-base";
   const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
+
+  const categoryIcons: Record<VehicleCategory, React.ElementType> = {
+    "Car": Car,
+    "Jeep/Van": Truck,
+    "Bike": Bike,
+  };
 
   return (
     <>
@@ -302,19 +311,51 @@ export function AddItemDialog({
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={serviceForm.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Service Price (Rs.)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" {...field} className={commonInputStyles} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                     <FormField
+                        control={serviceForm.control}
+                        name="price"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Service Price (Rs.)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" {...field} className={commonInputStyles} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={serviceForm.control}
+                        name="vehicleCategory"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Vehicle Category (Optional)</FormLabel>
+                             <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger className={commonInputStyles}>
+                                    <SelectValue placeholder="Select a category" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="rounded-none border-zinc-200">
+                                   {(["Car", "Jeep/Van", "Bike"] as VehicleCategory[]).map(cat => {
+                                      const Icon = categoryIcons[cat];
+                                      return (
+                                        <SelectItem key={cat} value={cat}>
+                                          <div className="flex items-center gap-2">
+                                            <Icon className="w-4 h-4 text-zinc-500" />
+                                            <span>{cat}</span>
+                                          </div>
+                                        </SelectItem>
+                                      )
+                                   })}
+                                </SelectContent>
+                              </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                  </div>
                   <DialogFooter className="mt-6 gap-2">
                     <DialogClose asChild>
                       <Button type="button" variant="outline" className={commonButtonStyles}>Cancel</Button>

@@ -325,6 +325,11 @@
         "description": {
           "type": "string",
           "description": "An optional description of the service."
+        },
+        "vehicleCategory": {
+            "type": "string",
+            "description": "An optional category for the type of vehicle this service applies to.",
+            "enum": ["Car", "Jeep/Van", "Bike"]
         }
       },
       "required": [
