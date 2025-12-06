@@ -4,11 +4,11 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { collection, doc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
-import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMethod } from '@/lib/data';
+import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMethod, VehicleCategory } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive, PlusCircle } from 'lucide-react';
+import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive, PlusCircle, Car, Bike, Truck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -30,6 +30,8 @@ import { PaymentDialog } from '@/components/pos/PaymentDialog';
 import { Input } from '@/components/ui/input';
 import { CartItem as CartItemComponent } from '@/components/pos/CartItem';
 import { useDebouncedCallback } from 'use-debounce';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 // --- Types ---
 export type CartItemBase = {
@@ -66,6 +68,12 @@ export const getItemPrice = (item: CartItem): number => {
   return 0;
 };
 
+const categoryIcons: Record<VehicleCategory, React.ElementType> = {
+    "Car": Car,
+    "Jeep/Van": Truck,
+    "Bike": Bike,
+};
+
 export default function POSPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -89,6 +97,7 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('services');
+  const [categoryFilter, setCategoryFilter] = useState<VehicleCategory | 'all'>('all');
   const [globalDiscountPercent, setGlobalDiscountPercent] = useState<number>(0);
   const [selectedEmployee, setSelectedEmployee] = useState<WithId<Employee> | null>(null);
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
@@ -224,11 +233,22 @@ export default function POSPage() {
   }, [cart, globalDiscountPercent]);
 
   const itemsToShow = useMemo(() => {
-    const list = activeTab === 'services' ? services : products;
+    let list: WithId<Service>[] | WithId<Product>[] | undefined;
+
+    if (activeTab === 'services') {
+        list = services;
+        if (categoryFilter !== 'all') {
+            list = list?.filter(s => s.vehicleCategory === categoryFilter);
+        }
+    } else {
+        list = products;
+    }
+    
     if (!searchQuery) return list;
     const lowercasedQuery = searchQuery.toLowerCase();
     return list?.filter((i: any) => i.name.toLowerCase().includes(lowercasedQuery));
-  }, [activeTab, services, products, searchQuery]);
+  }, [activeTab, services, products, searchQuery, categoryFilter]);
+
 
   const resetState = useCallback(() => {
     setCart([]);
@@ -340,6 +360,13 @@ export default function POSPage() {
 
     resetState();
   }, [selectedCustomer, selectedVehicle, selectedEmployee, cart, totals, globalDiscountPercent, invoicesCollection, firestore, resetState, toast]);
+  
+  const filterButtons: { label: string; value: VehicleCategory | 'all'; icon: React.ElementType }[] = [
+    { label: 'All', value: 'all', icon: Sparkles },
+    { label: 'Car', value: 'Car', icon: Car },
+    { label: 'Jeep/Van', value: 'Jeep/Van', icon: Truck },
+    { label: 'Bike', value: 'Bike', icon: Bike },
+  ];
 
   return (
     <div className="flex h-screen w-full bg-background font-sans overflow-hidden">
@@ -350,7 +377,7 @@ export default function POSPage() {
       <div className="relative z-10 w-[55%] flex flex-col pt-8 pl-12 pr-6">
         
         {/* Header Area */}
-        <div className="flex justify-between items-start mb-16">
+        <div className="flex justify-between items-start mb-6">
             <div>
                 <h1 className="text-5xl font-normal tracking-tighter mb-2">POINT OF SALE</h1>
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Create new invoices</p>
@@ -369,9 +396,38 @@ export default function POSPage() {
             </div>
         </div>
 
+        {/* Category Filters */}
+        <div className="flex items-center justify-between mb-8">
+            <div className={cn("flex items-center gap-2 transition-opacity", activeTab === 'products' && 'opacity-20 pointer-events-none')}>
+                {filterButtons.map(({ label, value, icon: Icon }) => (
+                    <TooltipProvider key={value}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                key={value}
+                                onClick={() => setCategoryFilter(value)}
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                    "h-10 w-10 rounded-full border border-zinc-200 text-zinc-400 hover:bg-zinc-100 hover:text-black",
+                                    categoryFilter === value && "bg-black text-white hover:bg-black hover:text-white border-black"
+                                )}
+                                >
+                                    <Icon className="h-5 w-5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Filter {label}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                ))}
+            </div>
+        </div>
+
         {/* Minimal Tabs */}
         <Tabs defaultValue="services" value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
-            <TabsList className="bg-zinc-100 justify-start p-1 mb-8 w-full rounded-none">
+            <TabsList className="bg-zinc-100 justify-start p-1 w-full rounded-none">
                 <TabsTrigger
                     value="services"
                     className="relative h-10 px-6 rounded-none text-sm font-medium uppercase tracking-widest text-zinc-400 data-[state=active]:text-white data-[state=active]:bg-black data-[state=active]:shadow-none hover:bg-zinc-200 transition-colors"
@@ -387,17 +443,18 @@ export default function POSPage() {
             </TabsList>
             
             {/* Grid */}
-            <ScrollArea className="flex-1 -mr-4 pr-4">
+            <ScrollArea className="flex-1 -mr-4 pr-4 mt-8">
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
                     {itemsToShow?.map((item) => {
                         const isProduct = 'stock' in item;
+                        const isService = 'price' in item;
                         const cartItem = cart.find(ci => ci.type !== 'custom' && ci.id === item.id);
                         const cartQuantity = cartItem?.quantity ?? 0;
-                        const stock = isProduct ? item.stock : Infinity;
+                        const stock = isProduct ? (item as WithId<Product>).stock : Infinity;
                         const isOutOfStock = stock <= 0;
-                        // Prevent adding if cart qty equals current stock
                         const cartLimitReached = isProduct && cartQuantity >= stock;
                         const isDisabled = isOutOfStock || cartLimitReached;
+                        const CategoryIcon = isService && item.vehicleCategory ? categoryIcons[item.vehicleCategory] : null;
 
                         return (
                             <button 
@@ -412,9 +469,12 @@ export default function POSPage() {
                             >
                                 {/* Top Row: Category & Price */}
                                 <div className="flex justify-between items-start w-full">
-                                    <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-300 group-hover:text-black transition-colors border border-zinc-100 group-hover:border-zinc-900 px-1.5 py-0.5 rounded-sm">
-                                        {'description' in item && item.description ? item.description : (activeTab === 'services' ? 'SVC' : 'PRD')}
-                                    </span>
+                                    <div className='flex items-center gap-2'>
+                                        {CategoryIcon && <CategoryIcon className="w-4 h-4 text-zinc-400" />}
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-300 group-hover:text-black transition-colors border border-zinc-100 group-hover:border-zinc-900 px-1.5 py-0.5 rounded-sm">
+                                            {isService ? 'SVC' : 'PRD'}
+                                        </span>
+                                    </div>
                                     <span className="font-mono text-lg font-medium text-zinc-900">
                                         {formatPrice(getItemPrice(item as any))}
                                     </span>
@@ -425,6 +485,9 @@ export default function POSPage() {
                                     <h3 className="text-xl font-medium leading-tight tracking-tight line-clamp-2 text-zinc-800 group-hover:text-black">
                                         {item.name}
                                     </h3>
+                                    {isService && (item as WithId<Service>).description && (
+                                        <p className="text-xs text-zinc-400 mt-1 line-clamp-1">{ (item as WithId<Service>).description }</p>
+                                    )}
                                 </div>
 
                                 {/* Bottom: ID & Add Action / Stock */}
@@ -456,6 +519,11 @@ export default function POSPage() {
                             </button>
                         );
                     })}
+                     {itemsToShow?.length === 0 && (
+                        <div className="col-span-full text-center py-20 text-zinc-400 text-sm uppercase tracking-widest">
+                            No items match your filter
+                        </div>
+                    )}
                 </div>
             </ScrollArea>
         </Tabs>
@@ -637,3 +705,5 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
