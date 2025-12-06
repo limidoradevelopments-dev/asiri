@@ -793,7 +793,7 @@ export default function POSPage() {
                 </div>
                 {totals.globalDiscountAmount > 0 && (
                     <div className="flex justify-end text-xs text-red-400 font-mono mt-1">
-                        - {formatPrice(totals.globalDiscountAmount)} Discount Applied
+                        - {formatPrice(totals.globalDiscountAmount)} Discount Applied ({globalDiscountPercent}%)
                     </div>
                 )}
             </div>
@@ -829,3 +829,6 @@ export default function POSPage() {
 }
 
 
+
+
+    
