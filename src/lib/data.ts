@@ -160,7 +160,7 @@ export const recentInvoicesData: (Omit<Invoice, 'invoiceNumber' | 'customerId' |
 export interface Product {
   name: string;
   sku: string;
-  category?: string;
+  description?: string;
   stock: number;
   stockThreshold: number;
   actualPrice: number;
@@ -199,5 +199,3 @@ export interface Vehicle {
   transmission?: 'Auto' | 'Manual';
   lastVisit?: number;
 }
-
-    

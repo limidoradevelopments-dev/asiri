@@ -64,7 +64,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
             <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">Name</TableHead>
             {type === 'product' && <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">SKU</TableHead>}
             <TableHead className="p-0 h-8 text-xs font-normal text-zinc-400 uppercase tracking-widest">
-              {type === 'product' ? 'Category' : 'Vehicle Category'}
+              {type === 'product' ? 'Description' : 'Vehicle Category'}
             </TableHead>
             {type === "product" && <TableHead className="p-0 h-8 text-right text-xs font-normal text-zinc-400 uppercase tracking-widest">Stock</TableHead>}
             <TableHead className="p-0 h-8 text-right text-xs font-normal text-zinc-400 uppercase tracking-widest">Price</TableHead>
@@ -79,7 +79,7 @@ export default function InventoryTable({ data, type, isLoading, onEdit, onDelete
               <TableCell className="py-4 px-0 font-medium">{item.name}</TableCell>
               {type === 'product' && <TableCell className="py-4 px-0">{ (item as WithId<Product>).sku}</TableCell>}
               <TableCell className="py-4 px-0">
-                {type === 'product' ? (item as WithId<Product>).category : (item as WithId<Service>).vehicleCategory}
+                {type === 'product' ? (item as WithId<Product>).description : (item as WithId<Service>).vehicleCategory}
               </TableCell>
               {type === "product" && (item as WithId<Product>).stock !== undefined && (
                 <TableCell className="text-right py-4 px-0">

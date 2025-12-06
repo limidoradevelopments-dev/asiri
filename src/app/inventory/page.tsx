@@ -58,7 +58,8 @@ export default function InventoryPage() {
 
   const productCategories = useMemo(() => {
     if (!products) return [];
-    return [...new Set(products.map(p => p.category))];
+    const categories = products.map(p => p.description).filter((c): c is string => !!c);
+    return [...new Set(categories)];
   }, [products]);
 
   const vehicleCategories = useMemo(() => {
@@ -90,12 +91,6 @@ export default function InventoryPage() {
       const collectionRef = type === 'product' ? productsCollection : servicesCollection;
       if (collectionRef) {
           addDocumentNonBlocking(collectionRef, item);
-      }
-      if (type === 'product') {
-        const newCategory = (item as Product).category;
-        if (!allProductCategories.includes(newCategory)) {
-          setLocalProductCategories(prev => [...prev, newCategory]);
-        }
       }
       if (type === 'service') {
         const newCategory = (item as Service).vehicleCategory;
@@ -136,13 +131,15 @@ export default function InventoryPage() {
   };
 
   const confirmDelete = () => {
-    if (itemToDelete) {
-      const docRef = doc(firestore, itemToDelete.type === 'product' ? 'products' : 'services', itemToDelete.id);
-      deleteDocumentNonBlocking(docRef);
-      // Close the dialog immediately for optimistic UI update
-      setItemToDelete(null);
-    }
+    if (!itemToDelete) return;
+
+    const docRef = doc(firestore, itemToDelete.type === 'product' ? 'products' : 'services', itemToDelete.id);
+    deleteDocumentNonBlocking(docRef);
+    
+    // Close the dialog immediately for optimistic UI update
+    setItemToDelete(null);
   };
+
 
   const onDialogClose = (isOpen: boolean) => {
     if (!isOpen) {
@@ -197,6 +194,7 @@ export default function InventoryPage() {
                         onOpenChange={onDialogClose}
                     >
                         <Button 
+                            onClick={() => setAddItemDialogOpen(true)}
                             className="h-10 px-6 rounded-none bg-black text-white text-xs uppercase tracking-[0.15em] hover:bg-zinc-800 transition-all shadow-none"
                         >
                             <Plus className="mr-2 h-3 w-3" />

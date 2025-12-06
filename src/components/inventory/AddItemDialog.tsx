@@ -47,14 +47,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Textarea } from '../ui/textarea';
 
 // --- Schemas ---
 
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().min(1, 'SKU is required'),
-  category: z.string().optional(),
-  stock: z.coerce.number().int().min(0, 'Stock cannot be negative'),
+  description: z.string().optional(),
   stockThreshold: z.coerce.number().int().min(0, 'Re-order level cannot be negative'),
   actualPrice: z.coerce.number().min(0, 'Price cannot be negative'),
   sellingPrice: z.coerce.number().min(0, 'Price cannot be negative'),
@@ -112,7 +112,7 @@ export function AddItemDialog({
   const productForm = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: '', sku: '', category: '', stock: 0, stockThreshold: 0, actualPrice: 0, sellingPrice: 0,
+      name: '', sku: '', description: '', stockThreshold: 0, actualPrice: 0, sellingPrice: 0,
     },
   });
 
@@ -127,13 +127,13 @@ export function AddItemDialog({
     if (isOpen) {
       if (isEditMode && itemToEdit) {
         if ('sku' in itemToEdit) {
-          productForm.reset({ ...itemToEdit, stock: itemToEdit.stock || 0, category: itemToEdit.category || "" });
+          productForm.reset({ ...(itemToEdit as WithId<Product>), description: (itemToEdit as WithId<Product>).description || "" });
         } else {
           serviceForm.reset(itemToEdit);
         }
       } else {
         productForm.reset({
-          name: '', sku: '', category: '', stock: 0, stockThreshold: 5, actualPrice: 0, sellingPrice: 0,
+          name: '', sku: '', description: '', stockThreshold: 5, actualPrice: 0, sellingPrice: 0,
         });
         serviceForm.reset({
           name: '', description: '', price: 0, vehicleCategory: ''
@@ -143,7 +143,11 @@ export function AddItemDialog({
   }, [itemToEdit, isEditMode, productForm, serviceForm, isOpen]);
 
   const onProductSubmit = (values: z.infer<typeof productSchema>) => {
-    onUpsertItem(values, 'product', itemToEdit?.id);
+    const productData: Omit<Product, 'id'> = {
+      ...values,
+      stock: isEditMode && itemToEdit && 'stock' in itemToEdit ? itemToEdit.stock : 0,
+    };
+    onUpsertItem(productData, 'product', itemToEdit?.id);
     toast({ 
       title: isEditMode ? 'Product Updated' : 'Product Added', 
       description: `${values.name} has been saved successfully.` 
@@ -163,8 +167,6 @@ export function AddItemDialog({
   const handleAddNewProductCategory = () => {
     if (newProductCategory.trim() && !productCategories.includes(newProductCategory)) {
       setProductCategories((prev) => [...prev, newProductCategory]);
-      productForm.setValue('category', newProductCategory); 
-      productForm.clearErrors('category');
     }
     setShowNewProductCategoryDialog(false);
     setNewProductCategory('');
@@ -258,47 +260,34 @@ export function AddItemDialog({
                         </FormItem>
                       )}
                     />
-                     <FormField
+                    <FormField
                       control={productForm.control}
-                      name="category"
+                      name="stockThreshold"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category (Optional)</FormLabel>
-                          <Select
-                            onValueChange={(value) => {
-                                if (value === 'add-new-trigger') {
-                                    setShowNewProductCategoryDialog(true);
-                                } else {
-                                    field.onChange(value);
-                                }
-                            }}
-                            value={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger className={commonInputStyles}>
-                                <SelectValue placeholder="Select a category" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="rounded-none border-zinc-200">
-                              {productCategories.map((category) => (
-                                <SelectItem key={category} value={category}>{category}</SelectItem>
-                              ))}
-                              <SelectSeparator />
-                              <SelectItem 
-                                value="add-new-trigger"
-                                className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
-                              >
-                                <div className="flex items-center">
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormLabel>Re-order Alert Level</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} className={commonInputStyles} />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
+                  
+                  <FormField
+                      control={productForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="e.g., High-performance synthetic oil for modern engines." {...field} className="rounded-none text-base" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                  />
 
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -322,35 +311,6 @@ export function AddItemDialog({
                           <FormLabel>Selling Price (Rs.)</FormLabel>
                           <FormControl>
                             <Input type="number" step="0.01" {...field} className={commonInputStyles}/>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                        control={productForm.control}
-                        name="stock"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{isEditMode ? 'Current Stock' : 'Initial Stock'}</FormLabel>
-                            <FormControl>
-                              <Input type="number" {...field} className={commonInputStyles} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    <FormField
-                      control={productForm.control}
-                      name="stockThreshold"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Re-order Alert Level</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} className={commonInputStyles} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -400,6 +360,11 @@ export function AddItemDialog({
                                     field.onChange(value);
                                 }
                            }}
+                           onOpenChange={(isOpen) => {
+                                if (!isOpen && field.value === 'add-new-trigger') {
+                                    field.onChange('');
+                                }
+                           }}
                           value={field.value}
                         >
                           <FormControl>
@@ -414,6 +379,7 @@ export function AddItemDialog({
                             <SelectSeparator />
                             <SelectItem 
                                 value="add-new-trigger"
+                                onSelect={(e) => e.preventDefault()}
                                 className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
                             >
                                 <div className="flex items-center">

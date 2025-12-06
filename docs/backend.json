@@ -278,9 +278,9 @@
           "type": "string",
           "description": "The Stock Keeping Unit."
         },
-        "category": {
+        "description": {
           "type": "string",
-          "description": "The category of the product."
+          "description": "An optional description of the product."
         },
         "stock": {
           "type": "number",
