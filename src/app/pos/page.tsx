@@ -30,21 +30,23 @@ import { PaymentDialog } from '@/components/pos/PaymentDialog';
 import { Input } from '@/components/ui/input';
 
 // --- Types ---
-type StandardCartItem = WithId<Product | Service> & {
-  type: 'product' | 'service';
-};
-
-type CustomCartItem = {
-    name: string;
-    unitPrice: number;
-    type: 'custom';
-};
-
-type CartItem = (StandardCartItem | CustomCartItem) & {
+type CartItemBase = {
   cartId: string;
   quantity: number;
   discountAmount: number; // Discount per UNIT
 };
+
+type StandardCartItem = CartItemBase & WithId<Product | Service> & {
+  type: 'product' | 'service';
+};
+
+type CustomCartItem = CartItemBase & {
+  name: string;
+  unitPrice: number;
+  type: 'custom';
+};
+
+type CartItem = StandardCartItem | CustomCartItem;
 
 
 // --- Math & Helper Utilities ---
@@ -123,20 +125,21 @@ export default function POSPage() {
       }
       
       if (stock > 0) {
-        return [...prev, {
+        const newItem: StandardCartItem = {
           ...item,
           cartId: `${item.id}-${Date.now()}`,
           quantity: 1,
           type,
           discountAmount: 0
-        }];
+        };
+        return [...prev, newItem];
       }
       return prev; // Out of stock
     });
   };
 
   const addCustomJob = () => {
-    const newCustomItem: CartItem = {
+    const newCustomItem: CustomCartItem = {
       cartId: `custom-${Date.now()}`,
       name: '',
       quantity: 1,
@@ -152,14 +155,14 @@ export default function POSPage() {
       if (item.cartId === cartId) {
         const updatedItem = { ...item, ...updates };
 
-        if ('quantity' in updates) {
-          const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
-          updatedItem.quantity = Math.max(1, Math.min(Math.floor(updates.quantity || 1), stock));
+        if ('quantity' in updates && updatedItem.quantity !== undefined) {
+            const stock = item.type === 'product' ? (item as WithId<Product>).stock : Infinity;
+            updatedItem.quantity = Math.max(1, Math.min(Math.floor(updatedItem.quantity || 1), stock));
         }
 
-        if ('discountAmount' in updates) {
+        if ('discountAmount' in updates && updatedItem.discountAmount !== undefined) {
           const originalPrice = getItemPrice(item);
-          updatedItem.discountAmount = Math.min(updates.discountAmount || 0, originalPrice);
+          updatedItem.discountAmount = Math.min(updatedItem.discountAmount || 0, originalPrice);
         }
         
         return updatedItem;
@@ -587,7 +590,7 @@ export default function POSPage() {
                                                     type="number"
                                                     className="w-full text-right text-sm font-mono bg-transparent border-b border-transparent hover:border-zinc-200 focus:border-black outline-none transition-colors p-0"
                                                     placeholder="0.00"
-                                                    value={item.unitPrice || ''}
+                                                    value={(item as CustomCartItem).unitPrice || ''}
                                                     onChange={(e) => updateCartItem(item.cartId, { unitPrice: parseFloat(e.target.value) || 0})}
                                                     onKeyDown={(e) => ["-", "e"].includes(e.key) && e.preventDefault()}
                                                     min="0"
