@@ -17,7 +17,6 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  User,
   LogOut,
   Users,
   Car,
@@ -44,15 +43,15 @@ export default function DashboardSidebar() {
     <Sidebar
       variant="inset"
       collapsible="icon"
-      className="bg-background border-r-zinc-100"
+      className="bg-sidebar border-r-sidebar-border"
     >
       <SidebarContent className="p-2">
         <SidebarHeader className="mb-4">
            <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
               <Wrench className="h-5 w-5" />
             </div>
-            {state === 'expanded' && <span className="text-lg font-light tracking-tighter text-foreground">ASIRI SERVICE</span>}
+            {state === 'expanded' && <span className="text-lg font-light tracking-tighter text-sidebar-foreground">ASIRI SERVICE</span>}
           </div>
         </SidebarHeader>
 
@@ -63,7 +62,7 @@ export default function DashboardSidebar() {
                 asChild
                 isActive={pathname === item.href}
                 tooltip={item.label}
-                className="font-medium h-10 justify-start rounded-none data-[active=true]:bg-black data-[active=true]:text-white hover:bg-zinc-100"
+                className="h-10 justify-start rounded-none font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-[inset_2px_0_0_hsl(var(--sidebar-primary))]"
               >
                 <Link href={item.href}>
                   <item.icon className="w-4 h-4" />
@@ -77,17 +76,17 @@ export default function DashboardSidebar() {
 
       <SidebarFooter className="p-2">
           <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback>A</AvatarFallback>
+              <Avatar className="h-10 w-10 border border-sidebar-border">
+                <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground">A</AvatarFallback>
               </Avatar>
               {state === 'expanded' && (
                 <div className="flex flex-col">
-                    <span className="text-sm font-medium text-foreground">Admin</span>
-                    <span className="text-xs text-zinc-500">admin@asiriservice.io</span>
+                    <span className="text-sm font-medium text-sidebar-foreground">Admin</span>
+                    <span className="text-xs text-sidebar-foreground/70">admin@asiriservice.io</span>
                 </div>
               )}
           </div>
-          <Button variant="ghost" size="icon" className="h-10 w-10 ml-auto rounded-none hover:bg-zinc-100">
+          <Button variant="ghost" size="icon" className="h-10 w-10 ml-auto rounded-none text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
             <LogOut className="w-4 h-4"/>
           </Button>
       </SidebarFooter>
