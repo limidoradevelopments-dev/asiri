@@ -79,10 +79,17 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
     }
     const { name, phone, address, nic, ...vehicleData } = values;
     const customerData = { name, phone, address, nic };
+    
     const finalVehicleData: Omit<Vehicle, 'id' | 'customerId'> = {
         ...vehicleData,
-        mileage: vehicleData.mileage ? Number(vehicleData.mileage) : undefined,
+    };
+
+    if (vehicleData.mileage) {
+        finalVehicleData.mileage = Number(vehicleData.mileage);
+    } else {
+        delete (finalVehicleData as Partial<Vehicle>).mileage;
     }
+    
     onCreate(customerData, finalVehicleData);
   };
 
