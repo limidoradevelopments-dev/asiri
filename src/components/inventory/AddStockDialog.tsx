@@ -91,7 +91,7 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent 
+              <PopoverContent
                   className="w-[--radix-popover-trigger-width] p-0 rounded-none border-zinc-200"
                   onOpenAutoFocus={(e) => e.preventDefault()}
               >
@@ -155,5 +155,3 @@ export function AddStockDialog({ children, products, onAddStock }: AddStockDialo
     </Dialog>
   );
 }
-
-    
