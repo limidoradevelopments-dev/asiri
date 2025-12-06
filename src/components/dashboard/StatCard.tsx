@@ -1,3 +1,4 @@
+
 import type { StatCardData } from "@/lib/data";
 import {
   Card,
@@ -13,9 +14,10 @@ export default function StatCard({
   icon: Icon,
   change,
   changeType,
-}: StatCardData) {
+  className,
+}: StatCardData & { className?: string }) {
   return (
-    <Card className="rounded-none border-0 shadow-none bg-background p-8">
+    <Card className={cn("rounded-none border-0 shadow-none bg-background p-8", className)}>
       <CardHeader className="p-0 flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle className="text-sm uppercase tracking-widest font-medium text-zinc-400">{title}</CardTitle>
         <Icon className="h-5 w-5 text-zinc-300" />

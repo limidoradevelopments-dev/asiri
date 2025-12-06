@@ -151,7 +151,12 @@ export default function ProfitLossPage() {
               <>
                 <StatCard title="Total Revenue" value={formatCurrency(totalRevenue)} icon={DollarSign} />
                 <StatCard title="Total COGS" value={formatCurrency(totalCost)} icon={TrendingDown} />
-                <StatCard title="Total Profit" value={formatCurrency(totalProfit)} icon={TrendingUp} />
+                <StatCard 
+                  title="Total Profit" 
+                  value={formatCurrency(totalProfit)} 
+                  icon={TrendingUp}
+                  className="bg-zinc-50 shadow-sm border border-zinc-200"
+                />
               </>
             )}
         </div>
