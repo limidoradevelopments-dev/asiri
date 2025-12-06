@@ -70,17 +70,15 @@ export default function DashboardPage() {
     }).reverse();
 
     const recentInvoices = invoices
-        ?.sort((a, b) => b.date - a.date)
-        .slice(0, 5)
-        .map(inv => {
-            const customer = customers?.find(c => c.id === inv.customerId);
-            return {
-                ...inv,
-                id: inv.id,
-                customer: customer?.name || 'Unknown',
-                amount: inv.total
-            }
-        }) ?? [];
+      ?.sort((a, b) => b.date - a.date)
+      .slice(0, 5)
+      .map(inv => {
+        const customer = customers?.find(c => c.id === inv.customerId);
+        return {
+          ...inv,
+          customerName: customer?.name || 'Unknown Customer',
+        };
+      }) ?? [];
     
     const lowStockForComponent = lowStockItems.map(item => ({...item, threshold: item.stockThreshold}))
 
