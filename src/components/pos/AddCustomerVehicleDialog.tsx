@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,6 +16,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useDebouncedCallback } from 'use-debounce';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Full Name is required'),
@@ -34,21 +35,22 @@ const vehicleSchema = z.object({
   transmission: z.enum(['Auto', 'Manual']).optional(),
 });
 
+type EnrichedVehicle = WithId<Vehicle> & { customer?: WithId<Customer> };
+
 type AddCustomerVehicleDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   customers: WithId<Customer>[];
-  vehicles: WithId<Vehicle>[];
   onSelect: (customer: WithId<Customer>, vehicle: WithId<Vehicle>) => void;
-  onCreate: (customer: Omit<Customer, 'id'>, vehicle: Omit<Vehicle, 'id' | 'customerId'>) => void;
+  onCreate: (customer: Omit<Customer, 'id'>, vehicle: Omit<Vehicle, 'id' | 'customerId'>) => Promise<void>;
 };
 
-export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehicles, onSelect, onCreate }: AddCustomerVehicleDialogProps) {
+export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, onSelect, onCreate }: AddCustomerVehicleDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
-
-  // NEW: loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<EnrichedVehicle[]>([]);
 
   const form = useForm({
     resolver: zodResolver(customerSchema.merge(vehicleSchema)),
@@ -65,47 +67,67 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
       setSearchQuery('');
       setShowAddForm(false);
       setIsSubmitting(false);
+      setSearchResults([]);
+      setIsSearching(false);
     }
   }, [isOpen, form]);
 
-  const searchResults = useMemo(() => {
-    if (!searchQuery) return [];
-    return vehicles.filter(v => v.numberPlate.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [searchQuery, vehicles]);
+  const customerMap = useMemo(() => new Map(customers.map(c => [c.id, c])), [customers]);
+
+  const debouncedSearch = useDebouncedCallback(async (query: string) => {
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/vehicles/search?query=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error('Search failed');
+      const vehicles: WithId<Vehicle>[] = await res.json();
+      
+      const enrichedVehicles = vehicles.map(vehicle => ({
+          ...vehicle,
+          customer: customerMap.get(vehicle.customerId)
+      }));
+
+      setSearchResults(enrichedVehicles);
+    } catch (error) {
+      console.error("Failed to search vehicles:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, 500);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    setIsSearching(true);
+    debouncedSearch(query);
+  };
+
 
   const onSubmit = async (values: z.infer<typeof customerSchema> & z.infer<typeof vehicleSchema>) => {
-    if (vehicles?.some(v => v.numberPlate === values.numberPlate)) {
-        form.setError('numberPlate', {
-            type: 'manual',
-            message: 'A vehicle with this number plate already exists.',
-        });
-        return;
-    }
-
-    setIsSubmitting(true); // start loading
-
+    setIsSubmitting(true);
     const { name, phone, address, nic, ...vehicleData } = values;
     const customerData = { name, phone, address, nic };
     
     const finalVehicleData: Omit<Vehicle, 'id' | 'customerId'> = {
         ...vehicleData,
     };
-
     if (vehicleData.mileage) {
         finalVehicleData.mileage = Number(vehicleData.mileage);
     } else {
         delete (finalVehicleData as Partial<Vehicle>).mileage;
     }
-
     await onCreate(customerData, finalVehicleData);
-
-    setIsSubmitting(false); // stop loading
+    setIsSubmitting(false);
   };
 
-  const handleSelect = (vehicle: WithId<Vehicle>) => {
-    const customer = customers.find(c => c.id === vehicle.customerId);
-    if(customer) {
-      onSelect(customer, vehicle);
+  const handleSelect = (vehicle: EnrichedVehicle) => {
+    if(vehicle.customer) {
+      onSelect(vehicle.customer, vehicle);
     }
   }
 
@@ -138,10 +160,11 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
           <div className="py-4">
             <div className="relative group mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 group-focus-within:text-black transition-colors" />
+              {isSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 animate-spin" />}
               <Input
                 placeholder="Search by Vehicle Number Plate..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
                 className={cn(commonInputStyles, "pl-10")}
               />
             </div>
@@ -150,12 +173,11 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
               <div className='p-2'>
               {searchResults.length > 0 ? (
                 searchResults.map(vehicle => {
-                  const customer = customers.find(c => c.id === vehicle.customerId);
                   return (
                     <button key={vehicle.id} onClick={() => handleSelect(vehicle)} className="w-full text-left p-3 hover:bg-zinc-100 rounded-sm transition-colors flex justify-between items-center group">
                       <div>
                         <p className="font-semibold">{vehicle.numberPlate}</p>
-                        <p className="text-sm text-zinc-500">{customer?.name} - {vehicle.make} {vehicle.model} ({vehicle.year})</p>
+                        <p className="text-sm text-zinc-500">{vehicle.customer?.name} - {vehicle.make} {vehicle.model} ({vehicle.year})</p>
                       </div>
                        <div className="text-right">
                           <p className="text-xs text-zinc-400">{formatLastVisit(vehicle.lastVisit)}</p>
@@ -252,7 +274,6 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
                   Back to Search
                 </Button>
 
-                {/* NEW: button with spinner */}
                 <Button type="submit" className={commonButtonStyles} disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {isSubmitting ? "Creating..." : "Create and Select"}
@@ -265,3 +286,5 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, customers, vehi
     </Dialog>
   );
 }
+
+    

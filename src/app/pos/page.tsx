@@ -81,7 +81,7 @@ export default function POSPage() {
   const [services, setServices] = useState<WithId<Service>[]>([]);
   const [employees, setEmployees] = useState<WithId<Employee>[]>([]);
   const [customers, setCustomers] = useState<WithId<Customer>[]>([]);
-  const [vehicles, setVehicles] = useState<WithId<Vehicle>[]>([]);
+  // vehicles are now fetched on-demand in the dialog
 
   // --- UI/Logic States ---
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -97,36 +97,44 @@ export default function POSPage() {
   const [isPaymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
 
-  const fetchData = useCallback(async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
-      const [productsRes, servicesRes, employeesRes, customersRes, vehiclesRes] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/services'),
-        fetch('/api/employees'),
-        fetch('/api/customers'),
-        fetch('/api/vehicles'),
-      ]);
-      if (!productsRes.ok) throw new Error('Failed to fetch products');
-      if (!servicesRes.ok) throw new Error('Failed to fetch services');
-      if (!employeesRes.ok) throw new Error('Failed to fetch employees');
-      if (!customersRes.ok) throw new Error('Failed to fetch customers');
-      if (!vehiclesRes.ok) throw new Error('Failed to fetch vehicles');
-
-      setProducts(await productsRes.json());
-      setServices(await servicesRes.json());
-      setEmployees(await employeesRes.json());
-      setCustomers(await customersRes.json());
-      setVehicles(await vehiclesRes.json());
-
+        const res = await fetch('/api/customers');
+        if (!res.ok) throw new Error('Failed to fetch customers');
+        setCustomers(await res.json());
     } catch (err) {
-      console.error(err);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch initial POS data.' });
+        console.error(err);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch customer data.' });
     }
   }, [toast]);
 
+
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const fetchInitialData = async () => {
+      try {
+        const [productsRes, servicesRes, employeesRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/services'),
+          fetch('/api/employees'),
+        ]);
+        if (!productsRes.ok) throw new Error('Failed to fetch products');
+        if (!servicesRes.ok) throw new Error('Failed to fetch services');
+        if (!employeesRes.ok) throw new Error('Failed to fetch employees');
+        
+        setProducts(await productsRes.json());
+        setServices(await servicesRes.json());
+        setEmployees(await employeesRes.json());
+        
+        await fetchCustomers();
+
+      } catch (err) {
+        console.error(err);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch initial POS data.' });
+      }
+    };
+    
+    fetchInitialData();
+  }, [fetchCustomers, toast]);
 
 
   useEffect(() => {
@@ -238,11 +246,8 @@ export default function POSPage() {
         if (!vehicleRes.ok) throw new Error('Failed to create vehicle');
         const newVehicle: WithId<Vehicle> = await vehicleRes.json();
         
-        // Add to local state for immediate UI update
-        setCustomers(prev => [...prev, newCustomer]);
-        setVehicles(prev => [...prev, newVehicle]);
-
-        // Select the newly created entities
+        // Re-fetch customers list and select the new ones
+        await fetchCustomers();
         handleSelectCustomerAndVehicle(newCustomer, newVehicle);
 
     } catch (err: any) {
@@ -442,35 +447,33 @@ export default function POSPage() {
             </div>
         </div>
 
-        <div className="flex items-center justify-between mb-8">
-            <div className={cn("flex items-center gap-2 transition-opacity", activeTab === 'products' && 'opacity-20 pointer-events-none')}>
-                {filterButtons.map(({ label, value, icon: Icon }) => (
-                    <TooltipProvider key={value}>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                key={value}
-                                onClick={() => setCategoryFilter(value)}
-                                variant="ghost"
-                                size="icon"
-                                className={cn(
-                                    "h-10 w-10 rounded-full border border-zinc-200 text-zinc-400 hover:bg-zinc-100 hover:text-black",
-                                    categoryFilter === value && "bg-black text-white hover:bg-black hover:text-white border-black"
-                                )}
-                                >
-                                    <Icon className="h-5 w-5" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Filter {label}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                ))}
-            </div>
+        <div className={cn("flex items-center gap-2 transition-opacity", activeTab === 'products' && 'opacity-20 pointer-events-none')}>
+            {filterButtons.map(({ label, value, icon: Icon }) => (
+                <TooltipProvider key={value}>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                            key={value}
+                            onClick={() => setCategoryFilter(value)}
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                                "h-10 w-10 rounded-full border border-zinc-200 text-zinc-400 hover:bg-zinc-100 hover:text-black",
+                                categoryFilter === value && "bg-black text-white hover:bg-black hover:text-white border-black"
+                            )}
+                            >
+                                <Icon className="h-5 w-5" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Filter {label}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            ))}
         </div>
 
-        <Tabs defaultValue="services" value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
+        <Tabs defaultValue="services" value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0 mt-8">
             <TabsList className="bg-zinc-100 justify-start p-1 w-full rounded-none">
                 <TabsTrigger
                     value="services"
@@ -724,7 +727,6 @@ export default function POSPage() {
             isOpen={isCustomerDialogOpen}
             onOpenChange={setCustomerDialogOpen}
             customers={customers || []}
-            vehicles={vehicles || []}
             onSelect={handleSelectCustomerAndVehicle}
             onCreate={handleCreateCustomerAndVehicle}
           />
@@ -738,3 +740,5 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
