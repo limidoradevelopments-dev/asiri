@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { collection } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
-import type { Invoice, Product, Customer } from '@/lib/data';
+import type { Invoice, Product, Customer, Vehicle } from '@/lib/data';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 
 import StatCard from "@/components/dashboard/StatCard";
@@ -20,10 +20,13 @@ export default function DashboardPage() {
   const invoicesCollection = useMemoFirebase(() => collection(firestore, 'invoices'), [firestore]);
   const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
   const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
+  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
 
   const { data: invoices, isLoading: invoicesLoading } = useCollection<Invoice>(invoicesCollection);
   const { data: products, isLoading: productsLoading } = useCollection<Product>(productsCollection);
   const { data: customers, isLoading: customersLoading } = useCollection<WithId<Customer>>(customersCollection);
+  const { data: vehicles, isLoading: vehiclesLoading } = useCollection<WithId<Vehicle>>(vehiclesCollection);
+
 
   const formatCurrency = (amount: number) => {
      if (typeof amount !== 'number') return 'Rs. 0.00';
@@ -42,7 +45,7 @@ export default function DashboardPage() {
 
     const lowStockItems = products?.filter(p => p.stock <= p.stockThreshold) ?? [];
     
-    const totalCustomers = customers?.length ?? 0;
+    const totalCustomers = vehicles ? new Set(vehicles.map(v => v.customerId)).size : 0;
 
     const stats = [
       { title: "Total Revenue", value: formatCurrency(totalRevenue), icon: DollarSign },
@@ -87,9 +90,9 @@ export default function DashboardPage() {
       lowStockItems: lowStockForComponent,
       recentInvoices,
     };
-  }, [invoices, products, customers]);
+  }, [invoices, products, customers, vehicles]);
 
-  const isLoading = invoicesLoading || productsLoading || customersLoading;
+  const isLoading = invoicesLoading || productsLoading || customersLoading || vehiclesLoading;
 
   const renderStatSkeletons = () => (
     Array.from({ length: 4 }).map((_, i) => (
