@@ -126,7 +126,7 @@ export default function EmployeesPage() {
           />
         </div>
 
-      <AlertDialog open={!!employeeToDelete} onOpenChange={setEmployeeToDelete}>
+      <AlertDialog open={!!employeeToDelete} onOpenChange={(open) => !open && setEmployeeToDelete(null)}>
         <AlertDialogContent className="rounded-none border-zinc-200">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-light tracking-tight text-xl">Confirm Deletion</AlertDialogTitle>
@@ -136,6 +136,7 @@ export default function EmployeesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 mt-4">
             <AlertDialogCancel 
+                onClick={() => setEmployeeToDelete(null)}
                 className="rounded-none border-zinc-200 uppercase tracking-widest text-xs"
             >
                 Cancel

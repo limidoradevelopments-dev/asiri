@@ -245,7 +245,7 @@ export default function InventoryPage() {
             </div>
         </Tabs>
 
-      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent className="rounded-none border-zinc-200">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-light tracking-tight text-xl">Confirm Deletion</AlertDialogTitle>
