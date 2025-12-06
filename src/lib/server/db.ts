@@ -10,6 +10,7 @@ import {
   deleteDoc,
   DocumentData,
   QuerySnapshot,
+  increment,
 } from "firebase/firestore";
 
 /**
@@ -70,4 +71,14 @@ export const db = {
     await deleteDoc(docRef);
     return { id };
   },
+
+  async increment(collectionName: string, id: string, field: string, value: number) {
+    const { firestore } = initializeFirebase();
+    if (!firestore) throw new Error("Firestore not initialized");
+    const docRef = doc(firestore, collectionName, id);
+    await updateDoc(docRef, {
+      [field]: increment(value)
+    });
+    return { id, success: true };
+  }
 };
