@@ -59,25 +59,28 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, onSelect, onCre
     defaultValues: { 
       name: '', phone: '', address: '', nic: '', 
       numberPlate: '', make: '', model: '', year: new Date().getFullYear(),
-      mileage: '', fuelType: undefined, transmission: undefined
+      mileage: undefined, fuelType: undefined, transmission: undefined
     },
   });
   
-  const fetchCustomers = useCallback(async () => {
+  const fetchCustomers = useCallback(async (signal: AbortSignal) => {
     try {
-        const res = await fetch('/api/customers');
+        const res = await fetch('/api/customers', { signal });
         if (!res.ok) throw new Error('Failed to fetch customers');
         setCustomers(await res.json());
-    } catch (err) {
-        console.error(err);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch customer data.' });
+    } catch (err: any) {
+        if (err.name === 'AbortError') return;
+        const message = err instanceof Error ? err.message : 'Could not fetch customer data.';
+        toast({ variant: 'destructive', title: 'Error', description: message });
     }
   }, [toast]);
   
   useEffect(() => {
+    const controller = new AbortController();
     if(isOpen) {
-      fetchCustomers();
+      fetchCustomers(controller.signal);
     } else {
+      // Reset state when dialog closes
       form.reset();
       setSearchQuery('');
       setShowAddForm(false);
@@ -85,6 +88,7 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, onSelect, onCre
       setSearchResults([]);
       setIsSearching(false);
     }
+    return () => controller.abort();
   }, [isOpen, form, fetchCustomers]);
 
   const customerMap = useMemo(() => new Map(customers.map(c => [c.id, c])), [customers]);
@@ -264,7 +268,7 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, onSelect, onCre
                     )} />
                     <FormField control={form.control} name="fuelType" render={({ field }) => (
                         <FormItem><FormLabel>Fuel Type (Optional)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl><SelectTrigger className={commonInputStyles}><SelectValue placeholder="Select fuel type" /></SelectTrigger></FormControl>
                                 <SelectContent className="rounded-none border-zinc-200">
                                     <SelectItem value="Petrol">Petrol</SelectItem>
@@ -279,7 +283,7 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, onSelect, onCre
                 <div className="grid grid-cols-3 gap-4">
                      <FormField control={form.control} name="transmission" render={({ field }) => (
                         <FormItem><FormLabel>Transmission (Optional)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl><SelectTrigger className={commonInputStyles}><SelectValue placeholder="Select transmission" /></SelectTrigger></FormControl>
                                 <SelectContent className="rounded-none border-zinc-200">
                                     <SelectItem value="Auto">Automatic</SelectItem>
@@ -307,3 +311,5 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, onSelect, onCre
     </Dialog>
   );
 }
+
+    

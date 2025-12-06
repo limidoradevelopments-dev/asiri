@@ -83,6 +83,8 @@ export default function POSPage() {
   const [employees, setEmployees] = useState<WithId<Employee>[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [servicesLoading, setServicesLoading] = useState(true);
+  const [employeesLoading, setEmployeesLoading] = useState(true);
+
 
   // --- UI/Logic States ---
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -97,17 +99,18 @@ export default function POSPage() {
   const [selectedVehicle, setSelectedVehicle] = useState<WithId<Vehicle> | null>(null);
   const [isPaymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
-
-  useEffect(() => {
-    const fetchInitialData = async () => {
+  const fetchInitialData = useCallback(async (signal: AbortSignal) => {
       try {
         setProductsLoading(true);
         setServicesLoading(true);
+        setEmployeesLoading(true);
+        
         const [productsRes, servicesRes, employeesRes] = await Promise.all([
-          fetch('/api/products'),
-          fetch('/api/services'),
-          fetch('/api/employees'),
+          fetch('/api/products', { signal }),
+          fetch('/api/services', { signal }),
+          fetch('/api/employees', { signal }),
         ]);
+
         if (!productsRes.ok) throw new Error('Failed to fetch products');
         if (!servicesRes.ok) throw new Error('Failed to fetch services');
         if (!employeesRes.ok) throw new Error('Failed to fetch employees');
@@ -116,17 +119,29 @@ export default function POSPage() {
         setServices(await servicesRes.json());
         setEmployees(await employeesRes.json());
 
-      } catch (err) {
-        console.error(err);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch initial POS data.' });
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+            console.log("Fetch aborted on component unmount.");
+            return;
+        }
+        const message = err instanceof Error ? err.message : 'Could not fetch initial POS data.';
+        toast({ variant: 'destructive', title: 'Error', description: message });
       } finally {
         setProductsLoading(false);
         setServicesLoading(false);
+        setEmployeesLoading(false);
       }
-    };
+    }, [toast]);
     
-    fetchInitialData();
-  }, [toast]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchInitialData(controller.signal);
+    
+    return () => {
+      controller.abort();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   useEffect(() => {
@@ -221,8 +236,6 @@ export default function POSPage() {
   };
   
   const handleCreateCustomerAndVehicle = async (customerData: Omit<Customer, 'id'>, vehicleData: Omit<Vehicle, 'id' | 'customerId'>) => {
-    // This function is passed to the dialog, which will handle its own API calls.
-    // We just need to handle the success case.
     try {
       const customerRes = await fetch('/api/customers', {
         method: 'POST',
@@ -251,14 +264,13 @@ export default function POSPage() {
       }
       const newVehicle: WithId<Vehicle> = await vehicleRes.json();
       
-      // On success, select the newly created entities
       handleSelectCustomerAndVehicle(newCustomer, newVehicle);
       toast({ title: "Success", description: "New customer and vehicle have been created and selected." });
 
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err.message });
-      // Re-throw to allow the dialog to handle its submitting state
-      throw err;
+        const message = err instanceof Error ? err.message : "An unknown error occurred.";
+        toast({ variant: 'destructive', title: 'Error', description: message });
+        throw err;
     }
   };
 
@@ -419,7 +431,8 @@ export default function POSPage() {
 
         resetState();
     } catch(err: any) {
-        toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to save invoice.' });
+        const message = err instanceof Error ? err.message : 'Failed to save invoice.';
+        toast({ variant: 'destructive', title: 'Error', description: message });
     }
   }, [selectedCustomer, selectedVehicle, selectedEmployee, cart, totals, globalDiscountPercent, resetState, toast]);
   
@@ -430,7 +443,7 @@ export default function POSPage() {
     { label: 'Jeep/Van', value: 'Jeep/Van', icon: Truck },
   ];
 
-  const isLoading = productsLoading || servicesLoading;
+  const isLoading = productsLoading || servicesLoading || employeesLoading;
 
   const renderSkeletons = () => (
     Array.from({ length: 9 }).map((_, i) => (
@@ -754,3 +767,5 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
