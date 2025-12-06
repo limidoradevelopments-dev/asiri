@@ -106,6 +106,7 @@ export default function EmployeesPage() {
                         onOpenChange={onDialogClose}
                     >
                         <Button 
+                            onClick={() => setAddEmployeeDialogOpen(true)}
                             className="h-10 px-6 rounded-none bg-black text-white text-xs uppercase tracking-[0.15em] hover:bg-zinc-800 transition-all shadow-none"
                         >
                             <Plus className="mr-2 h-3 w-3" />
@@ -125,7 +126,7 @@ export default function EmployeesPage() {
           />
         </div>
 
-      <AlertDialog open={!!employeeToDelete} onOpenChange={() => setEmployeeToDelete(null)}>
+      <AlertDialog open={!!employeeToDelete} onOpenChange={setEmployeeToDelete}>
         <AlertDialogContent className="rounded-none border-zinc-200">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-light tracking-tight text-xl">Confirm Deletion</AlertDialogTitle>
@@ -135,7 +136,6 @@ export default function EmployeesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 mt-4">
             <AlertDialogCancel 
-                onClick={() => setEmployeeToDelete(null)}
                 className="rounded-none border-zinc-200 uppercase tracking-widest text-xs"
             >
                 Cancel

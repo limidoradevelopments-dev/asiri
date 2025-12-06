@@ -54,7 +54,7 @@ const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().min(1, 'SKU is required'),
   category: z.string().min(1, 'Category is required'),
-  stock: z.coerce.number().int().min(0, 'Stock cannot be negative'), // Added Stock field
+  stock: z.coerce.number().int().min(0, 'Stock cannot be negative'),
   stockThreshold: z.coerce.number().int().min(0, 'Re-order level cannot be negative'),
   actualPrice: z.coerce.number().min(0, 'Price cannot be negative'),
   sellingPrice: z.coerce.number().min(0, 'Price cannot be negative'),
@@ -107,9 +107,7 @@ export function AddItemDialog({
   const { toast } = useToast();
   
   const isEditMode = !!itemToEdit;
-  // Determine initial tab based on the item being edited
   const itemType = itemToEdit ? ('sku' in itemToEdit ? 'product' : 'service') : 'product';
-  const [activeTab, setActiveTab] = useState(itemType);
 
   const productForm = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -125,24 +123,15 @@ export function AddItemDialog({
     },
   });
 
-  // Reset forms when dialog opens/closes or itemToEdit changes
   useEffect(() => {
     if (isOpen) {
-      const newActiveTab = itemToEdit ? ('sku' in itemToEdit ? 'product' : 'service') : 'product';
-      setActiveTab(newActiveTab);
       if (isEditMode && itemToEdit) {
         if ('sku' in itemToEdit) {
-          // Editing Product
-          productForm.reset({
-            ...itemToEdit,
-            stock: itemToEdit.stock || 0, // Ensure stock is mapped
-          });
+          productForm.reset({ ...itemToEdit, stock: itemToEdit.stock || 0 });
         } else {
-          // Editing Service
           serviceForm.reset(itemToEdit);
         }
       } else {
-        // Adding New - Reset to clean state
         productForm.reset({
           name: '', sku: '', category: '', stock: 0, stockThreshold: 5, actualPrice: 0, sellingPrice: 0,
         });
@@ -153,12 +142,8 @@ export function AddItemDialog({
     }
   }, [itemToEdit, isEditMode, productForm, serviceForm, isOpen]);
 
-
   const onProductSubmit = (values: z.infer<typeof productSchema>) => {
-    // If editing, we generally preserve existing stock via the logic, 
-    // but here we allow editing stock directly if needed, or pass the form value.
     onUpsertItem(values, 'product', itemToEdit?.id);
-    
     toast({ 
       title: isEditMode ? 'Product Updated' : 'Product Added', 
       description: `${values.name} has been saved successfully.` 
@@ -175,12 +160,9 @@ export function AddItemDialog({
     onOpenChange(false);
   };
 
-  // --- Handlers for Adding Categories ---
-
   const handleAddNewProductCategory = () => {
     if (newProductCategory.trim() && !productCategories.includes(newProductCategory)) {
       setProductCategories((prev) => [...prev, newProductCategory]);
-      // UX Improvement: Auto select the new category
       productForm.setValue('category', newProductCategory); 
       productForm.clearErrors('category');
     }
@@ -191,7 +173,6 @@ export function AddItemDialog({
   const handleAddNewVehicleCategory = () => {
     if (newVehicleCategory.trim() && !vehicleCategories.includes(newVehicleCategory)) {
       setVehicleCategories((prev) => [...prev, newVehicleCategory]);
-      // UX Improvement: Auto select the new category
       serviceForm.setValue('vehicleCategory', newVehicleCategory);
       serviceForm.clearErrors('vehicleCategory');
     }
@@ -199,7 +180,6 @@ export function AddItemDialog({
     setNewVehicleCategory('');
   };
 
-  // Prevent form submission on "Enter" key in text fields
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type !== 'submit') {
       e.preventDefault();
@@ -215,7 +195,8 @@ export function AddItemDialog({
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent 
           className="sm:max-w-lg rounded-none border-zinc-200"
-          // Prevent closing when interacting with outside elements while nested dialogs are active
+          // CRITICAL FIX: Explicitly prevents the main dialog from closing or interfering
+          // when the nested Alert Dialogs are open and clicked.
           onPointerDownOutside={(e) => {
             if (showNewProductCategoryDialog || showNewVehicleCategoryDialog) {
               e.preventDefault();
@@ -231,7 +212,7 @@ export function AddItemDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+          <Tabs defaultValue={itemType} className="mt-4">
             <TabsList className="grid w-full grid-cols-2 bg-zinc-100 rounded-none h-11">
               <TabsTrigger 
                 value="product" 
@@ -249,14 +230,9 @@ export function AddItemDialog({
               </TabsTrigger>
             </TabsList>
 
-            {/* --- Product Form --- */}
             <TabsContent value="product">
               <Form {...productForm}>
-                <form 
-                  onSubmit={productForm.handleSubmit(onProductSubmit)} 
-                  onKeyDown={handleKeyDown}
-                  className="space-y-4 py-4"
-                >
+                <form onSubmit={productForm.handleSubmit(onProductSubmit)} onKeyDown={handleKeyDown} className="space-y-4 py-4">
                   <FormField
                     control={productForm.control}
                     name="name"
@@ -290,7 +266,18 @@ export function AddItemDialog({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Category</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select
+                            onValueChange={(value) => {
+                              if (value === 'add-new-trigger') {
+                                // FIX: Use setTimeout to allow the Select Dropdown to close fully 
+                                // before opening the Alert. This releases focus to the Alert Input.
+                                setTimeout(() => setShowNewProductCategoryDialog(true), 10);
+                              } else {
+                                field.onChange(value);
+                              }
+                            }}
+                            value={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger className={commonInputStyles}>
                                 <SelectValue placeholder="Select a category" />
@@ -298,17 +285,11 @@ export function AddItemDialog({
                             </FormControl>
                             <SelectContent className="rounded-none border-zinc-200">
                               {productCategories.map((category) => (
-                                <SelectItem key={category} value={category}>
-                                  {category}
-                                </SelectItem>
+                                <SelectItem key={category} value={category}>{category}</SelectItem>
                               ))}
                               <SelectSeparator />
                               <SelectItem 
                                 value="add-new-trigger"
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                  setShowNewProductCategoryDialog(true);
-                                }}
                                 className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
                               >
                                 <div className="flex items-center">
@@ -393,14 +374,9 @@ export function AddItemDialog({
               </Form>
             </TabsContent>
 
-            {/* --- Service Form --- */}
             <TabsContent value="service">
               <Form {...serviceForm}>
-                <form 
-                    onSubmit={serviceForm.handleSubmit(onServiceSubmit)} 
-                    onKeyDown={handleKeyDown}
-                    className="space-y-4 py-4"
-                >
+                <form onSubmit={serviceForm.handleSubmit(onServiceSubmit)} onKeyDown={handleKeyDown} className="space-y-4 py-4">
                   <FormField
                     control={serviceForm.control}
                     name="name"
@@ -420,7 +396,17 @@ export function AddItemDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Vehicle Category</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                           onValueChange={(value) => {
+                            if (value === 'add-new-trigger') {
+                              // FIX: Use setTimeout for focus management
+                              setTimeout(() => setShowNewVehicleCategoryDialog(true), 10);
+                            } else {
+                              field.onChange(value);
+                            }
+                          }}
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger className={commonInputStyles}>
                               <SelectValue placeholder="Select a vehicle category" />
@@ -433,10 +419,6 @@ export function AddItemDialog({
                             <SelectSeparator />
                             <SelectItem 
                                 value="add-new-trigger"
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                  setShowNewVehicleCategoryDialog(true);
-                                }}
                                 className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
                             >
                                 <div className="flex items-center">
@@ -490,10 +472,11 @@ export function AddItemDialog({
         </DialogContent>
       </Dialog>
 
-      {/* --- Nested Alert Dialogs (Siblings to Main Dialog) --- */}
+      {/* --- Nested Alert Dialogs --- */}
+      {/* FIX: Added z-[100] to ensure these alerts sit on top of the Main Dialog */}
       
       <AlertDialog open={showNewProductCategoryDialog} onOpenChange={setShowNewProductCategoryDialog}>
-        <AlertDialogContent className="rounded-none border-zinc-200">
+        <AlertDialogContent className="rounded-none border-zinc-200 z-[100]">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-light tracking-tight text-xl">Add New Product Category</AlertDialogTitle>
             <AlertDialogDescription>
@@ -514,14 +497,14 @@ export function AddItemDialog({
             className={commonInputStyles}
           />
           <AlertDialogFooter className="mt-4 gap-2">
-            <AlertDialogCancel type="button" onClick={() => setShowNewProductCategoryDialog(false)} className={commonButtonStyles}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel type="button" className={commonButtonStyles}>Cancel</AlertDialogCancel>
             <AlertDialogAction type="button" onClick={handleAddNewProductCategory} className={commonButtonStyles}>Add Category</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={showNewVehicleCategoryDialog} onOpenChange={setShowNewVehicleCategoryDialog}>
-        <AlertDialogContent className="rounded-none border-zinc-200">
+        <AlertDialogContent className="rounded-none border-zinc-200 z-[100]">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-light tracking-tight text-xl">Add New Vehicle Category</AlertDialogTitle>
             <AlertDialogDescription>
@@ -542,7 +525,7 @@ export function AddItemDialog({
              className={commonInputStyles}
           />
           <AlertDialogFooter className="mt-4 gap-2">
-            <AlertDialogCancel type="button" onClick={() => setShowNewVehicleCategoryDialog(false)} className={commonButtonStyles}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel type="button" className={commonButtonStyles}>Cancel</AlertDialogCancel>
             <AlertDialogAction type="button" onClick={handleAddNewVehicleCategory} className={commonButtonStyles}>Add Category</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
