@@ -53,7 +53,7 @@ import {
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().min(1, 'SKU is required'),
-  category: z.string().min(1, 'Category is required'),
+  category: z.string().optional(),
   stock: z.coerce.number().int().min(0, 'Stock cannot be negative'),
   stockThreshold: z.coerce.number().int().min(0, 'Re-order level cannot be negative'),
   actualPrice: z.coerce.number().min(0, 'Price cannot be negative'),
@@ -195,8 +195,6 @@ export function AddItemDialog({
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent 
           className="sm:max-w-lg rounded-none border-zinc-200"
-          // CRITICAL FIX: Explicitly prevents the main dialog from closing or interfering
-          // when the nested Alert Dialogs are open and clicked.
           onPointerDownOutside={(e) => {
             if (showNewProductCategoryDialog || showNewVehicleCategoryDialog) {
               e.preventDefault();
@@ -265,17 +263,9 @@ export function AddItemDialog({
                       name="category"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category</FormLabel>
+                          <FormLabel>Category (Optional)</FormLabel>
                           <Select
-                            onValueChange={(value) => {
-                              if (value === 'add-new-trigger') {
-                                // FIX: Use setTimeout to allow the Select Dropdown to close fully 
-                                // before opening the Alert. This releases focus to the Alert Input.
-                                setTimeout(() => setShowNewProductCategoryDialog(true), 10);
-                              } else {
-                                field.onChange(value);
-                              }
-                            }}
+                            onValueChange={field.onChange}
                             value={field.value}
                           >
                             <FormControl>
@@ -290,6 +280,10 @@ export function AddItemDialog({
                               <SelectSeparator />
                               <SelectItem 
                                 value="add-new-trigger"
+                                onSelect={(e) => {
+                                    e.preventDefault();
+                                    setShowNewProductCategoryDialog(true);
+                                }}
                                 className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
                               >
                                 <div className="flex items-center">
@@ -397,14 +391,7 @@ export function AddItemDialog({
                       <FormItem>
                         <FormLabel>Vehicle Category</FormLabel>
                         <Select
-                           onValueChange={(value) => {
-                            if (value === 'add-new-trigger') {
-                              // FIX: Use setTimeout for focus management
-                              setTimeout(() => setShowNewVehicleCategoryDialog(true), 10);
-                            } else {
-                              field.onChange(value);
-                            }
-                          }}
+                           onValueChange={field.onChange}
                           value={field.value}
                         >
                           <FormControl>
@@ -419,6 +406,10 @@ export function AddItemDialog({
                             <SelectSeparator />
                             <SelectItem 
                                 value="add-new-trigger"
+                                onSelect={(e) => {
+                                    e.preventDefault();
+                                    setShowNewVehicleCategoryDialog(true);
+                                }}
                                 className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
                             >
                                 <div className="flex items-center">
@@ -472,9 +463,6 @@ export function AddItemDialog({
         </DialogContent>
       </Dialog>
 
-      {/* --- Nested Alert Dialogs --- */}
-      {/* FIX: Added z-[100] to ensure these alerts sit on top of the Main Dialog */}
-      
       <AlertDialog open={showNewProductCategoryDialog} onOpenChange={setShowNewProductCategoryDialog}>
         <AlertDialogContent className="rounded-none border-zinc-200 z-[100]">
           <AlertDialogHeader>
