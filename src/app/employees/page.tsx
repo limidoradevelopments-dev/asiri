@@ -1,15 +1,12 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from "react";
-import { collection, doc } from "firebase/firestore";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import type { Employee } from "@/lib/data";
 import { AddEmployeeDialog } from "@/components/employees/AddEmployeeDialog";
 import EmployeesTable from "@/components/employees/EmployeesTable";
-import { useFirestore, useCollection, useMemoFirebase, WithId } from "@/firebase";
-import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,18 +17,39 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useToast } from "@/hooks/use-toast";
+
+type WithId<T> = T & { id: string };
 
 export default function EmployeesPage() {
-  const firestore = useFirestore();
-
-  const employeesCollection = useMemoFirebase(() => collection(firestore, 'employees'), [firestore]);
-
-  const { data: employees, isLoading: employeesLoading } = useCollection<Employee>(employeesCollection);
+  const { toast } = useToast();
+  
+  const [employees, setEmployees] = useState<WithId<Employee>[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddEmployeeDialogOpen, setAddEmployeeDialogOpen] = useState(false);
   const [employeeToEdit, setEmployeeToEdit] = useState<WithId<Employee> | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setEmployeesLoading(true);
+      const res = await fetch('/api/employees');
+      if (!res.ok) throw new Error('Failed to fetch employees');
+      setEmployees(await res.json());
+    } catch (err) {
+      console.error(err);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch employee data.' });
+    } finally {
+      setEmployeesLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
 
   const filteredEmployees = useMemo(() => {
     if (!employees) return [];
@@ -44,16 +62,31 @@ export default function EmployeesPage() {
     );
   }, [employees, searchQuery]);
   
-  const handleUpsertEmployee = useCallback((employee: Omit<Employee, 'id'>, id?: string) => {
-    if (id) {
-      const docRef = doc(firestore, 'employees', id);
-      updateDocumentNonBlocking(docRef, { ...employee });
-    } else {
-      if (employeesCollection) {
-        addDocumentNonBlocking(employeesCollection, employee);
-      }
+  const handleUpsertEmployee = useCallback(async (employee: Omit<Employee, 'id'>, id?: string) => {
+    try {
+        const method = id ? "PUT" : "POST";
+        const body = JSON.stringify(id ? { id, ...employee } : employee);
+
+        const res = await fetch('/api/employees', {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body,
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Failed to save employee.');
+        }
+
+        toast({ title: id ? "Employee Updated" : "Employee Added", description: `${employee.name}'s record has been saved.` });
+        await fetchData();
+        onDialogClose(false);
+
+    } catch (err: any) {
+        console.error("Upsert error:", err);
+        toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to save employee.' });
     }
-  }, [firestore, employeesCollection]);
+  }, [fetchData, toast]);
 
   const handleEdit = useCallback((employee: WithId<Employee>) => {
     setEmployeeToEdit(employee);
@@ -64,14 +97,27 @@ export default function EmployeesPage() {
     setEmployeeToDelete(id);
   }, []);
 
-  const confirmDelete = useCallback(() => {
-    if (employeeToDelete) {
-      const docRef = doc(firestore, 'employees', employeeToDelete);
-      deleteDocumentNonBlocking(docRef);
-      // Close the dialog immediately for optimistic UI update
-      setEmployeeToDelete(null);
+  const confirmDelete = useCallback(async () => {
+    if (!employeeToDelete) return;
+    
+    // Optimistic UI update
+    setEmployees(prev => prev.filter(p => p.id !== employeeToDelete));
+    
+    try {
+        const res = await fetch(`/api/employees?id=${encodeURIComponent(employeeToDelete)}`, { method: "DELETE" });
+
+        if (!res.ok) {
+            throw new Error("Delete failed on the server.");
+        }
+        toast({ title: "Deleted", description: "Employee successfully deleted." });
+    } catch (err) {
+        console.error("Delete error:", err);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete employee.' });
+        fetchData(); // Re-fetch to revert optimistic update
+    } finally {
+        setEmployeeToDelete(null);
     }
-  }, [employeeToDelete, firestore]);
+  }, [employeeToDelete, fetchData, toast]);
 
   const onDialogClose = useCallback((isOpen: boolean) => {
     if (!isOpen) {
