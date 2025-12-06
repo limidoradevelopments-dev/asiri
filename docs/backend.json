@@ -194,6 +194,10 @@
         "bank": {
           "type": "string",
           "description": "The bank name if payment method is Check."
+        },
+        "changeGiven": {
+          "type": "number",
+          "description": "The amount of change returned to the customer."
         }
       },
       "required": [

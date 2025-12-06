@@ -297,7 +297,7 @@ export default function POSPage() {
     setPaymentDialogOpen(true);
   };
   
-  const handleConfirmPayment = useCallback(async (paymentDetails: Omit<Parameters<typeof onConfirmPayment>[0], "changeDue">) => {
+  const handleConfirmPayment = useCallback(async (paymentDetails: Omit<Parameters<typeof onConfirmPayment>[0], "changeDue"> & { changeGiven: number }) => {
     if (!selectedCustomer || !selectedVehicle || !selectedEmployee || !invoicesCollection || !firestore) return;
 
     const invoiceItems = cart.map(item => {
@@ -329,6 +329,7 @@ export default function POSPage() {
       paymentStatus: paymentDetails.paymentStatus,
       amountPaid: paymentDetails.amountPaid,
       balanceDue: paymentDetails.balanceDue,
+      changeGiven: paymentDetails.changeGiven,
       paymentMethod: paymentDetails.paymentMethod,
       ...(paymentDetails.paymentMethod === 'Check' && { 
         chequeNumber: paymentDetails.chequeNumber, 

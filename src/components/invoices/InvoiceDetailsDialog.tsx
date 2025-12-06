@@ -154,6 +154,12 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsD
                             <span className="text-zinc-600">Amount Paid ({invoice.paymentMethod}):</span>
                             <span className="font-mono">{formatPrice(invoice.amountPaid)}</span>
                         </div>
+                        {invoice.changeGiven && invoice.changeGiven > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-zinc-600">Change Given:</span>
+                            <span className="font-mono">{formatPrice(invoice.changeGiven)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between font-semibold">
                             <span>Balance Due:</span>
                             <span className="font-mono">{formatPrice(invoice.balanceDue)}</span>

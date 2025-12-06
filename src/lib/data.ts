@@ -99,6 +99,7 @@ export type Invoice = {
   paymentMethod?: PaymentMethod;
   chequeNumber?: string;
   bank?: string;
+  changeGiven?: number;
 };
 
 

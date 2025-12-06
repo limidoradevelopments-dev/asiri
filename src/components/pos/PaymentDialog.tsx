@@ -34,7 +34,7 @@ type PaymentDialogProps = {
     amountPaid: number;
     balanceDue: number;
     paymentStatus: InvoiceStatus;
-    changeDue: number;
+    changeGiven: number;
     chequeNumber?: string;
     bank?: string;
   }) => void;
@@ -74,7 +74,7 @@ export function PaymentDialog({
   }, [isOpen, totalAmount]);
 
   // --- Core Calculation Logic ---
-  const { balanceDue, changeDue, paymentStatus, numericPaid } = useMemo(() => {
+  const { balanceDue, changeGiven, paymentStatus, numericPaid } = useMemo(() => {
     const paid = Math.max(0, parseFloat(amountPaid) || 0);
     const diff = safeRound(paid - totalAmount);
     
@@ -97,7 +97,7 @@ export function PaymentDialog({
 
     return { 
         balanceDue: balance, 
-        changeDue: change, 
+        changeGiven: change, 
         paymentStatus: status,
         numericPaid: paid
     };
@@ -109,7 +109,7 @@ export function PaymentDialog({
       amountPaid: numericPaid,
       balanceDue,
       paymentStatus,
-      changeDue,
+      changeGiven,
       chequeNumber: paymentMethod === 'Check' ? chequeNumber : undefined,
       bank: paymentMethod === 'Check' ? bank : undefined,
     });
@@ -220,14 +220,14 @@ export function PaymentDialog({
             {/* --- Dynamic Feedback Section (Change vs Balance) --- */}
             <div className={cn(
                 "rounded-lg p-4 flex items-center justify-between border",
-                changeDue > 0 
+                changeGiven > 0 
                     ? "bg-emerald-50 border-emerald-100" 
                     : balanceDue > 0 
                         ? "bg-red-50 border-red-100" 
                         : "bg-zinc-50 border-zinc-100"
             )}>
                 <div className="flex items-center gap-3">
-                    {changeDue > 0 ? (
+                    {changeGiven > 0 ? (
                         <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                             <ArrowRight className="w-5 h-5 -rotate-45" />
                         </div>
@@ -244,15 +244,15 @@ export function PaymentDialog({
                     <div className="flex flex-col">
                         <span className={cn(
                             "text-xs uppercase tracking-widest font-bold",
-                            changeDue > 0 ? "text-emerald-700" : balanceDue > 0 ? "text-red-700" : "text-zinc-500"
+                            changeGiven > 0 ? "text-emerald-700" : balanceDue > 0 ? "text-red-700" : "text-zinc-500"
                         )}>
-                            {changeDue > 0 ? "Change Return" : balanceDue > 0 ? "Balance Due" : "Settled"}
+                            {changeGiven > 0 ? "Change Return" : balanceDue > 0 ? "Balance Due" : "Settled"}
                         </span>
                         <span className={cn(
                             "text-lg font-mono font-medium leading-none mt-1",
-                            changeDue > 0 ? "text-emerald-900" : balanceDue > 0 ? "text-red-900" : "text-zinc-900"
+                            changeGiven > 0 ? "text-emerald-900" : balanceDue > 0 ? "text-red-900" : "text-zinc-900"
                         )}>
-                            LKR {formatCurrency(changeDue > 0 ? changeDue : balanceDue)}
+                            LKR {formatCurrency(changeGiven > 0 ? changeGiven : balanceDue)}
                         </span>
                     </div>
                 </div>
