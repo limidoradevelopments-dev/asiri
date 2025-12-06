@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -28,7 +29,7 @@ const vehicleSchema = z.object({
   make: z.string().min(1, 'Make is required'),
   model: z.string().min(1, 'Model is required'),
   year: z.coerce.number().int().min(1900, 'Invalid year').max(new Date().getFullYear() + 1, 'Invalid year'),
-  mileage: z.coerce.number().int().min(0, "Mileage must be a positive number.").optional().or(z.literal('')),
+  mileage: z.string().optional().transform(val => val === '' ? undefined : val).pipe(z.coerce.number().int().min(0, "Mileage must be a positive number.").optional()),
   fuelType: z.enum(['Petrol', 'Diesel', 'Hybrid', 'EV']).optional(),
   transmission: z.enum(['Auto', 'Manual']).optional(),
 });

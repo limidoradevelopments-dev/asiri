@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,6 +34,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from '@/components/ui/select';
 import { PlusCircle } from 'lucide-react';
 import {
@@ -48,15 +48,18 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+// --- Schemas ---
+
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().min(1, 'SKU is required'),
   category: z.string().min(1, 'Category is required'),
+  stock: z.coerce.number().int().min(0, 'Stock cannot be negative'), // Added Stock field
   stockThreshold: z.coerce.number().int().min(0, 'Re-order level cannot be negative'),
   actualPrice: z.coerce.number().min(0, 'Price cannot be negative'),
   sellingPrice: z.coerce.number().min(0, 'Price cannot be negative'),
 }).refine((data) => data.sellingPrice >= data.actualPrice, {
-  message: 'Selling price must be higher than or equal to the actual price',
+  message: 'Selling price must be higher than actual price',
   path: ['sellingPrice'],
 });
 
@@ -66,6 +69,8 @@ const serviceSchema = z.object({
   price: z.coerce.number().min(0, 'Price cannot be negative'),
   vehicleCategory: z.string().min(1, 'Vehicle Category is required'),
 });
+
+// --- Types ---
 
 type AddItemDialogProps = {
   children: React.ReactNode;
@@ -79,30 +84,36 @@ type AddItemDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
 };
 
-export function AddItemDialog({ 
-  children, 
-  onUpsertItem, 
-  productCategories, 
+// --- Component ---
+
+export function AddItemDialog({
+  children,
+  onUpsertItem,
+  productCategories,
   setProductCategories,
   vehicleCategories,
   setVehicleCategories,
-  itemToEdit, 
-  isOpen, 
-  onOpenChange 
+  itemToEdit,
+  isOpen,
+  onOpenChange
 }: AddItemDialogProps) {
+  // State for nested dialogs
   const [showNewProductCategoryDialog, setShowNewProductCategoryDialog] = useState(false);
   const [newProductCategory, setNewProductCategory] = useState('');
+  
   const [showNewVehicleCategoryDialog, setShowNewVehicleCategoryDialog] = useState(false);
   const [newVehicleCategory, setNewVehicleCategory] = useState('');
+  
   const { toast } = useToast();
   
   const isEditMode = !!itemToEdit;
+  // Determine initial tab based on the item being edited
   const itemType = itemToEdit ? ('sku' in itemToEdit ? 'product' : 'service') : 'product';
-  
+
   const productForm = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: '', sku: '', category: '', stockThreshold: 0, actualPrice: 0, sellingPrice: 0,
+      name: '', sku: '', category: '', stock: 0, stockThreshold: 0, actualPrice: 0, sellingPrice: 0,
     },
   });
 
@@ -113,57 +124,83 @@ export function AddItemDialog({
     },
   });
 
+  // Reset forms when dialog opens/closes or itemToEdit changes
   useEffect(() => {
-    if (isEditMode && itemToEdit) {
-      if ('sku' in itemToEdit) { // It's a Product
-        productForm.reset(itemToEdit);
-      } else { // It's a Service
-        serviceForm.reset(itemToEdit);
+    if (isOpen) {
+      if (isEditMode && itemToEdit) {
+        if ('sku' in itemToEdit) {
+          // Editing Product
+          productForm.reset({
+            ...itemToEdit,
+            stock: itemToEdit.stock || 0, // Ensure stock is mapped
+          });
+        } else {
+          // Editing Service
+          serviceForm.reset(itemToEdit);
+        }
+      } else {
+        // Adding New - Reset to clean state
+        productForm.reset({
+          name: '', sku: '', category: '', stock: 0, stockThreshold: 5, actualPrice: 0, sellingPrice: 0,
+        });
+        serviceForm.reset({
+          name: '', description: '', price: 0, vehicleCategory: ''
+        });
       }
-    } else {
-      productForm.reset({
-        name: '', sku: '', category: '', stockThreshold: 0, actualPrice: 0, sellingPrice: 0,
-      });
-      serviceForm.reset({
-        name: '', description: '', price: 0, vehicleCategory: ''
-      });
     }
   }, [itemToEdit, isEditMode, productForm, serviceForm, isOpen]);
 
 
   const onProductSubmit = (values: z.infer<typeof productSchema>) => {
-    const stockValue = (isEditMode && itemToEdit && 'stock' in itemToEdit) ? itemToEdit.stock : 0;
-    const productData: Omit<Product, 'id'> = {
-      ...values,
-      stock: stockValue,
-    };
-    onUpsertItem(productData, 'product', itemToEdit?.id);
-    toast({ title: isEditMode ? 'Product Updated' : 'Product Added', description: `${values.name} has been saved.` });
+    // If editing, we generally preserve existing stock via the logic, 
+    // but here we allow editing stock directly if needed, or pass the form value.
+    onUpsertItem(values, 'product', itemToEdit?.id);
+    
+    toast({ 
+      title: isEditMode ? 'Product Updated' : 'Product Added', 
+      description: `${values.name} has been saved successfully.` 
+    });
     onOpenChange(false);
   };
 
   const onServiceSubmit = (values: z.infer<typeof serviceSchema>) => {
     onUpsertItem(values, 'service', itemToEdit?.id);
-    toast({ title: isEditMode ? 'Service Updated' : 'Service Added', description: `${values.name} has been saved.` });
+    toast({ 
+      title: isEditMode ? 'Service Updated' : 'Service Added', 
+      description: `${values.name} has been saved successfully.` 
+    });
     onOpenChange(false);
   };
 
+  // --- Handlers for Adding Categories ---
+
   const handleAddNewProductCategory = () => {
-    if (newProductCategory && !productCategories.includes(newProductCategory)) {
+    if (newProductCategory.trim() && !productCategories.includes(newProductCategory)) {
       setProductCategories((prev) => [...prev, newProductCategory]);
-      productForm.setValue('category', newProductCategory);
+      // UX Improvement: Auto select the new category
+      productForm.setValue('category', newProductCategory); 
+      productForm.clearErrors('category');
     }
     setShowNewProductCategoryDialog(false);
     setNewProductCategory('');
   };
 
   const handleAddNewVehicleCategory = () => {
-    if (newVehicleCategory && !vehicleCategories.includes(newVehicleCategory)) {
+    if (newVehicleCategory.trim() && !vehicleCategories.includes(newVehicleCategory)) {
       setVehicleCategories((prev) => [...prev, newVehicleCategory]);
+      // UX Improvement: Auto select the new category
       serviceForm.setValue('vehicleCategory', newVehicleCategory);
+      serviceForm.clearErrors('vehicleCategory');
     }
     setShowNewVehicleCategoryDialog(false);
     setNewVehicleCategory('');
+  };
+
+  // Prevent form submission on "Enter" key in text fields
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type !== 'submit') {
+      e.preventDefault();
+    }
   };
 
   const commonInputStyles = "rounded-none h-11 text-base";
@@ -173,21 +210,50 @@ export function AddItemDialog({
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent className="sm:max-w-lg rounded-none border-zinc-200">
+        <DialogContent 
+          className="sm:max-w-lg rounded-none border-zinc-200"
+          // Prevent closing when interacting with outside elements while nested dialogs are active
+          onPointerDownOutside={(e) => {
+            if (showNewProductCategoryDialog || showNewVehicleCategoryDialog) {
+              e.preventDefault();
+            }
+          }}
+        >
           <DialogHeader>
-            <DialogTitle className="font-light tracking-tight text-2xl">{isEditMode ? 'Edit Item' : 'Add New Item'}</DialogTitle>
+            <DialogTitle className="font-light tracking-tight text-2xl">
+              {isEditMode ? 'Edit Item' : 'Add New Item'}
+            </DialogTitle>
             <DialogDescription className="text-zinc-500">
-              {isEditMode ? 'Update the details of the item.' : 'Add a new product or service to your inventory.'}
+              {isEditMode ? 'Update the details of the selected item.' : 'Add a new product or service to your inventory.'}
             </DialogDescription>
           </DialogHeader>
+
           <Tabs defaultValue={itemType} className="mt-4">
             <TabsList className="grid w-full grid-cols-2 bg-zinc-100 rounded-none h-11">
-              <TabsTrigger value="product" disabled={isEditMode && itemType === 'service'} className="rounded-none data-[state=active]:bg-white data-[state=active]:shadow-none h-full uppercase text-xs tracking-widest">Product</TabsTrigger>
-              <TabsTrigger value="service" disabled={isEditMode && itemType === 'product'} className="rounded-none data-[state=active]:bg-white data-[state=active]:shadow-none h-full uppercase text-xs tracking-widest">Service</TabsTrigger>
+              <TabsTrigger 
+                value="product" 
+                disabled={isEditMode && itemType === 'service'} 
+                className="rounded-none data-[state=active]:bg-white data-[state=active]:shadow-none h-full uppercase text-xs tracking-widest"
+              >
+                Product
+              </TabsTrigger>
+              <TabsTrigger 
+                value="service" 
+                disabled={isEditMode && itemType === 'product'} 
+                className="rounded-none data-[state=active]:bg-white data-[state=active]:shadow-none h-full uppercase text-xs tracking-widest"
+              >
+                Service
+              </TabsTrigger>
             </TabsList>
+
+            {/* --- Product Form --- */}
             <TabsContent value="product">
               <Form {...productForm}>
-                <form onSubmit={productForm.handleSubmit(onProductSubmit)} className="space-y-4 py-4">
+                <form 
+                  onSubmit={productForm.handleSubmit(onProductSubmit)} 
+                  onKeyDown={handleKeyDown}
+                  className="space-y-4 py-4"
+                >
                   <FormField
                     control={productForm.control}
                     name="name"
@@ -201,68 +267,72 @@ export function AddItemDialog({
                       </FormItem>
                     )}
                   />
-                   <FormField
-                    control={productForm.control}
-                    name="sku"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>SKU</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., OIL-SYN-5L" {...field} className={commonInputStyles} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                    control={productForm.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            if (value === 'add-new-trigger') {
-                              setShowNewProductCategoryDialog(true);
-                            } else {
-                              field.onChange(value);
-                            }
-                          }}
-                          value={field.value}
-                        >
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={productForm.control}
+                      name="sku"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>SKU</FormLabel>
                           <FormControl>
-                            <SelectTrigger className={commonInputStyles}>
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
+                            <Input placeholder="e.g., OIL-SYN-5L" {...field} className={commonInputStyles} />
                           </FormControl>
-                          <SelectContent className="rounded-none border-zinc-200">
-                            {productCategories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                             <SelectItem 
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={productForm.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <Select
+                            onValueChange={(value) => {
+                              if (value === 'add-new-trigger') {
+                                // Logic Fix: Close select, then open dialog. Do not update field value.
+                                setShowNewProductCategoryDialog(true);
+                              } else {
+                                field.onChange(value);
+                              }
+                            }}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger className={commonInputStyles}>
+                                <SelectValue placeholder="Select a category" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-none border-zinc-200">
+                              {productCategories.map((category) => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                              <SelectSeparator />
+                              <SelectItem 
                                 value="add-new-trigger"
-                                onSelect={(e) => e.preventDefault()}
-                                className="focus:bg-zinc-100"
-                            >
+                                className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
+                              >
                                 <div className="flex items-center">
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
                                 </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
-                     <FormField
+                    <FormField
                       control={productForm.control}
                       name="actualPrice"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Actual Price (Rs.)</FormLabel>
+                          <FormLabel>Cost Price (Rs.)</FormLabel>
                           <FormControl>
                             <Input type="number" step="0.01" {...field} className={commonInputStyles}/>
                           </FormControl>
@@ -270,7 +340,7 @@ export function AddItemDialog({
                         </FormItem>
                       )}
                     />
-                     <FormField
+                    <FormField
                       control={productForm.control}
                       name="sellingPrice"
                       render={({ field }) => (
@@ -284,12 +354,27 @@ export function AddItemDialog({
                       )}
                     />
                   </div>
-                  <FormField
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={productForm.control}
+                        name="stock"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{isEditMode ? 'Current Stock' : 'Initial Stock'}</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} className={commonInputStyles} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    <FormField
                       control={productForm.control}
                       name="stockThreshold"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Re-order Level</FormLabel>
+                          <FormLabel>Re-order Alert Level</FormLabel>
                           <FormControl>
                             <Input type="number" {...field} className={commonInputStyles} />
                           </FormControl>
@@ -297,18 +382,28 @@ export function AddItemDialog({
                         </FormItem>
                       )}
                     />
+                  </div>
+
                   <DialogFooter className="mt-6 gap-2">
                     <DialogClose asChild>
                       <Button type="button" variant="outline" className={commonButtonStyles}>Cancel</Button>
                     </DialogClose>
-                    <Button type="submit" className={commonButtonStyles}>{isEditMode ? 'Save Changes' : 'Add Product'}</Button>
+                    <Button type="submit" className={commonButtonStyles}>
+                        {isEditMode ? 'Save Changes' : 'Add Product'}
+                    </Button>
                   </DialogFooter>
                 </form>
               </Form>
             </TabsContent>
+
+            {/* --- Service Form --- */}
             <TabsContent value="service">
               <Form {...serviceForm}>
-                <form onSubmit={serviceForm.handleSubmit(onServiceSubmit)} className="space-y-4 py-4">
+                <form 
+                    onSubmit={serviceForm.handleSubmit(onServiceSubmit)} 
+                    onKeyDown={handleKeyDown}
+                    className="space-y-4 py-4"
+                >
                   <FormField
                     control={serviceForm.control}
                     name="name"
@@ -347,10 +442,10 @@ export function AddItemDialog({
                             {vehicleCategories.map(category => (
                               <SelectItem key={category} value={category}>{category}</SelectItem>
                             ))}
+                            <SelectSeparator />
                             <SelectItem 
-                                value="add-new-trigger" 
-                                onSelect={(e) => e.preventDefault()}
-                                className="focus:bg-zinc-100"
+                                value="add-new-trigger"
+                                className="font-medium text-blue-600 focus:text-blue-700 focus:bg-blue-50"
                             >
                                 <div className="flex items-center">
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Category
@@ -380,7 +475,7 @@ export function AddItemDialog({
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Price (Rs.)</FormLabel>
+                        <FormLabel>Service Price (Rs.)</FormLabel>
                         <FormControl>
                           <Input type="number" step="0.01" {...field} className={commonInputStyles} />
                         </FormControl>
@@ -392,7 +487,9 @@ export function AddItemDialog({
                     <DialogClose asChild>
                       <Button type="button" variant="outline" className={commonButtonStyles}>Cancel</Button>
                     </DialogClose>
-                    <Button type="submit" className={commonButtonStyles}>{isEditMode ? 'Save Changes' : 'Add Service'}</Button>
+                    <Button type="submit" className={commonButtonStyles}>
+                        {isEditMode ? 'Save Changes' : 'Add Service'}
+                    </Button>
                   </DialogFooter>
                 </form>
               </Form>
@@ -400,15 +497,19 @@ export function AddItemDialog({
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      {/* --- Nested Alert Dialogs (Siblings to Main Dialog) --- */}
+      
       <AlertDialog open={showNewProductCategoryDialog} onOpenChange={setShowNewProductCategoryDialog}>
         <AlertDialogContent className="rounded-none border-zinc-200">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-light tracking-tight text-xl">Add a new category</AlertDialogTitle>
+            <AlertDialogTitle className="font-light tracking-tight text-xl">Add New Product Category</AlertDialogTitle>
             <AlertDialogDescription>
-              Enter the name for the new product category you want to create.
+              Create a new category for your products.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input
+            autoFocus
             placeholder="e.g., Brakes"
             value={newProductCategory}
             onChange={(e) => setNewProductCategory(e.target.value)}
@@ -421,20 +522,22 @@ export function AddItemDialog({
             className={commonInputStyles}
           />
           <AlertDialogFooter className="mt-4 gap-2">
-            <AlertDialogCancel className={commonButtonStyles}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAddNewProductCategory} className={commonButtonStyles}>Add</AlertDialogAction>
+            <AlertDialogCancel type="button" className={commonButtonStyles}>Cancel</AlertDialogCancel>
+            <AlertDialogAction type="button" onClick={handleAddNewProductCategory} className={commonButtonStyles}>Add Category</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
       <AlertDialog open={showNewVehicleCategoryDialog} onOpenChange={setShowNewVehicleCategoryDialog}>
         <AlertDialogContent className="rounded-none border-zinc-200">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-light tracking-tight text-xl">Add a new vehicle category</AlertDialogTitle>
+            <AlertDialogTitle className="font-light tracking-tight text-xl">Add New Vehicle Category</AlertDialogTitle>
             <AlertDialogDescription>
-              Enter the name for the new vehicle category you want to create.
+              Create a new category for vehicle types.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input
+            autoFocus
             placeholder="e.g., Truck"
             value={newVehicleCategory}
             onChange={(e) => setNewVehicleCategory(e.target.value)}
@@ -447,8 +550,8 @@ export function AddItemDialog({
              className={commonInputStyles}
           />
           <AlertDialogFooter className="mt-4 gap-2">
-            <AlertDialogCancel className={commonButtonStyles}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAddNewVehicleCategory} className={commonButtonStyles}>Add</AlertDialogAction>
+            <AlertDialogCancel type="button" className={commonButtonStyles}>Cancel</AlertDialogCancel>
+            <AlertDialogAction type="button" onClick={handleAddNewVehicleCategory} className={commonButtonStyles}>Add Category</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
