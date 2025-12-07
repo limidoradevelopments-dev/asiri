@@ -5,7 +5,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Product as ProductType, Service as ServiceType } from "@/lib/data";
 import InventoryTable from "@/components/inventory/InventoryTable";
@@ -135,7 +135,7 @@ export default function InventoryPage() {
   const [itemToDelete, setItemToDelete] = useState<{id: string, type: 'product' | 'service'} | null>(null);
 
   const handleUpsertItem = useCallback(
-    async (item: Omit<ProductType, 'id'> | Omit<ServiceType, 'id'>, type: 'product' | 'service', id?: string) => {
+    async (item: Omit<ProductType, 'id'> | Omit<ServiceType, 'id'>, type: 'product' | 'service', id?: string): Promise<boolean> => {
       try {
         const endpoint = type === 'product' ? "/api/products" : "/api/services";
         const method = id ? "PUT" : "POST";
@@ -156,12 +156,14 @@ export default function InventoryPage() {
         
         const refreshController = new AbortController();
         fetchData(refreshController.signal, true);
+        return true;
 
       } catch (err: any) {
-        if (err.name === 'AbortError') return;
+        if (err.name === 'AbortError') return false;
         console.error("Upsert error:", err);
         const message = err instanceof Error ? err.message : 'Unknown error occurred while saving the item.';
         toast({ variant: 'destructive', title: 'Error', description: message });
+        return false;
       } finally {
         setItemToEdit(null);
         setAddItemDialogOpen(false);

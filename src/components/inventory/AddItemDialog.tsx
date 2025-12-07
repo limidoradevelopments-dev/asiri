@@ -31,7 +31,7 @@ import type { Product, Service, VehicleCategory } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Car, Truck, Bike } from 'lucide-react';
+import { Car, Truck, Bike, Loader2 } from 'lucide-react';
 import { VanIcon } from '../icons/VanIcon';
 import { JeepIcon } from '../icons/JeepIcon';
 
@@ -60,7 +60,7 @@ const serviceSchema = z.object({
 
 type AddItemDialogProps = {
   children: React.ReactNode;
-  onUpsertItem: (item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service', id?: string) => void;
+  onUpsertItem: (item: Omit<Product, 'id'> | Omit<Service, 'id'>, type: 'product' | 'service', id?: string) => Promise<boolean>;
   itemToEdit?: WithId<Product> | WithId<Service> | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -76,10 +76,9 @@ export function AddItemDialog({
   onOpenChange
 }: AddItemDialogProps) {
   
-  const { toast } = useToast();
-  
   const isEditMode = !!itemToEdit;
   const itemType = itemToEdit ? ('sku' in itemToEdit ? 'product' : 'service') : 'product';
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const productForm = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -114,26 +113,32 @@ export function AddItemDialog({
     }
   }, [itemToEdit, isEditMode, productForm, serviceForm, isOpen]);
 
-  const onProductSubmit = (values: z.infer<typeof productSchema>) => {
+  const onProductSubmit = async (values: z.infer<typeof productSchema>) => {
+    setIsSubmitting(true);
     const productData: Omit<Product, 'id'> = {
       ...values,
       stock: isEditMode && itemToEdit && 'stock' in itemToEdit ? itemToEdit.stock : 0,
     };
-    onUpsertItem(productData, 'product', itemToEdit?.id);
-    toast({ 
-      title: isEditMode ? 'Product Updated' : 'Product Added', 
-      description: `${values.name} has been saved successfully.` 
-    });
-    onOpenChange(false);
+    try {
+      const success = await onUpsertItem(productData, 'product', itemToEdit?.id);
+      if (success) {
+        onOpenChange(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const onServiceSubmit = (values: z.infer<typeof serviceSchema>) => {
-    onUpsertItem(values, 'service', itemToEdit?.id);
-    toast({ 
-      title: isEditMode ? 'Service Updated' : 'Service Added', 
-      description: `${values.name} has been saved successfully.` 
-    });
-    onOpenChange(false);
+  const onServiceSubmit = async (values: z.infer<typeof serviceSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const success = await onUpsertItem(values, 'service', itemToEdit?.id);
+      if (success) {
+        onOpenChange(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -278,8 +283,9 @@ export function AddItemDialog({
                     <DialogClose asChild>
                       <Button type="button" variant="outline" className={commonButtonStyles}>Cancel</Button>
                     </DialogClose>
-                    <Button type="submit" className={commonButtonStyles}>
-                        {isEditMode ? 'Save Changes' : 'Add Product'}
+                    <Button type="submit" className={commonButtonStyles} disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSubmitting ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Add Product')}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -364,8 +370,9 @@ export function AddItemDialog({
                     <DialogClose asChild>
                       <Button type="button" variant="outline" className={commonButtonStyles}>Cancel</Button>
                     </DialogClose>
-                    <Button type="submit" className={commonButtonStyles}>
-                        {isEditMode ? 'Save Changes' : 'Add Service'}
+                    <Button type="submit" className={commonButtonStyles} disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSubmitting ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Add Service')}
                     </Button>
                   </DialogFooter>
                 </form>
