@@ -1,3 +1,4 @@
+
 // src/app/api/reports/day-end/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
@@ -45,7 +46,9 @@ export async function GET(req: NextRequest) {
 
     const totalRevenue = dailyInvoices.reduce((acc, inv) => acc + inv.total, 0);
     const totalInvoices = dailyInvoices.length;
-    
+    const totalCashReceived = dailyInvoices.reduce((acc, inv) => acc + inv.amountPaid, 0);
+    const totalOutstanding = dailyInvoices.reduce((acc, inv) => acc + inv.balanceDue, 0);
+
     let totalCogs = 0;
     const productsSold: Record<string, { name: string, quantity: number, revenue: number }> = {};
     const servicesRendered: Record<string, { name: string, quantity: number, revenue: number }> = {};
@@ -86,7 +89,9 @@ export async function GET(req: NextRequest) {
         totalRevenue: safeRound(totalRevenue),
         netProfit,
         totalInvoices,
-        totalCogs: safeRound(totalCogs)
+        totalCogs: safeRound(totalCogs),
+        totalCashReceived: safeRound(totalCashReceived),
+        totalOutstanding: safeRound(totalOutstanding),
       },
       breakdowns: {
         products: Object.values(productsSold).sort((a,b) => b.revenue - a.revenue),

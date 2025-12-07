@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -5,7 +6,7 @@ import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 import StatCard from '@/components/dashboard/StatCard';
-import { DollarSign, TrendingUp, Hash, Printer, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { DollarSign, TrendingUp, Hash, Printer, Calendar as CalendarIcon, Loader2, Landmark, Hourglass } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -30,6 +31,8 @@ type ReportData = {
     netProfit: number;
     totalInvoices: number;
     totalCogs: number;
+    totalCashReceived: number;
+    totalOutstanding: number;
   };
   breakdowns: {
     products: { name: string; quantity: number; revenue: number }[];
@@ -91,7 +94,7 @@ export default function DayEndPage() {
 
   // --- Render Helpers ---
   const renderStatSkeletons = () => (
-    Array.from({ length: 3 }).map((_, i) => (
+    Array.from({ length: 5 }).map((_, i) => (
       <div key={i} className="bg-white p-8 border border-zinc-200">
         <div className="flex justify-between pb-4"><Skeleton className="h-4 w-1/2" /><Skeleton className="h-5 w-5" /></div>
         <Skeleton className="h-8 w-3/4" />
@@ -139,7 +142,7 @@ export default function DayEndPage() {
        {/* Loading State */}
        {isLoading && (
         <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-200 border border-zinc-200 mb-8 rounded-sm overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-px bg-zinc-200 border border-zinc-200 mb-8 rounded-sm overflow-hidden">
                 {renderStatSkeletons()}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -153,10 +156,12 @@ export default function DayEndPage() {
       {!isLoading && reportData && (
         <div className="space-y-8">
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-200 border border-zinc-200 mb-8 rounded-sm overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-px bg-zinc-200 border border-zinc-200 mb-8 rounded-sm overflow-hidden">
                 <StatCard title="Estimated Total Revenue" value={formatCurrency(reportData.summary.totalRevenue)} icon={DollarSign} />
                 <StatCard title="Estimated Net Profit" value={formatCurrency(reportData.summary.netProfit)} icon={TrendingUp} className={reportData.summary.netProfit >= 0 ? 'text-green-700' : 'text-red-600'} />
                 <StatCard title="Total Invoices" value={reportData.summary.totalInvoices.toString()} icon={Hash} />
+                <StatCard title="Total Cash Received" value={formatCurrency(reportData.summary.totalCashReceived)} icon={Landmark} />
+                <StatCard title="Total Outstanding" value={formatCurrency(reportData.summary.totalOutstanding)} icon={Hourglass} />
             </div>
 
             {/* Breakdowns */}
