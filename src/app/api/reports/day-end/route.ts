@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import type { Invoice, Payment, Product } from "@/lib/data";
 import { startOfDay, endOfDay, parseISO } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 const safeRound = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
 
@@ -26,15 +27,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Date parameter is required" }, { status: 400 });
     }
 
-    // Use parseISO to correctly interpret the 'YYYY-MM-DD' string
-    // This is more robust than relying on new Date(dateParam)
-    const reportDate = parseISO(dateParam);
-    if (isNaN(reportDate.getTime())) {
+    // THE FIX: Interpret the date string explicitly in the 'Asia/Colombo' timezone.
+    // This prevents `parseISO` from defaulting to UTC and creating an off-by-one error.
+    const reportDateInSL = fromZonedTime(dateParam, 'Asia/Colombo');
+    
+    if (isNaN(reportDateInSL.getTime())) {
         return NextResponse.json({ error: "Invalid date parameter format. Use YYYY-MM-DD." }, { status: 400 });
     }
     
-    const dayStart = startOfDay(reportDate);
-    const dayEnd = endOfDay(reportDate);
+    const dayStart = startOfDay(reportDateInSL);
+    const dayEnd = endOfDay(reportDateInSL);
 
     // Fetch all data needed
     const [allInvoices, allProducts] = await Promise.all([
@@ -46,7 +48,10 @@ export async function GET(req: NextRequest) {
 
     const dailyInvoices = allInvoices
       .map(inv => ({...inv, date: toMillis(inv.date)}))
-      .filter(inv => inv.date >= dayStart.getTime() && inv.date <= dayEnd.getTime());
+      .filter(inv => {
+          const invoiceDate = new Date(inv.date);
+          return invoiceDate >= dayStart && invoiceDate <= dayEnd;
+      });
 
     // --- Calculations ---
 
@@ -90,7 +95,7 @@ export async function GET(req: NextRequest) {
     }
 
     const responsePayload = {
-      date: reportDate.toISOString(),
+      date: reportDateInSL.toISOString(),
       summary: {
         totalRevenue: safeRound(totalRevenue),
         netProfit,
