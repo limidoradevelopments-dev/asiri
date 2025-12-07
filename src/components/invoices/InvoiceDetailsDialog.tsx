@@ -14,7 +14,7 @@ import { WithId } from '@/firebase';
 import { format } from 'date-fns';
 import { Separator } from '../ui/separator';
 import { ScrollArea } from '../ui/scroll-area';
-import { Printer } from 'lucide-react';
+import { Printer, CheckCircle, AlertCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -58,6 +58,8 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsD
     // In a real app, you might want a more sophisticated PDF generation service.
     window.print();
   }
+  
+  const isFullyPaid = invoice.paymentStatus === 'Paid' && invoice.balanceDue === 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -153,7 +155,14 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsD
 
                          {invoice.payments.map((payment, index) => (
                             <div key={index} className="flex justify-between">
-                                <span className="text-zinc-600">Paid by {payment.method}:</span>
+                                <div className="text-zinc-600">
+                                    Paid by {payment.method}
+                                    {payment.method === 'Check' && payment.chequeNumber && (
+                                        <span className="block text-xs text-zinc-400">
+                                            (No: {payment.chequeNumber}, Bank: {payment.bank})
+                                        </span>
+                                    )}
+                                </div>
                                 <span className="font-mono">{formatPrice(payment.amount)}</span>
                             </div>
                          ))}
@@ -177,7 +186,18 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsD
                 </div>
             </div>
         </ScrollArea>
-        <DialogFooter className="p-6 bg-zinc-50 border-t border-zinc-100 gap-2 print:hidden">
+        <DialogFooter className="p-6 bg-zinc-50 border-t border-zinc-100 gap-4 flex-row justify-between items-center print:hidden">
+            {isFullyPaid ? (
+                <div className="flex items-center gap-2 text-sm text-emerald-600">
+                    <CheckCircle className="h-4 w-4"/>
+                    <span>This invoice is fully paid.</span>
+                </div>
+            ) : (
+                <div className="flex items-center gap-2 text-sm text-amber-600">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>This is a partial payment. Balance of {formatPrice(invoice.balanceDue)} is due.</span>
+                </div>
+            )}
             <Button onClick={handlePrint} variant="outline" className="rounded-none uppercase tracking-widest text-xs h-11">
                 <Printer className="mr-2 h-4 w-4"/>
                 Print
