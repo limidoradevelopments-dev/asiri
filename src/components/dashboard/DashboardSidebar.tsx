@@ -49,6 +49,7 @@ const reportMenuItems = [
     { href: "/reports/day-end", label: "Day End Report" },
     { href: "/reports/stock", label: "Stock Report" },
     { href: "/reports/customer", label: "Customer Report" },
+    { href: "/reports/employee", label: "Employee Report" },
 ]
 
 export default function DashboardSidebar() {
