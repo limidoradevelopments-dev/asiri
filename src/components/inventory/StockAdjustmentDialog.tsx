@@ -166,7 +166,11 @@ export function StockAdjustmentDialog({
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
                         <FormLabel>Product</FormLabel>
-                        <Popover open={productPopoverOpen} onOpenChange={setProductPopoverOpen}>
+                        <Popover
+                          modal={false}
+                          open={productPopoverOpen}
+                          onOpenChange={setProductPopoverOpen}
+                        >
                             <PopoverTrigger asChild>
                             <FormControl>
                                 <Button
