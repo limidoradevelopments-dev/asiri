@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +28,7 @@ import {
 import type { Employee } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { Textarea } from '../ui/textarea';
+import { Loader2 } from 'lucide-react';
 
 const employeeSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -53,6 +54,7 @@ export function AddEmployeeDialog({
 }: AddEmployeeDialogProps) {
   
   const isEditMode = !!employeeToEdit;
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
@@ -73,9 +75,14 @@ export function AddEmployeeDialog({
 
 
   const onSubmit = async (values: z.infer<typeof employeeSchema>) => {
-    const success = await onUpsertEmployee(values, employeeToEdit?.id);
-    if (success) {
-      onOpenChange(false);
+    setIsSubmitting(true);
+    try {
+      const success = await onUpsertEmployee(values, employeeToEdit?.id);
+      if (success) {
+        onOpenChange(false);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -150,7 +157,10 @@ export function AddEmployeeDialog({
                 <DialogClose asChild>
                   <Button type="button" variant="outline" className={commonButtonStyles}>Cancel</Button>
                 </DialogClose>
-                <Button type="submit" className={commonButtonStyles}>{isEditMode ? 'Save Changes' : 'Add Employee'}</Button>
+                <Button type="submit" className={commonButtonStyles} disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isSubmitting ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Add Employee')}
+                </Button>
               </DialogFooter>
             </form>
           </Form>
