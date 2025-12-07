@@ -1,6 +1,8 @@
 // app/api/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
+import { toZonedTime } from "date-fns-tz";
+import { Timestamp } from "firebase/firestore";
 
 type Product = Record<string, any>;
 
@@ -34,7 +36,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "`name` is required" }, { status: 400 });
     }
 
-    const created = await db.create("products", payload as Product);
+    const nowInSL = toZonedTime(new Date(), 'Asia/Colombo');
+    const nowTimestamp = Timestamp.fromDate(nowInSL);
+
+    const dataToCreate = {
+      ...payload,
+      createdAt: nowTimestamp,
+      updatedAt: nowTimestamp,
+    };
+
+    const created = await db.create("products", dataToCreate as Product);
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
     console.error("POST /api/products error:", err);
@@ -58,7 +69,15 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
 
-    const updated = await db.update("products", id, fields);
+    const nowInSL = toZonedTime(new Date(), 'Asia/Colombo');
+    const nowTimestamp = Timestamp.fromDate(nowInSL);
+
+    const dataToUpdate = {
+      ...fields,
+      updatedAt: nowTimestamp,
+    };
+
+    const updated = await db.update("products", id, dataToUpdate);
     return NextResponse.json(updated, { status: 200 });
   } catch (err) {
     console.error("PUT /api/products error:", err);

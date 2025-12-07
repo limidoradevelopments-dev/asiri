@@ -311,6 +311,14 @@
         "sellingPrice": {
           "type": "number",
           "description": "The selling price of the product."
+        },
+        "createdAt": {
+            "type": "number",
+            "description": "Timestamp of when the product was created."
+        },
+        "updatedAt": {
+            "type": "number",
+            "description": "Timestamp of when the product was last updated."
         }
       },
       "required": [
@@ -344,6 +352,14 @@
             "type": "string",
             "description": "An optional category for the type of vehicle this service applies to.",
             "enum": ["Bike", "Car", "Van", "Jeep", "Lorry"]
+        },
+        "createdAt": {
+            "type": "number",
+            "description": "Timestamp of when the service was created."
+        },
+        "updatedAt": {
+            "type": "number",
+            "description": "Timestamp of when the service was last updated."
         }
       },
       "required": [
