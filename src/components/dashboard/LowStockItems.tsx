@@ -20,11 +20,18 @@ import { WithId } from "@/firebase";
 import { cn } from "@/lib/utils";
 import { memo } from "react";
 
-type LowStockItemsProps = {
-  data: WithId<Product>[];
+type LowStockItem = {
+    id: string;
+    name: string;
+    stock: number;
+    stockThreshold: number;
 };
 
-const LowStockItemRow = memo(function LowStockItemRow({ item }: { item: WithId<Product> }) {
+type LowStockItemsProps = {
+  data: LowStockItem[];
+};
+
+const LowStockItemRow = memo(function LowStockItemRow({ item }: { item: LowStockItem }) {
   const isCritical = item.stock === 0;
   return (
     <TableRow className="border-zinc-100 hover:bg-transparent">
@@ -47,8 +54,7 @@ const LowStockItemRow = memo(function LowStockItemRow({ item }: { item: WithId<P
 });
 
 export default function LowStockItems({ data }: LowStockItemsProps) {
-  const filteredData = data.filter((item) => item.stock <= item.stockThreshold);
-
+  
   return (
     <Card className="rounded-none border-0 shadow-none bg-transparent p-0 flex flex-col h-full">
       <CardHeader className="p-0 mb-8 shrink-0">
@@ -62,7 +68,7 @@ export default function LowStockItems({ data }: LowStockItemsProps) {
       
       <CardContent className="flex-1 p-0 min-h-0 relative">
         <ScrollArea className="h-full w-full">
-          {filteredData.length > 0 ? (
+          {data.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow className="border-zinc-100 hover:bg-transparent">
@@ -75,7 +81,7 @@ export default function LowStockItems({ data }: LowStockItemsProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredData.map((item) => (
+                {data.map((item) => (
                   <LowStockItemRow key={item.id} item={item} />
                 ))}
               </TableBody>

@@ -1,109 +1,87 @@
-
 'use client';
 
-import { useMemo } from 'react';
-import { collection } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
-import type { Invoice, Product, Customer, Vehicle } from '@/lib/data';
-import { format, startOfDay, endOfDay, subDays } from 'date-fns';
+import { useState, useEffect, useCallback } from 'react';
+import { formatCurrency, format, startOfDay, endOfDay, subDays } from 'date-fns';
 
 import StatCard from "@/components/dashboard/StatCard";
 import RevenueChart from "@/components/dashboard/RevenueChart";
 import LowStockItems from "@/components/dashboard/LowStockItems";
 import RecentInvoices from "@/components/dashboard/RecentInvoices";
-import { DollarSign, Archive, Users } from 'lucide-react';
+import { DollarSign, Archive, Users, BarChart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import type { RevenueData } from '@/lib/data';
 
-// Helper to safely convert Firestore Timestamp to number
-const toMillis = (timestamp: any): number => {
-  if (typeof timestamp === 'number') return timestamp;
-  if (timestamp && typeof timestamp.toMillis === 'function') {
-    return timestamp.toMillis();
-  }
-  return 0;
+// --- Types for API Response ---
+type Stat = {
+  title: string;
+  value: string;
+  icon: 'DollarSign' | 'Archive' | 'Users' | 'BarChart'; // Use string literal for icon name
+};
+
+type RecentInvoice = {
+  id: string;
+  invoiceNumber: string;
+  customerName: string;
+  date: number;
+  total: number;
+  paymentStatus: 'Paid' | 'Partial' | 'Unpaid';
+};
+
+type LowStockItem = {
+    id: string;
+    name: string;
+    stock: number;
+    stockThreshold: number;
+};
+
+type DashboardData = {
+  stats: Stat[];
+  revenueData: RevenueData[];
+  lowStockItems: LowStockItem[];
+  recentInvoices: RecentInvoice[];
+};
+
+const iconMap = {
+  DollarSign,
+  Archive,
+  Users,
+  BarChart,
 };
 
 
 export default function DashboardPage() {
-  const firestore = useFirestore();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  const invoicesCollection = useMemoFirebase(() => collection(firestore, 'invoices'), [firestore]);
-  const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
-  const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
-  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
-
-  const { data: invoices, isLoading: invoicesLoading } = useCollection<Invoice>(invoicesCollection);
-  const { data: products, isLoading: productsLoading } = useCollection<Product>(productsCollection);
-  const { data: customers, isLoading: customersLoading } = useCollection<WithId<Customer>>(customersCollection);
-  const { data: vehicles, isLoading: vehiclesLoading } = useCollection<WithId<Vehicle>>(vehiclesCollection);
-
-
-  const formatCurrency = (amount: number) => {
-     if (typeof amount !== 'number') return 'Rs. 0.00';
-     return `Rs. ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
-
-  const dashboardData = useMemo(() => {
-    const todayStart = startOfDay(new Date());
-    const todayEnd = endOfDay(new Date());
-    
-    const processedInvoices = invoices?.map(inv => ({...inv, date: toMillis(inv.date)})) || [];
-
-    const totalRevenue = processedInvoices.reduce((acc, inv) => acc + inv.amountPaid, 0);
-    
-    const todaysRevenue = processedInvoices
-      .filter(inv => inv.date >= todayStart.getTime() && inv.date <= todayEnd.getTime())
-      .reduce((acc, inv) => acc + inv.amountPaid, 0);
-
-    const lowStockItems = products?.filter(p => p.stock <= p.stockThreshold) ?? [];
-    
-    const totalCustomers = vehicles ? new Set(vehicles.map(v => v.customerId)).size : 0;
-
-    const stats = [
-      { title: "Total Revenue", value: formatCurrency(totalRevenue), icon: DollarSign },
-      { title: "Today's Revenue", value: formatCurrency(todaysRevenue), icon: DollarSign },
-      { title: "Low Stock Items", value: lowStockItems.length.toString(), icon: Archive },
-      { title: "Total Customers", value: totalCustomers.toString(), icon: Users },
-    ];
-
-    const revenueByDay = Array.from({ length: 7 }, (_, i) => {
-        const date = subDays(new Date(), i);
-        const dayStart = startOfDay(date);
-        const dayEnd = endOfDay(date);
-
-        const dailyRevenue = processedInvoices
-            .filter(inv => inv.date >= dayStart.getTime() && inv.date <= dayEnd.getTime())
-            .reduce((sum, inv) => sum + inv.total, 0);
-        
-        return {
-            date: format(date, "MMM d"),
-            revenue: dailyRevenue
-        };
-    }).reverse();
-
-    const recentInvoices = processedInvoices
-      .filter(inv => inv.date && customers) // Ensure invoice has a date and customers are loaded
-      .sort((a, b) => b.date - a.date)
-      .slice(0, 5)
-      .map(inv => {
-        const customer = customers?.find(c => c.id === inv.customerId);
-        return {
-          ...inv,
-          customerName: customer?.name || 'Unknown Customer',
-        };
+  const fetchData = useCallback(async (signal: AbortSignal) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/dashboard', { signal });
+      if (!res.ok) {
+        throw new Error('Failed to fetch dashboard data');
+      }
+      const dashboardData = await res.json();
+      setData(dashboardData);
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not load dashboard data.',
       });
-    
-    const lowStockForComponent = lowStockItems.map(item => ({...item, threshold: item.stockThreshold}))
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
-    return {
-      stats,
-      revenueData: revenueByDay,
-      lowStockItems: lowStockForComponent,
-      recentInvoices,
-    };
-  }, [invoices, products, customers, vehicles]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [fetchData]);
 
-  const isLoading = invoicesLoading || productsLoading || customersLoading || vehiclesLoading;
 
   const renderStatSkeletons = () => (
     Array.from({ length: 4 }).map((_, i) => (
@@ -132,22 +110,22 @@ export default function DashboardPage() {
       
       {/* --- STATS GRID --- */}
       <div className="grid grid-cols-4 gap-px bg-zinc-200 border border-zinc-200">
-        {isLoading ? renderStatSkeletons() : dashboardData.stats.map((stat) => (
-          <StatCard key={stat.title} {...stat} />
+        {isLoading || !data ? renderStatSkeletons() : data.stats.map((stat) => (
+          <StatCard key={stat.title} title={stat.title} value={stat.value} icon={iconMap[stat.icon]} />
         ))}
       </div>
       
       {/* --- CHARTS & LISTS --- */}
       <div className="grid grid-cols-3 gap-px mt-px bg-zinc-200 border-l border-r border-b border-zinc-200">
         <div className="col-span-2 bg-background p-8">
-          {isLoading ? <Skeleton className="h-[250px] w-full" /> : <RevenueChart data={dashboardData.revenueData} />}
+          {isLoading || !data ? <Skeleton className="h-[250px] w-full" /> : <RevenueChart data={data.revenueData} />}
         </div>
         <div className="bg-background p-8">
-          {isLoading ? <Skeleton className="h-[250px] w-full" /> : <LowStockItems data={dashboardData.lowStockItems} />}
+          {isLoading || !data ? <Skeleton className="h-[250px] w-full" /> : <LowStockItems data={data.lowStockItems} />}
         </div>
       </div>
       <div className="mt-px">
-        {isLoading ? <Skeleton className="h-[300px] w-full mt-8" /> : <RecentInvoices data={dashboardData.recentInvoices} />}
+        {isLoading || !data ? <Skeleton className="h-[300px] w-full mt-8" /> : <RecentInvoices data={data.recentInvoices} />}
       </div>
     </div>
   );
