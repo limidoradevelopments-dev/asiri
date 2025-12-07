@@ -1,9 +1,21 @@
-
 // app/api/vehicles/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import { initializeFirebase } from "@/firebase/server-init";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import { z } from "zod";
+
+const vehicleSchema = z.object({
+  customerId: z.string().min(1),
+  numberPlate: z.string().min(1, 'Vehicle Number is required'),
+  make: z.string().min(1, 'Make is required'),
+  model: z.string().min(1, 'Model is required'),
+  year: z.coerce.number().int().min(1900, 'Invalid year').max(new Date().getFullYear() + 1, 'Invalid year'),
+  mileage: z.coerce.number().int().min(0, "Mileage must be a positive number.").optional(),
+  fuelType: z.enum(['Petrol', 'Diesel', 'Hybrid', 'EV']).optional(),
+  transmission: z.enum(['Auto', 'Manual']).optional(),
+});
+
 
 /**
  * GET /api/vehicles
@@ -27,17 +39,15 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
-    if (!payload || typeof payload !== "object") {
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-    }
-    if (!payload.numberPlate || typeof payload.numberPlate !== "string") {
-      return NextResponse.json({ error: "`numberPlate` is required" }, { status: 400 });
+    const validation = vehicleSchema.safeParse(payload);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.flatten().fieldErrors }, { status: 400 });
     }
     
     // --- UNIQUENESS CHECK ---
     const { firestore } = initializeFirebase();
     const vehiclesRef = collection(firestore, "vehicles");
-    const q = query(vehiclesRef, where("numberPlate", "==", payload.numberPlate.toUpperCase()));
+    const q = query(vehiclesRef, where("numberPlate", "==", validation.data.numberPlate.toUpperCase()));
     const querySnapshot = await getDocs(q);
     
     if (!querySnapshot.empty) {
@@ -46,8 +56,8 @@ export async function POST(req: NextRequest) {
 
     // Ensure numberPlate is stored in uppercase for consistent searching
     const dataToCreate = {
-        ...payload,
-        numberPlate: payload.numberPlate.toUpperCase(),
+        ...validation.data,
+        numberPlate: validation.data.numberPlate.toUpperCase(),
     }
 
     const created = await db.create("vehicles", dataToCreate);
@@ -56,6 +66,41 @@ export async function POST(req: NextRequest) {
     console.error("POST /api/vehicles error:", err);
     return NextResponse.json({ error: "Failed to create vehicle" }, { status: 500 });
   }
+}
+
+/**
+ * PUT /api/vehicles
+ * Updates an existing vehicle
+ */
+export async function PUT(req: NextRequest) {
+    try {
+        const payload = await req.json();
+        const { id, ...data } = payload;
+        
+        if (!id) {
+            return NextResponse.json({ error: "ID is required for update" }, { status: 400 });
+        }
+
+        // We use .partial() here because not all fields are sent for update
+        const validation = vehicleSchema.partial().safeParse(data);
+         if (!validation.success) {
+            return NextResponse.json({ error: validation.error.flatten().fieldErrors }, { status: 400 });
+        }
+
+        const dataToUpdate = {
+            ...validation.data,
+        };
+        if(dataToUpdate.numberPlate) {
+            dataToUpdate.numberPlate = dataToUpdate.numberPlate.toUpperCase();
+        }
+
+        const updated = await db.update("vehicles", id, dataToUpdate);
+        return NextResponse.json(updated, { status: 200 });
+
+    } catch (err) {
+        console.error("PUT /api/vehicles error:", err);
+        return NextResponse.json({ error: "Failed to update vehicle" }, { status: 500 });
+    }
 }
 
 

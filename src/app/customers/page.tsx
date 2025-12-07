@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { collection, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import type { Customer, Vehicle } from "@/lib/data";
 import { AddCustomerVehicleDialog } from "@/components/customers/AddCustomerVehicleDialog";
 import CustomersVehiclesTable from "@/components/customers/CustomersVehiclesTable";
-import { useFirestore, useMemoFirebase, WithId }from "@/firebase/provider";
-import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { WithId } from "@/firebase";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +26,6 @@ export type CustomerWithVehicle = {
 };
 
 export default function CustomersPage() {
-  const firestore = useFirestore();
   const { toast } = useToast();
 
   const [combinedData, setCombinedData] = useState<CustomerWithVehicle[]>([]);
@@ -39,9 +36,6 @@ export default function CustomersPage() {
   const [itemToEdit, setItemToEdit] = useState<CustomerWithVehicle | null>(null);
   const [itemToDelete, setItemToDelete] = useState<CustomerWithVehicle | null>(null);
   const [itemToView, setItemToView] = useState<CustomerWithVehicle | null>(null);
-  
-  const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
-  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
 
   const fetchData = useCallback(async (signal: AbortSignal) => {
     setIsLoading(true);
@@ -85,28 +79,55 @@ export default function CustomersPage() {
   }, [combinedData, searchQuery]);
   
   const handleUpsert = useCallback(async (customerData: Omit<Customer, 'id'>, vehicleData: Partial<Omit<Vehicle, 'id' | 'customerId'>>, customerId?: string, vehicleId?: string) => {
-    if (customerId && vehicleId) {
-      // Editing
-      const customerDocRef = doc(firestore, 'customers', customerId);
-      updateDocumentNonBlocking(customerDocRef, customerData);
+    try {
+        if (customerId && vehicleId) {
+            // Editing existing records
+            const customerPromise = fetch('/api/customers', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: customerId, ...customerData }),
+            });
+            const vehiclePromise = fetch('/api/vehicles', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: vehicleId, ...vehicleData }),
+            });
 
-      const vehicleDocRef = doc(firestore, 'vehicles', vehicleId);
-      updateDocumentNonBlocking(vehicleDocRef, vehicleData);
+            const [customerRes, vehicleRes] = await Promise.all([customerPromise, vehiclePromise]);
 
-    } else {
-      // Creating
-      if(customersCollection && vehiclesCollection) {
-        const customerRef = await addDocumentNonBlocking(customersCollection, customerData);
-        if(customerRef) {
-          const newVehicleData = { ...vehicleData, customerId: customerRef.id };
-          await addDocumentNonBlocking(vehiclesCollection, newVehicleData as DocumentData);
+            if (!customerRes.ok) throw new Error('Failed to update customer');
+            if (!vehicleRes.ok) throw new Error('Failed to update vehicle');
+            
+            toast({ title: 'Success', description: 'Customer and vehicle updated successfully.' });
+
+        } else {
+            // Creating new records
+            const customerRes = await fetch('/api/customers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(customerData),
+            });
+            if (!customerRes.ok) throw new Error('Failed to create customer');
+            const newCustomer = await customerRes.json();
+
+            const vehicleRes = await fetch('/api/vehicles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...vehicleData, customerId: newCustomer.id }),
+            });
+            if (!vehicleRes.ok) throw new Error('Failed to create vehicle');
+            
+            toast({ title: 'Success', description: 'New customer and vehicle created.' });
         }
-      }
-    }
-    // Give Firestore some time to process, then refetch
-    setTimeout(() => fetchData(new AbortController().signal), 500);
 
-  }, [firestore, customersCollection, vehiclesCollection, fetchData]);
+        // Refetch data to show changes
+        fetchData(new AbortController().signal);
+        
+    } catch (err: any) {
+        const message = err.message || "An unknown error occurred.";
+        toast({ variant: 'destructive', title: 'Error', description: message });
+    }
+  }, [fetchData, toast]);
 
   const handleEdit = useCallback((item: CustomerWithVehicle) => {
     setItemToEdit(item);

@@ -1,6 +1,15 @@
 // app/api/customers/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
+import { z } from "zod";
+
+const customerSchema = z.object({
+  name: z.string().min(1, 'Full Name is required'),
+  phone: z.string().min(1, 'Phone Number is required'),
+  address: z.string().optional(),
+  nic: z.string().optional(),
+});
+
 
 /**
  * GET /api/customers
@@ -24,20 +33,48 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
-    if (!payload || typeof payload !== "object") {
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-    }
-    if (!payload.name || typeof payload.name !== "string") {
-      return NextResponse.json({ error: "`name` is required" }, { status: 400 });
+    const validation = customerSchema.safeParse(payload);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const created = await db.create("customers", payload);
+    const created = await db.create("customers", validation.data);
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
     console.error("POST /api/customers error:", err);
     return NextResponse.json({ error: "Failed to create customer" }, { status: 500 });
   }
 }
+
+
+/**
+ * PUT /api/customers
+ * Body: { id: string, ...customerData }
+ * Updates an existing customer
+ */
+export async function PUT(req: NextRequest) {
+  try {
+    const payload = await req.json();
+    const { id, ...data } = payload;
+
+    if (!id) {
+      return NextResponse.json({ error: "ID is required for update" }, { status: 400 });
+    }
+
+    const validation = customerSchema.safeParse(data);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.flatten().fieldErrors }, { status: 400 });
+    }
+
+    const updated = await db.update("customers", id, validation.data);
+    return NextResponse.json(updated, { status: 200 });
+
+  } catch (err) {
+    console.error("PUT /api/customers error:", err);
+    return NextResponse.json({ error: "Failed to update customer" }, { status: 500 });
+  }
+}
+
 
 /**
  * DELETE /api/customers?id=<id>
