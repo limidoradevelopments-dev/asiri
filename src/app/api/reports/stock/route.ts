@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initializeFirebase } from "@/firebase/server-init";
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
-import type { Invoice } from "@/lib/data";
+import type { Invoice, Product } from "@/lib/data";
 
 // Helper to safely convert Firestore Timestamp to number
 const toMillis = (timestamp: any): number => {
@@ -40,43 +40,38 @@ export async function GET(req: NextRequest) {
 
     const transactions: StockTransaction[] = [];
 
-    // 1. Fetch Sales from Invoices
+    // --- Step 1: Fetch all products to distinguish from services ---
+    const productsSnapshot = await getDocs(collection(firestore, 'products'));
+    const productIds = new Set(productsSnapshot.docs.map(doc => doc.id));
+
+
+    // --- Step 2: Fetch Sales from Invoices ---
     const invoicesQuery = query(
       collection(firestore, 'invoices'),
       where('date', '>=', startDate),
       where('date', '<=', endDate)
     );
     const invoicesSnapshot = await getDocs(invoicesQuery);
-    const productIdsInInvoices = new Set<string>();
-    invoicesSnapshot.docs.forEach(doc => {
+    
+    invoicesSnapshot.forEach(doc => {
       const invoice = doc.data() as Invoice;
-      invoice.items.forEach(item => productIdsInInvoices.add(item.itemId));
+      invoice.items.forEach(item => {
+        // Only log transactions for items that are actual products
+        if (productIds.has(item.itemId)) {
+          transactions.push({
+            date: toMillis(invoice.date),
+            productName: item.name,
+            type: 'Sale',
+            quantityChange: -item.quantity,
+            reason: null,
+            reference: invoice.invoiceNumber,
+          });
+        }
+      });
     });
 
-    if (productIdsInInvoices.size > 0) {
-      const productsQuery = query(collection(firestore, 'products'), where('__name__', 'in', Array.from(productIdsInInvoices)));
-      const productsSnapshot = await getDocs(productsQuery);
-      const productSKUMap = new Map(productsSnapshot.docs.map(doc => [doc.id, doc.data().sku]));
-    
-      invoicesSnapshot.forEach(doc => {
-        const invoice = doc.data() as Invoice;
-        invoice.items.forEach(item => {
-          // Only log transactions for items that are actual products (have an SKU)
-          if (productSKUMap.has(item.itemId)) {
-            transactions.push({
-              date: toMillis(invoice.date),
-              productName: item.name,
-              type: 'Sale',
-              quantityChange: -item.quantity,
-              reason: null,
-              reference: invoice.invoiceNumber,
-            });
-          }
-        });
-      });
-    }
 
-    // 2. Fetch Manual Adjustments, Additions, and Deletions
+    // --- Step 3: Fetch Manual Adjustments, Additions, and Deletions ---
     const adjustmentsQuery = query(
       collection(firestore, 'stock_adjustment_logs'),
       where('date', '>=', startDate),
@@ -115,7 +110,7 @@ export async function GET(req: NextRequest) {
       });
     });
 
-    // 3. Sort all transactions by date
+    // --- Step 4: Sort all transactions by date (most recent first) ---
     transactions.sort((a, b) => b.date - a.date);
 
     return NextResponse.json(transactions, { status: 200 });
