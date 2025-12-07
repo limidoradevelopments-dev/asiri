@@ -118,7 +118,7 @@ export default function DashboardPage() {
             value={stat.value} 
             icon={iconMap[stat.icon]} 
             className={cn(
-                stat.title === "Total Revenue" && "bg-no-repeat bg-right bg-cover"
+                stat.title === "Total Revenue" && "relative bg-no-repeat bg-right bg-cover shadow-md hover:shadow-xl hover:scale-[1.01] transition-all duration-300"
             )}
             style={stat.title === "Total Revenue" ? { backgroundImage: "url('/stat-card-decoration.svg')" } : {}}
           />
