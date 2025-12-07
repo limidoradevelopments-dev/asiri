@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Download, Search, AlertTriangle, ArrowDown, ArrowUp, ShoppingCart, Wrench, Trash2, Plus } from 'lucide-react';
+import { Download, Search, AlertTriangle, ArrowDown, ArrowUp, ShoppingCart, Wrench, Trash2, Plus, GripVertical } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { StockTransaction } from '@/app/api/reports/stock/route';
@@ -29,6 +29,8 @@ const typeStyles: Record<StockTransaction['type'], { badge: string; icon: React.
   'Manual Adjustment': { badge: "bg-yellow-100 text-yellow-800", icon: Wrench },
   'Deletion': { badge: "bg-red-100 text-red-800", icon: Trash2 },
 };
+
+type FilterType = 'all' | 'Sale' | 'Stock Addition' | 'manual';
 
 export default function StockReportPage() {
   const { toast } = useToast();
@@ -41,6 +43,7 @@ export default function StockReportPage() {
   const [transactions, setTransactions] = useState<StockTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
   const fetchReportData = useCallback(async (signal: AbortSignal) => {
     if (!dateRange?.from || !dateRange?.to) return;
@@ -75,14 +78,25 @@ export default function StockReportPage() {
   }, [fetchReportData]);
 
   const filteredTransactions = useMemo(() => {
-      if (!searchQuery) return transactions;
+      let items = transactions;
+
+      if (activeFilter !== 'all') {
+          if (activeFilter === 'manual') {
+              items = items.filter(t => t.type === 'Manual Adjustment' || t.type === 'Deletion');
+          } else {
+              items = items.filter(t => t.type === activeFilter);
+          }
+      }
+
+      if (!searchQuery) return items;
+      
       const lowercasedQuery = searchQuery.toLowerCase();
-      return transactions.filter(t => 
+      return items.filter(t => 
         t.productName.toLowerCase().includes(lowercasedQuery) ||
         t.reference.toLowerCase().includes(lowercasedQuery) ||
         t.reason?.toLowerCase().includes(lowercasedQuery)
       );
-  }, [transactions, searchQuery]);
+  }, [transactions, searchQuery, activeFilter]);
 
   const handleExportCSV = () => {
     if (filteredTransactions.length === 0) return;
@@ -112,21 +126,28 @@ export default function StockReportPage() {
     ))
   );
 
+  const filterButtons: { label: string; value: FilterType }[] = [
+    { label: 'All Transactions', value: 'all' },
+    { label: 'Sales', value: 'Sale' },
+    { label: 'Stock Additions', value: 'Stock Addition' },
+    { label: 'Manual Adjustments', value: 'manual' },
+  ];
+
   return (
     <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-12 pt-8 pb-12">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-12 gap-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start mb-8 gap-6">
             <div>
                 <h1 className="text-4xl lg:text-5xl font-light tracking-tighter mb-3 text-zinc-900">STOCK REPORT</h1>
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 font-medium">A complete product stock transaction history</p>
             </div>
-            <div className="flex items-center gap-3 w-full lg:w-auto">
-                <div className="relative group flex-1 lg:flex-none">
+            <div className="flex items-center gap-3 w-full lg:w-auto flex-wrap">
+                 <div className="relative group flex-1 lg:flex-none">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                     <Input
                         type="search"
                         placeholder="SEARCH REPORT..."
-                        className="w-full lg:w-64 bg-transparent border-b border-zinc-200 py-2.5 pl-10 text-sm outline-none placeholder:text-zinc-400 focus:border-black transition-colors h-11 rounded-none"
+                        className="w-full lg:w-56 bg-white border-zinc-200 py-2.5 pl-10 text-sm outline-none placeholder:text-zinc-400 focus:border-black transition-colors h-11 rounded-md"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -136,6 +157,23 @@ export default function StockReportPage() {
                     <Download className="h-4 w-4 text-zinc-600" />
                 </Button>
             </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-end gap-2 bg-zinc-100 p-1 mb-8 rounded-md">
+          {filterButtons.map(({ label, value }) => (
+            <Button
+              key={value}
+              onClick={() => setActiveFilter(value)}
+              variant="ghost"
+              className={cn(
+                "h-10 px-6 rounded-md text-sm font-medium uppercase tracking-widest text-zinc-500 hover:bg-zinc-200 transition-colors",
+                activeFilter === value && "bg-black text-white hover:bg-black hover:text-white"
+              )}
+            >
+              {label}
+            </Button>
+          ))}
         </div>
 
         {/* Report Table */}
@@ -161,7 +199,7 @@ export default function StockReportPage() {
                                 <TableCell colSpan={6} className="h-64 text-center text-zinc-400">
                                     <div className="flex flex-col items-center gap-2">
                                         <AlertTriangle className="h-8 w-8 opacity-20" />
-                                        <p className="text-sm uppercase tracking-widest">No transactions found for this period</p>
+                                        <p className="text-sm uppercase tracking-widest">No transactions found</p>
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -179,8 +217,8 @@ export default function StockReportPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            <span className={cn("font-mono font-semibold", item.quantityChange > 0 ? 'text-green-600' : 'text-red-600')}>
-                                                {item.quantityChange > 0 ? `+${item.quantityChange}` : item.quantityChange}
+                                            <span className={cn("font-mono font-semibold", item.quantityChange >= 0 ? 'text-green-600' : 'text-red-600')}>
+                                                {item.quantityChange >= 0 ? `+${item.quantityChange}` : item.quantityChange}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-zinc-500 font-mono text-xs">{item.reference}</TableCell>
