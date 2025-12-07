@@ -110,14 +110,14 @@ export default function InvoicesPage() {
     setInvoiceToPay(invoice);
   };
   
-  const handleConfirmPayment = async (newPayments: Omit<Payment, 'id'>[]) => {
+  const handleConfirmPayment = async (newPayment: Omit<Payment, 'id'>) => {
     if (!invoiceToPay) return;
     setIsProcessingPayment(true);
     try {
         const res = await fetch('/api/invoices', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ invoiceId: invoiceToPay.id, newPayments }),
+            body: JSON.stringify({ invoiceId: invoiceToPay.id, newPayments: [newPayment] }),
         });
 
         if (!res.ok) {
