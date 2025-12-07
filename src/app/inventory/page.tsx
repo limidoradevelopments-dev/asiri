@@ -172,9 +172,7 @@ export default function InventoryPage() {
     [fetchData, toast]
   );
   
-  const handleAddStock = useCallback(async (productId: string, quantity: number) => {
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: (p.stock || 0) + quantity } : p));
-    
+  const handleAddStock = useCallback(async (productId: string, quantity: number): Promise<void> => {
     try {
       const res = await fetch("/api/products/add-stock", {
         method: "POST",
@@ -196,9 +194,8 @@ export default function InventoryPage() {
       const message = err instanceof Error ? err.message : 'An unknown error occurred while adding stock.';
       toast({ variant: 'destructive', title: 'Error', description: message });
       const refreshController = new AbortController();
-      fetchData(refreshController.signal, true);
-    } finally {
-      setAddStockDialogOpen(false);
+      fetchData(refreshController.signal, true); // Re-fetch on error to ensure data consistency
+      throw err; // Re-throw to allow dialog to handle submitting state
     }
   }, [fetchData, toast]);
 

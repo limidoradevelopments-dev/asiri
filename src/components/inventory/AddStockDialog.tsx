@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/lib/data';
 import { WithId } from '@/firebase';
@@ -24,7 +24,7 @@ import { WithId } from '@/firebase';
 type AddStockDialogProps = {
   children: React.ReactNode;
   products: WithId<Product>[];
-  onAddStock: (productId: string, quantity: number) => void;
+  onAddStock: (productId: string, quantity: number) => Promise<void>;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 };
@@ -39,6 +39,7 @@ export function AddStockDialog({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<WithId<Product> | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset state when the dialog is closed.
   useEffect(() => {
@@ -46,6 +47,7 @@ export function AddStockDialog({
       setSearchQuery('');
       setSelectedProduct(null);
       setQuantity(1);
+      setIsSubmitting(false);
     }
   }, [isOpen]);
 
@@ -59,10 +61,18 @@ export function AddStockDialog({
     );
   }, [products, searchQuery]);
 
-  const handleUpdateStock = () => {
-    if (selectedProduct && quantity > 0) {
-      onAddStock(selectedProduct.id, quantity);
+  const handleUpdateStock = async () => {
+    if (!selectedProduct || quantity <= 0) return;
+    
+    setIsSubmitting(true);
+    try {
+      await onAddStock(selectedProduct.id, quantity);
       onOpenChange(false); // Close the dialog on success
+    } catch (error) {
+      // Error is handled by the parent component's toast.
+      // The `finally` block will still run to re-enable the button.
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -160,15 +170,14 @@ export function AddStockDialog({
           <Button
             type="button"
             onClick={handleUpdateStock}
-            disabled={!selectedProduct || quantity <= 0}
+            disabled={!selectedProduct || quantity <= 0 || isSubmitting}
             className={commonButtonStyles}
           >
-            Update Stock
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? 'Updating...' : 'Update Stock'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-    
