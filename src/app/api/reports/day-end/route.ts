@@ -3,20 +3,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import type { Invoice, Payment, Product } from "@/lib/data";
-import { startOfDay, endOfDay, parseISO } from 'date-fns';
-import { toZonedTime, format as formatInTimeZone } from 'date-fns-tz';
+import { startOfDay, endOfDay } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
 const SL_TIME_ZONE = 'Asia/Colombo';
 
 const safeRound = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
 
-// Helper to safely convert Firestore Timestamp/number to milliseconds
-const toMillis = (timestamp: any): number => {
-  if (!timestamp) return 0;
-  if (typeof timestamp === 'number') return timestamp; // Already in millis
-  if (timestamp.toDate) return timestamp.toDate().getTime(); // Firestore Timestamp from server
-  if (timestamp.seconds) return timestamp.seconds * 1000; // Firestore Timestamp from client
-  return 0;
+// Helper to safely convert Firestore Timestamp/number to a JS Date object
+const toDate = (timestamp: any): Date | null => {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  if (typeof timestamp.toDate === 'function') { // Firestore Timestamp object
+    return timestamp.toDate();
+  }
+  if (typeof timestamp === 'number') { // Millisecond timestamp
+    return new Date(timestamp);
+  }
+  return null; // Return null for invalid or missing timestamps
 };
 
 
@@ -33,11 +37,11 @@ export async function GET(req: NextRequest) {
     const reportDateStr = dateParam;
     
     // Create a date object representing the start of that day in the target timezone
-    const zonedDate = toZonedTime(reportDateStr, SL_TIME_ZONE);
+    const zonedDateForReport = toZonedTime(reportDateStr, SL_TIME_ZONE);
 
     // Get the start and end of that day IN THE TARGET TIMEZONE
-    const dayStart = startOfDay(zonedDate);
-    const dayEnd = endOfDay(zonedDate);
+    const dayStart = startOfDay(zonedDateForReport);
+    const dayEnd = endOfDay(zonedDateForReport);
 
     // Fetch all data needed
     const [allInvoicesData, allProducts] = await Promise.all([
@@ -49,12 +53,13 @@ export async function GET(req: NextRequest) {
 
     // Filter invoices by checking if their UTC timestamp falls within the SL day's boundaries
     const dailyInvoices = allInvoicesData
-      .map(inv => ({...inv, date: toMillis(inv.date)})) // Convert Firestore Timestamps to JS millis
+      .map(inv => ({...inv, date: toDate(inv.date)})) // Convert Firestore Timestamps to JS Date objects
       .filter(inv => {
-          if (inv.date === 0) return false;
-          // The invoice date is in UTC (milliseconds).
+          if (!inv.date) return false;
+          // The invoice date is in UTC.
           // We check if this UTC time falls between the start and end of the day in SL time.
-          return inv.date >= dayStart.getTime() && inv.date <= dayEnd.getTime();
+          const invoiceDateInSL = toZonedTime(inv.date, SL_TIME_ZONE);
+          return invoiceDateInSL >= dayStart && invoiceDateInSL <= dayEnd;
       });
 
     // --- Calculations ---
