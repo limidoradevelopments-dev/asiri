@@ -8,7 +8,6 @@ import { Timestamp } from "firebase/firestore";
 
 const adjustmentSchema = z.object({
   productId: z.string().min(1),
-  employeeId: z.string().min(1),
   action: z.enum(['decrement', 'delete']),
   quantity: z.number().int().optional(),
   reason: z.string().min(10),
@@ -16,7 +15,7 @@ const adjustmentSchema = z.object({
 
 /**
  * POST /api/products/adjust-stock
- * Body: { productId, employeeId, action, quantity?, reason }
+ * Body: { productId, action, quantity?, reason }
  * Performs a stock adjustment (decrement or delete) and logs the action.
  */
 export async function POST(req: NextRequest) {
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: validation.error.flatten().fieldErrors }, { status: 400 });
     }
     
-    const { productId, employeeId, action, quantity, reason } = validation.data;
+    const { productId, action, quantity, reason } = validation.data;
     
     // 1. Fetch the product to ensure it exists and get its name
     const product = await db.getOne("products", productId);
@@ -42,7 +41,6 @@ export async function POST(req: NextRequest) {
         productId,
         productName: product.name,
         date: Timestamp.fromDate(nowInSL),
-        employeeId,
         action,
         reason,
         quantity: action === 'decrement' ? quantity : null,

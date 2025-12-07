@@ -7,7 +7,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Product as ProductType, Service as ServiceType, Employee } from "@/lib/data";
+import type { Product as ProductType, Service as ServiceType } from "@/lib/data";
 import InventoryTable from "@/components/inventory/InventoryTable";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 import { AddStockDialog } from "@/components/inventory/AddStockDialog";
@@ -53,25 +53,21 @@ export default function InventoryPage() {
 
   const [products, setProducts] = useState<WithId<ProductType>[]>([]);
   const [services, setServices] = useState<WithId<ServiceType>[]>([]);
-  const [employees, setEmployees] = useState<WithId<Employee>[]>([]);
   const [initialLoad, setInitialLoad] = useState(true);
 
   const fetchData = useCallback(async (signal: AbortSignal) => {
     try {
       setInitialLoad(true);
-      const [productsRes, servicesRes, employeesRes] = await Promise.all([
+      const [productsRes, servicesRes] = await Promise.all([
         fetch('/api/products', { signal }),
         fetch('/api/services', { signal }),
-        fetch('/api/employees', { signal }),
       ]);
 
       if (!productsRes.ok) throw new Error('Failed to fetch products');
       if (!servicesRes.ok) throw new Error('Failed to fetch services');
-      if (!employeesRes.ok) throw new Error('Failed to fetch employees');
       
       const productsJson = await productsRes.json();
       const servicesJson = await servicesRes.json();
-      const employeesJson = await employeesRes.json();
 
       const validatedProducts = ProductsSchema.safeParse(productsJson);
       const validatedServices = ServicesSchema.safeParse(servicesJson);
@@ -87,7 +83,6 @@ export default function InventoryPage() {
 
       setProducts(validatedProducts.data as WithId<ProductType>[]);
       setServices(validatedServices.data as WithId<ServiceType>[]);
-      setEmployees(employeesJson);
 
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -283,7 +278,6 @@ export default function InventoryPage() {
             
             <StockAdjustmentDialog
               products={products ?? []}
-              employees={employees ?? []}
               onSuccess={handleAdjustmentSuccess}
               isOpen={isAdjustmentDialogOpen}
               onOpenChange={setAdjustmentDialogOpen}

@@ -42,14 +42,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronsUpDown, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Product, Employee } from '@/lib/data';
+import type { Product } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 type StockAdjustmentDialogProps = {
   children: React.ReactNode;
   products: WithId<Product>[];
-  employees: WithId<Employee>[];
   onSuccess: () => void;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -57,7 +56,6 @@ type StockAdjustmentDialogProps = {
 
 const adjustmentSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
-  employeeId: z.string().min(1, 'Employee is required.'),
   action: z.enum(['decrement', 'delete'], {
     required_error: 'You must select an action.',
   }),
@@ -76,21 +74,18 @@ const adjustmentSchema = z.object({
 export function StockAdjustmentDialog({
   children,
   products,
-  employees,
   onSuccess,
   isOpen,
   onOpenChange,
 }: StockAdjustmentDialogProps) {
   const { toast } = useToast();
   const [productPopoverOpen, setProductPopoverOpen] = useState(false);
-  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof adjustmentSchema>>({
     resolver: zodResolver(adjustmentSchema),
     defaultValues: {
       productId: '',
-      employeeId: '',
       action: undefined,
       quantity: undefined,
       reason: '',
@@ -155,7 +150,7 @@ export function StockAdjustmentDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-2xl rounded-none border-zinc-200">
+      <DialogContent className="sm:max-w-lg rounded-none border-zinc-200">
         <DialogHeader>
           <DialogTitle className="font-light tracking-tight text-2xl">Stock Adjustment</DialogTitle>
           <DialogDescription className="text-zinc-500">
@@ -165,7 +160,6 @@ export function StockAdjustmentDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="productId"
@@ -216,55 +210,6 @@ export function StockAdjustmentDialog({
                         </FormItem>
                     )}
                 />
-
-                <FormField
-                    control={form.control}
-                    name="employeeId"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>Adjusted By</FormLabel>
-                        <Popover open={employeePopoverOpen} onOpenChange={setEmployeePopoverOpen}>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant="outline"
-                                role="combobox"
-                                className={cn("justify-between font-normal", commonInputStyles, !field.value && "text-muted-foreground")}
-                                >
-                                {field.value ? employees.find(e => e.id === field.value)?.name : "Select employee"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[300px] p-0 rounded-none">
-                            <Command>
-                                <CommandInput placeholder="Search employee..." />
-                                <CommandList>
-                                <CommandEmpty>No employees found.</CommandEmpty>
-                                <CommandGroup>
-                                    {employees.map(employee => (
-                                    <CommandItem
-                                        value={employee.name}
-                                        key={employee.id}
-                                        onSelect={() => {
-                                        form.setValue("employeeId", employee.id);
-                                        setEmployeePopoverOpen(false);
-                                        }}
-                                    >
-                                        <Check className={cn("mr-2 h-4 w-4", employee.id === field.value ? "opacity-100" : "opacity-0")} />
-                                        {employee.name}
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
             
             <FormField
               control={form.control}

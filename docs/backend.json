@@ -398,10 +398,6 @@
           "type": "number",
           "description": "Timestamp of when the adjustment was made."
         },
-        "employeeId": {
-          "type": "string",
-          "description": "ID of the employee who made the adjustment."
-        },
         "action": {
           "type": "string",
           "description": "The type of adjustment made.",
@@ -416,7 +412,7 @@
           "description": "The reason for the adjustment."
         }
       },
-      "required": ["productId", "productName", "date", "employeeId", "action", "reason"]
+      "required": ["productId", "productName", "date", "action", "reason"]
     }
   },
   "auth": {
