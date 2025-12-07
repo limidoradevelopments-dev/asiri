@@ -5,9 +5,9 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Loader2 } from "lucide-react";
+import { Plus, Search, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Product as ProductType, Service as ServiceType } from "@/lib/data";
+import type { Product as ProductType, Service as ServiceType, Employee } from "@/lib/data";
 import InventoryTable from "@/components/inventory/InventoryTable";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 import { AddStockDialog } from "@/components/inventory/AddStockDialog";
@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from "@/hooks/use-toast";
+import { StockAdjustmentDialog } from "@/components/inventory/StockAdjustmentDialog";
 
 type WithId<T> = T & { id: string };
 
@@ -52,26 +53,25 @@ export default function InventoryPage() {
 
   const [products, setProducts] = useState<WithId<ProductType>[]>([]);
   const [services, setServices] = useState<WithId<ServiceType>[]>([]);
+  const [employees, setEmployees] = useState<WithId<Employee>[]>([]);
   const [initialLoad, setInitialLoad] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchData = useCallback(async (signal: AbortSignal, isRefresh = false) => {
+  const fetchData = useCallback(async (signal: AbortSignal) => {
     try {
-      if (!isRefresh) {
-        setInitialLoad(true);
-      } else {
-        setRefreshing(true);
-      }
-      const [productsRes, servicesRes] = await Promise.all([
+      setInitialLoad(true);
+      const [productsRes, servicesRes, employeesRes] = await Promise.all([
         fetch('/api/products', { signal }),
         fetch('/api/services', { signal }),
+        fetch('/api/employees', { signal }),
       ]);
 
       if (!productsRes.ok) throw new Error('Failed to fetch products');
       if (!servicesRes.ok) throw new Error('Failed to fetch services');
+      if (!employeesRes.ok) throw new Error('Failed to fetch employees');
       
       const productsJson = await productsRes.json();
       const servicesJson = await servicesRes.json();
+      const employeesJson = await employeesRes.json();
 
       const validatedProducts = ProductsSchema.safeParse(productsJson);
       const validatedServices = ServicesSchema.safeParse(servicesJson);
@@ -87,6 +87,7 @@ export default function InventoryPage() {
 
       setProducts(validatedProducts.data as WithId<ProductType>[]);
       setServices(validatedServices.data as WithId<ServiceType>[]);
+      setEmployees(employeesJson);
 
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -97,10 +98,7 @@ export default function InventoryPage() {
       const message = err instanceof Error ? err.message : 'Could not fetch inventory data.';
       toast({ variant: 'destructive', title: 'Error', description: message });
     } finally {
-      if (!isRefresh) {
-        setInitialLoad(false);
-      }
-      setRefreshing(false);
+      setInitialLoad(false);
     }
   }, [toast]);
 
@@ -115,6 +113,7 @@ export default function InventoryPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddStockDialogOpen, setAddStockDialogOpen] = useState(false);
+  const [isAdjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false);
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
@@ -155,7 +154,7 @@ export default function InventoryPage() {
         toast({ title: id ? "Updated" : "Created", description: "Item saved successfully." });
         
         const refreshController = new AbortController();
-        fetchData(refreshController.signal, true);
+        fetchData(refreshController.signal);
         return true;
 
       } catch (err: any) {
@@ -194,10 +193,14 @@ export default function InventoryPage() {
       const message = err instanceof Error ? err.message : 'An unknown error occurred while adding stock.';
       toast({ variant: 'destructive', title: 'Error', description: message });
       const refreshController = new AbortController();
-      fetchData(refreshController.signal, true); // Re-fetch on error to ensure data consistency
+      fetchData(refreshController.signal); // Re-fetch on error to ensure data consistency
       throw err; // Re-throw to allow dialog to handle submitting state
     }
   }, [fetchData, toast]);
+  
+  const handleAdjustmentSuccess = useCallback(() => {
+    fetchData(new AbortController().signal);
+  }, [fetchData]);
 
 
   const confirmDelete = useCallback(async () => {
@@ -221,7 +224,7 @@ export default function InventoryPage() {
       const message = err instanceof Error ? err.message : 'An unknown error occurred while deleting the item.';
       toast({ variant: 'destructive', title: 'Error', description: message });
       const refreshController = new AbortController();
-      fetchData(refreshController.signal, true);
+      fetchData(refreshController.signal);
     } finally {
       setItemToDelete(null);
     }
@@ -261,7 +264,7 @@ export default function InventoryPage() {
             />
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <AddStockDialog
               products={products ?? []}
               onAddStock={handleAddStock}
@@ -274,9 +277,26 @@ export default function InventoryPage() {
                 className="h-10 px-6 rounded-none border-zinc-200 text-xs uppercase tracking-[0.15em] hover:bg-zinc-50 hover:text-black hover:border-black transition-all"
               >
                 <Plus className="mr-2 h-3 w-3" />
-                Stock
+                Add Stock
               </Button>
             </AddStockDialog>
+            
+            <StockAdjustmentDialog
+              products={products ?? []}
+              employees={employees ?? []}
+              onSuccess={handleAdjustmentSuccess}
+              isOpen={isAdjustmentDialogOpen}
+              onOpenChange={setAdjustmentDialogOpen}
+            >
+                <Button
+                    onClick={() => setAdjustmentDialogOpen(true)}
+                    variant="outline"
+                    className="h-10 px-6 rounded-none border-zinc-200 text-xs uppercase tracking-[0.15em] hover:bg-zinc-50 hover:text-black hover:border-black transition-all"
+                >
+                    <Settings className="mr-2 h-3 w-3" />
+                    Adjustments
+                </Button>
+            </StockAdjustmentDialog>
 
             <AddItemDialog
               onUpsertItem={handleUpsertItem}

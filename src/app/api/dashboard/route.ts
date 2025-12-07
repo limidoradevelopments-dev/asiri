@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import type { Invoice, Product, Customer, Vehicle } from "@/lib/data";
-import { zonedTimeToUtc, toZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 
 const SL_TZ = "Asia/Colombo";
