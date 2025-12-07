@@ -36,6 +36,7 @@ export default function InvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<EnrichedInvoice | null>(null);
   const [invoiceToPay, setInvoiceToPay] = useState<EnrichedInvoice | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [printOnOpen, setPrintOnOpen] = useState(false);
 
   const fetchInvoices = useCallback(async (startAfter: number | null = null, signal?: AbortSignal) => {
     setLoadingState(startAfter ? 'loadingMore' : 'initial');
@@ -86,8 +87,10 @@ export default function InvoicesPage() {
   }, [fetchInvoices]);
 
   useEffect(() => {
-    setSelectedInvoice(null);
-  }, [activeFilter]);
+    if (!selectedInvoice) {
+      setPrintOnOpen(false);
+    }
+  }, [selectedInvoice]);
   
   const handleLoadMore = () => {
     if (hasMore && allInvoices.length > 0 && loadingState === 'idle') {
@@ -135,6 +138,15 @@ export default function InvoicesPage() {
     }
   };
 
+  const handleViewDetails = (invoice: EnrichedInvoice) => {
+    setSelectedInvoice(invoice);
+  };
+
+  const handlePrintRequest = (invoice: EnrichedInvoice) => {
+    setSelectedInvoice(invoice);
+    setPrintOnOpen(true);
+  };
+
   const filterButtons: { label: string; value: FilterStatus }[] = [
     { label: 'All Invoices', value: 'all' },
     { label: 'Paid', value: 'Paid' },
@@ -170,8 +182,9 @@ export default function InvoicesPage() {
         <InvoicesTable 
             data={filteredInvoices} 
             isLoading={isLoading} 
-            onViewDetails={setSelectedInvoice}
+            onViewDetails={handleViewDetails}
             onAddPayment={handleAddPaymentRequest}
+            onPrint={handlePrintRequest}
         />
       </div>
 
@@ -197,6 +210,7 @@ export default function InvoicesPage() {
         invoice={selectedInvoice}
         isOpen={!!selectedInvoice}
         onOpenChange={(isOpen) => !isOpen && setSelectedInvoice(null)}
+        printOnOpen={printOnOpen}
       />
 
       <AddPaymentDialog

@@ -1,6 +1,6 @@
-
 'use client';
 
+import { useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ type DetailsDialogProps = {
   invoice: EnrichedInvoice | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  printOnOpen?: boolean;
 };
 
 const DetailItem = ({ label, value }: { label: string; value?: string | number | null }) => (
@@ -44,7 +45,22 @@ const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
 };
 
 
-export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsDialogProps) {
+export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange, printOnOpen = false }: DetailsDialogProps) {
+  const printTriggered = useRef(false);
+
+  useEffect(() => {
+    if (isOpen && printOnOpen && !printTriggered.current) {
+      printTriggered.current = true;
+      // Allow dialog to render before printing
+      setTimeout(() => {
+        window.print();
+      }, 500); 
+    }
+    if (!isOpen) {
+      printTriggered.current = false;
+    }
+  }, [isOpen, printOnOpen]);
+
   if (!invoice) return null;
 
   const { customerDetails: customer, vehicleDetails: vehicle, employeeDetails: employee } = invoice;
@@ -54,8 +70,6 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsD
   };
   
   const handlePrint = () => {
-    // This is a browser-native print functionality.
-    // In a real app, you might want a more sophisticated PDF generation service.
     window.print();
   }
   
@@ -229,5 +243,3 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsD
     </Dialog>
   );
 }
-
-    
