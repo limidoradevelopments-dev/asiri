@@ -72,7 +72,7 @@ export const getItemPrice = (item: CartItem): number => {
 const categoryIcons: Record<VehicleCategory, React.ElementType> = {
     "Bike": Bike,
     "Car": Car,
-    "Van": Truck,
+    "Van": Car,
     "Jeep": Tractor,
     "Lorry": Truck,
 };
@@ -221,10 +221,6 @@ export default function POSPage() {
     setCart(prev => [...prev, newCustomItem]);
   };
   
-  const debouncedUpdateCartItem = useDebouncedCallback((cartId: string, updates: Partial<CartItem>) => {
-    setCart(prev => prev.map(item => item.cartId === cartId ? {...item, ...updates} : item));
-  }, 300);
-
   const updateCartItem = (cartId: string, updates: Partial<CartItem>) => {
     const item = cart.find(i => i.cartId === cartId);
     if (!item) return;
@@ -507,7 +503,7 @@ export default function POSPage() {
     { label: 'All', value: 'all', icon: Sparkles },
     { label: 'Bike', value: 'Bike', icon: Bike },
     { label: 'Car', value: 'Car', icon: Car },
-    { label: 'Van', value: 'Van', icon: Truck },
+    { label: 'Van', value: 'Van', icon: Car },
     { label: 'Jeep', value: 'Jeep', icon: Tractor },
     { label: 'Lorry', value: 'Lorry', icon: Truck },
   ];
@@ -857,3 +853,4 @@ export default function POSPage() {
     
 
     
+

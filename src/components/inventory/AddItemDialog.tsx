@@ -147,7 +147,7 @@ export function AddItemDialog({
   const categoryIcons: Record<VehicleCategory, React.ElementType> = {
     "Bike": Bike,
     "Car": Car,
-    "Van": Truck,
+    "Van": Car,
     "Jeep": Tractor,
     "Lorry": Truck,
   };
