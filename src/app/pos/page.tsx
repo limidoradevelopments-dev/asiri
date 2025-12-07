@@ -2,11 +2,11 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMethod, VehicleCategory } from '@/lib/data';
+import type { Product, Service, Employee, Customer, Vehicle, Invoice, Payment, VehicleCategory } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Search, UserPlus, Car, Bike, Truck, Sparkles, Loader2, ChevronsUpDown, Check, Archive } from 'lucide-react';
+import { Search, UserPlus, Car, Bike, Truck, Sparkles, Loader2, ChevronsUpDown, Check, Archive, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -415,7 +415,13 @@ export default function POSPage() {
     setPaymentDialogOpen(true);
   };
   
-  const handleConfirmPayment = useCallback(async (paymentDetails: Omit<Parameters<typeof onConfirmPayment>[0], "changeDue"> & { changeGiven: number }) => {
+  const handleConfirmPayment = useCallback(async (paymentDetails: {
+    payments: Payment[];
+    amountPaid: number;
+    balanceDue: number;
+    paymentStatus: 'Paid' | 'Partial' | 'Unpaid';
+    changeGiven: number;
+  }) => {
     if (!selectedCustomer || !selectedVehicle || !selectedEmployee) return;
 
     setIsProcessing(true);
@@ -447,14 +453,10 @@ export default function POSPage() {
       globalDiscountAmount: totals.globalDiscountAmount,
       total: totals.total,
       paymentStatus: paymentDetails.paymentStatus,
+      payments: paymentDetails.payments,
       amountPaid: paymentDetails.amountPaid,
       balanceDue: paymentDetails.balanceDue,
       changeGiven: paymentDetails.changeGiven,
-      paymentMethod: paymentDetails.paymentMethod,
-      ...(paymentDetails.paymentMethod === 'Check' && { 
-        chequeNumber: paymentDetails.chequeNumber, 
-        bank: paymentDetails.bank 
-      }),
     };
     
     try {

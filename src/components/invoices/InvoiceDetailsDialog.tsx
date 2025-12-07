@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
+import type { Invoice, Customer, Vehicle, Employee, Payment } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { format } from 'date-fns';
 import { Separator } from '../ui/separator';
@@ -150,10 +150,19 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsD
                             <span className="font-mono">{formatPrice(invoice.total)}</span>
                         </div>
                          <Separator/>
-                        <div className="flex justify-between">
-                            <span className="text-zinc-600">Amount Paid ({invoice.paymentMethod}):</span>
+
+                         {invoice.payments.map((payment, index) => (
+                            <div key={index} className="flex justify-between">
+                                <span className="text-zinc-600">Paid by {payment.method}:</span>
+                                <span className="font-mono">{formatPrice(payment.amount)}</span>
+                            </div>
+                         ))}
+                         
+                        <div className="flex justify-between font-bold text-zinc-800">
+                            <span>Total Paid:</span>
                             <span className="font-mono">{formatPrice(invoice.amountPaid)}</span>
                         </div>
+
                         {invoice.changeGiven && invoice.changeGiven > 0 && (
                           <div className="flex justify-between">
                             <span className="text-zinc-600">Change Given:</span>
@@ -200,3 +209,5 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange }: DetailsD
     </Dialog>
   );
 }
+
+    

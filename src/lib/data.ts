@@ -74,6 +74,14 @@ export const lowStockItemsData: LowStockItem[] = [
 export type InvoiceStatus = 'Paid' | 'Partial' | 'Unpaid';
 export type PaymentMethod = 'Cash' | 'Card' | 'Check';
 
+export interface Payment {
+  id?: string;
+  method: PaymentMethod;
+  amount: number;
+  chequeNumber?: string;
+  bank?: string;
+}
+
 export type Invoice = {
   id: string; // This is for recentInvoicesData, Firestore will have its own ID.
   invoiceNumber: string;
@@ -92,18 +100,16 @@ export type Invoice = {
   subtotal: number;
   globalDiscountPercent: number;
   globalDiscountAmount: number;
-  total: number;
+al: number;
   paymentStatus: InvoiceStatus;
+  payments: Payment[];
   amountPaid: number;
   balanceDue: number;
-  paymentMethod?: PaymentMethod;
-  chequeNumber?: string;
-  bank?: string;
   changeGiven?: number;
 };
 
 
-export const recentInvoicesData: (Omit<Invoice, 'invoiceNumber' | 'customerId' | 'vehicleId' | 'employeeId' | 'items' | 'subtotal' | 'globalDiscountPercent' | 'globalDiscountAmount' | 'balanceDue' | 'paymentMethod'> & { customer: string, amount: number, status: 'Paid' | 'Pending' | 'Overdue'})[] = [
+export const recentInvoicesData: (Omit<Invoice, 'invoiceNumber' | 'customerId' | 'vehicleId' | 'employeeId' | 'items' | 'subtotal' | 'globalDiscountPercent' | 'globalDiscountAmount' | 'balanceDue' | 'payments' > & { customer: string, amount: number, status: 'Paid' | 'Pending' | 'Overdue'})[] = [
   {
     id: "INV-2024005",
     customer: "John Doe",
@@ -202,3 +208,5 @@ export interface Vehicle {
   transmission?: 'Auto' | 'Manual';
   lastVisit?: number;
 }
+
+    

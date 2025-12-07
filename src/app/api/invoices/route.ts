@@ -55,6 +55,13 @@ export async function GET(req: NextRequest) {
 }
 
 
+const paymentSchema = z.object({
+  method: z.enum(['Cash', 'Card', 'Check']),
+  amount: z.number().positive('Payment amount must be positive.'),
+  chequeNumber: z.string().optional(),
+  bank: z.string().optional(),
+});
+
 const invoiceSchema = z.object({
   invoiceNumber: z.string(),
   customerId: z.string(),
@@ -74,12 +81,10 @@ const invoiceSchema = z.object({
   globalDiscountAmount: z.number(),
   total: z.number(),
   paymentStatus: z.enum(['Paid', 'Partial', 'Unpaid']),
+  payments: z.array(paymentSchema).nonempty('At least one payment method is required.'),
   amountPaid: z.number(),
   balanceDue: z.number(),
   changeGiven: z.number(),
-  paymentMethod: z.enum(['Cash', 'Card', 'Check']),
-  chequeNumber: z.string().optional(),
-  bank: z.string().optional(),
 });
 
 /**
@@ -130,3 +135,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create invoice" }, { status: 500 });
   }
 }
+
+    

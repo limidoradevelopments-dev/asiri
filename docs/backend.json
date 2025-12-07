@@ -170,30 +170,40 @@
             "Unpaid"
           ]
         },
-        "paymentMethod": {
-          "type": "string",
-          "description": "The method of payment.",
-          "enum": [
-            "Cash",
-            "Card",
-            "Check"
-          ]
+        "payments": {
+          "type": "array",
+          "description": "A list of payments made for this invoice.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "method": {
+                "type": "string",
+                "description": "The method of payment.",
+                "enum": ["Cash", "Card", "Check"]
+              },
+              "amount": {
+                "type": "number",
+                "description": "The amount paid with this method."
+              },
+              "chequeNumber": {
+                "type": "string",
+                "description": "The cheque number if payment method is Check."
+              },
+              "bank": {
+                "type": "string",
+                "description": "The bank name if payment method is Check."
+              }
+            },
+            "required": ["method", "amount"]
+          }
         },
         "amountPaid": {
           "type": "number",
-          "description": "The amount paid by the customer."
+          "description": "The total amount paid by the customer."
         },
         "balanceDue": {
           "type": "number",
           "description": "The remaining balance to be paid."
-        },
-        "chequeNumber": {
-          "type": "string",
-          "description": "The cheque number if payment method is Check."
-        },
-        "bank": {
-          "type": "string",
-          "description": "The bank name if payment method is Check."
         },
         "changeGiven": {
           "type": "number",
@@ -511,3 +521,5 @@
     "reasoning": "The Firestore data structure is designed to support the ServicePulse Dashboard application. Key entities like Customers, Vehicles, Products, and Services are stored in separate top-level collections to maintain structural segregation and allow for independent security rules. This approach simplifies querying (e.g., listing all vehicles) and aligns with best practices for authorization independence, as access to one collection does not depend on data from another."
   }
 }
+
+    
