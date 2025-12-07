@@ -87,7 +87,7 @@ export function AddCustomerVehicleDialog({
       form.reset({
         ...itemToEdit.customer,
         ...itemToEdit.vehicle,
-        numberPlate: itemToEdit.vehicle.numberPlate.toUpperCase(),
+        numberPlate: itemToEdit.vehicle.numberPlate.toLowerCase(),
       });
     } else {
       form.reset({
@@ -123,7 +123,7 @@ export function AddCustomerVehicleDialog({
     
     const finalVehicleData: Partial<Omit<Vehicle, 'id' | 'customerId'>> = {
         ...vehicleData,
-        numberPlate: vehicleData.numberPlate.toUpperCase(), // Store as uppercase
+        numberPlate: vehicleData.numberPlate.toLowerCase(), // Store as lowercase
     };
 
     if (vehicleData.mileage) {
@@ -156,7 +156,7 @@ export function AddCustomerVehicleDialog({
                 <h3 className="text-lg font-medium tracking-tight border-b pb-2 mb-4">Vehicle Details</h3>
                  <div className="grid grid-cols-3 gap-4">
                      <FormField control={form.control} name="numberPlate" render={({ field }) => (
-                      <FormItem><FormLabel>Vehicle Number Plate</FormLabel><FormControl><Input placeholder="e.g., ABC-1234" {...field} className={commonInputStyles} onChange={(e) => field.onChange(e.target.value.toUpperCase())} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Vehicle Number Plate</FormLabel><FormControl><Input placeholder="e.g., abc-1234" {...field} className={commonInputStyles} onChange={(e) => field.onChange(e.target.value.toLowerCase())} /></FormControl><FormMessage /></FormItem>
                     )} />
                       <FormField control={form.control} name="make" render={({ field }) => (
                       <FormItem><FormLabel>Make (Brand)</FormLabel><FormControl><Input placeholder="e.g., Toyota" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>

@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
     // Create a query to find documents where numberPlate starts with the search query
     const q = query(
         vehiclesRef, 
-        where('numberPlate', '>=', searchQuery.toUpperCase()),
-        where('numberPlate', '<=', searchQuery.toUpperCase() + '\uf8ff'),
+        where('numberPlate', '>=', searchQuery.toLowerCase()),
+        where('numberPlate', '<=', searchQuery.toLowerCase() + '\uf8ff'),
         limit(10) // Limit results for performance
     );
 
