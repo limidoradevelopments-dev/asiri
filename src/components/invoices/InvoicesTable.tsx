@@ -33,7 +33,6 @@ type InvoicesTableProps = {
   isLoading: boolean;
   onViewDetails: (invoice: EnrichedInvoice) => void;
   onAddPayment: (invoice: EnrichedInvoice) => void;
-  onPrint: (invoice: EnrichedInvoice) => void;
 };
 
 const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
@@ -42,7 +41,7 @@ const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
   Unpaid: "bg-red-100 text-red-800 border-red-200",
 };
 
-export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, onPrint }: InvoicesTableProps) {
+export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: InvoicesTableProps) {
   const [showEmptyState, setShowEmptyState] = useState(false);
 
   useEffect(() => {
@@ -61,6 +60,19 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, on
   const formatPrice = (price: number) => {
     if (typeof price !== 'number') return 'Rs. 0.00';
     return price.toLocaleString('en-US', { style: 'currency', currency: 'LKR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('LKR', 'Rs.');
+  };
+  
+  const formatDate = (date: number | any) => {
+    if (!date) return 'Invalid Date';
+    let dateObj;
+    if(typeof date === 'number') {
+      dateObj = new Date(date);
+    } else if (date.seconds) { // Handle Firestore Timestamp object
+      dateObj = new Date(date.seconds * 1000 + (date.nanoseconds || 0) / 1000000);
+    } else {
+      return 'Invalid Date';
+    }
+    return dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' });
   };
   
   const renderSkeleton = () => (
@@ -100,7 +112,7 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, on
                   <TableCell className="p-2 h-12 font-mono text-blue-600 hover:underline text-xs cursor-pointer" onClick={() => onViewDetails(invoice)}>{invoice.invoiceNumber}</TableCell>
                   <TableCell className="p-2 h-12 font-medium">{invoice.customerName}</TableCell>
                   <TableCell className="p-2 h-12">{invoice.vehicleNumberPlate}</TableCell>
-                  <TableCell className="p-2 h-12">{new Date(invoice.date).toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' })}</TableCell>
+                  <TableCell className="p-2 h-12">{formatDate(invoice.date)}</TableCell>
                   <TableCell className="p-2 h-12">
                     <Badge className={cn("capitalize text-xs font-semibold rounded-md border", statusStyles[invoice.paymentStatus])} variant="outline">
                         {invoice.paymentStatus}
