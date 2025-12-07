@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import React from "react";
 
 export default function StatCard({
   title,
@@ -15,9 +16,10 @@ export default function StatCard({
   change,
   changeType,
   className,
-}: StatCardData & { className?: string }) {
+  style
+}: StatCardData & { className?: string, style?: React.CSSProperties }) {
   return (
-    <Card className={cn("rounded-none border-0 shadow-none bg-background p-8", className)}>
+    <Card className={cn("rounded-none border-0 shadow-none bg-background p-8", className)} style={style}>
       <CardHeader className="p-0 flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle className="text-sm uppercase tracking-widest font-medium text-zinc-400">{title}</CardTitle>
         <Icon className="h-5 w-5 text-zinc-300" />

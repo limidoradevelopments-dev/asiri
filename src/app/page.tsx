@@ -11,6 +11,7 @@ import { DollarSign, Archive, Users, BarChart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { RevenueData } from '@/lib/data';
+import { cn } from '@/lib/utils';
 
 // --- Types for API Response ---
 type Stat = {
@@ -111,7 +112,16 @@ export default function DashboardPage() {
       {/* --- STATS GRID --- */}
       <div className="grid grid-cols-4 gap-px bg-zinc-200 border border-zinc-200">
         {isLoading || !data ? renderStatSkeletons() : data.stats.map((stat) => (
-          <StatCard key={stat.title} title={stat.title} value={stat.value} icon={iconMap[stat.icon]} />
+          <StatCard 
+            key={stat.title} 
+            title={stat.title} 
+            value={stat.value} 
+            icon={iconMap[stat.icon]} 
+            className={cn(
+                stat.title === "Total Revenue" && "bg-no-repeat bg-right bg-cover"
+            )}
+            style={stat.title === "Total Revenue" ? { backgroundImage: "url('/stat-card-decoration.svg')" } : {}}
+          />
         ))}
       </div>
       
