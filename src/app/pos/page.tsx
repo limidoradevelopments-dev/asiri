@@ -33,7 +33,7 @@ import { VanIcon } from '@/components/icons/VanIcon';
 import { JeepIcon } from '@/components/icons/JeepIcon';
 import { WithId } from '@/firebase';
 import { CartTotals } from '@/components/pos/CartTotals';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 
 // --- Types ---
 export type CartItemBase = {
@@ -427,7 +427,7 @@ export default function POSPage() {
 
     setIsProcessing(true);
     
-    const nowInSL = utcToZonedTime(new Date(), 'Asia/Colombo');
+    const nowInSL = toZonedTime(new Date(), 'Asia/Colombo');
 
     const invoiceItems = cart.map(item => {
       const originalPrice = getItemPrice(item);

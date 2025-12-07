@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import type { Invoice, Product, Customer, Vehicle } from "@/lib/data";
-import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+import { zonedTimeToUtc, toZonedTime } from 'date-fns-tz';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 
 const SL_TZ = "Asia/Colombo";
@@ -40,7 +40,7 @@ export async function GET() {
     const vehicles = vehiclesData as (Vehicle & { id: string })[];
     
     // --- Calculations ---
-    const nowInSL = utcToZonedTime(new Date(), SL_TZ);
+    const nowInSL = toZonedTime(new Date(), SL_TZ);
     const todayStart = startOfDay(nowInSL);
     const todayEnd = endOfDay(nowInSL);
     
@@ -50,7 +50,7 @@ export async function GET() {
     
     const todaysRevenue = processedInvoices
       .filter(inv => {
-        const invoiceDateInSL = utcToZonedTime(new Date(inv.date), SL_TZ);
+        const invoiceDateInSL = toZonedTime(new Date(inv.date), SL_TZ);
         return invoiceDateInSL >= todayStart && invoiceDateInSL <= todayEnd;
       })
       .reduce((acc, inv) => acc + inv.amountPaid, 0);
@@ -73,7 +73,7 @@ export async function GET() {
 
         const dailyRevenue = processedInvoices
             .filter(inv => {
-              const invoiceDateInSL = utcToZonedTime(new Date(inv.date), SL_TZ);
+              const invoiceDateInSL = toZonedTime(new Date(inv.date), SL_TZ);
               return invoiceDateInSL >= dayStart && invoiceDateInSL <= dayEnd;
             })
             .reduce((sum, inv) => sum + inv.total, 0);
