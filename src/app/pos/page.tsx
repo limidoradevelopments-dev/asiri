@@ -220,55 +220,57 @@ export default function POSPage() {
   };
   
   const debouncedUpdateCartItem = useDebouncedCallback((cartId: string, updates: Partial<CartItem>) => {
-    setCart(prev => prev.map(item => {
-      if (item.cartId === cartId) {
-        let updatedItem = { ...item, ...updates };
-        
-        if (updatedItem.type === 'product') {
-          const liveProduct = products.find(p => p.id === updatedItem.id);
-          const stock = liveProduct ? liveProduct.stock : 0;
-          if (updatedItem.quantity > stock) {
-            toast({
-              variant: 'destructive',
-              title: 'Stock Limit Exceeded',
-              description: `Only ${stock} units of ${updatedItem.name} available.`,
-            });
-            updatedItem.quantity = stock;
-          }
-        }
-        
-        if (updatedItem.quantity < 1) {
-            updatedItem.quantity = 1;
-        }
-
-        if ('discountAmount' in updates && updatedItem.discountAmount !== undefined) {
-          const originalPrice = getItemPrice(item);
-          updatedItem.discountAmount = Math.max(0, Math.min(updatedItem.discountAmount || 0, originalPrice));
-        }
-        
-        return updatedItem;
-      }
-      return item;
-    }));
+    setCart(prev => prev.map(item => item.cartId === cartId ? {...item, ...updates} : item));
   }, 300);
 
   const updateCartItem = (cartId: string, updates: Partial<CartItem>) => {
-     if (updates.discountAmount !== undefined) {
-      const item = cart.find(i => i.cartId === cartId);
-      if (item) {
-        const originalPrice = getItemPrice(item);
-        if (updates.discountAmount > originalPrice) {
+    const item = cart.find(i => i.cartId === cartId);
+    if (!item) return;
+
+    let validatedUpdates = { ...updates };
+
+    // --- Start Validation Logic ---
+    if ('quantity' in validatedUpdates && validatedUpdates.quantity !== undefined) {
+      const newQuantity = validatedUpdates.quantity;
+      if (item.type === 'product') {
+        const liveProduct = products.find(p => p.id === item.id);
+        const stock = liveProduct ? liveProduct.stock : 0;
+        if (newQuantity > stock) {
           toast({
-            variant: "destructive",
-            title: "Invalid Discount",
-            description: "Discount cannot be greater than the item's price.",
+            variant: 'destructive',
+            title: 'Stock Limit Exceeded',
+            description: `Only ${stock} units of ${item.name} available.`,
           });
-          updates.discountAmount = originalPrice;
+          validatedUpdates.quantity = stock;
         }
       }
+      if (newQuantity < 1) {
+        validatedUpdates.quantity = 1;
+      }
     }
-     setCart(prev => prev.map(item => item.cartId === cartId ? {...item, ...updates} : item));
-     debouncedUpdateCartItem(cartId, updates);
+
+    if ('discountAmount' in validatedUpdates && validatedUpdates.discountAmount !== undefined) {
+      const originalPrice = getItemPrice(item);
+      if (validatedUpdates.discountAmount > originalPrice) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Discount",
+          description: "Discount cannot be greater than the item's price.",
+        });
+        validatedUpdates.discountAmount = originalPrice;
+      }
+      if (validatedUpdates.discountAmount < 0) {
+        validatedUpdates.discountAmount = 0;
+      }
+    }
+    // --- End Validation Logic ---
+
+    // Set state immediately with validated data
+    setCart(prev => prev.map(i => i.cartId === cartId ? {...i, ...validatedUpdates} : i));
+    
+    // Debounce the state update for performance (optional, but can be good for rapid input)
+    // Note: The debounced version uses the same validated data.
+    debouncedUpdateCartItem(cartId, validatedUpdates);
   }
   
   const removeFromCart = (id: string) => {
@@ -854,5 +856,7 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
 
     
