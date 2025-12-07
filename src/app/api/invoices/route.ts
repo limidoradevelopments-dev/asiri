@@ -1,4 +1,3 @@
-
 // app/api/invoices/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
@@ -6,6 +5,7 @@ import { initializeFirebase } from "@/firebase/server-init";
 import { collection, query, getDocs, orderBy, limit, startAfter, doc, getDoc, Timestamp } from "firebase/firestore";
 import { z } from "zod";
 import type { Invoice, Payment } from "@/lib/data";
+import { utcToZonedTime } from "date-fns-tz";
 
 const BATCH_SIZE = 50;
 
@@ -113,9 +113,11 @@ export async function POST(req: NextRequest) {
     
     const { firestore } = initializeFirebase();
     
+    const nowInSL = utcToZonedTime(new Date(), 'Asia/Colombo');
+    
     const invoiceDataForDb = {
         ...invoiceData,
-        date: Timestamp.fromMillis(invoiceData.date)
+        date: Timestamp.fromDate(nowInSL)
     };
     
     const productsRef = collection(firestore, 'products');

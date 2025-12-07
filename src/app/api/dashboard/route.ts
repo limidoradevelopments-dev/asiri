@@ -2,7 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import type { Invoice, Product, Customer, Vehicle } from "@/lib/data";
+import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
+
+const SL_TZ = "Asia/Colombo";
 
 const formatCurrency = (amount: number) => {
      if (typeof amount !== 'number') return 'Rs. 0.00';
@@ -37,16 +40,19 @@ export async function GET() {
     const vehicles = vehiclesData as (Vehicle & { id: string })[];
     
     // --- Calculations ---
-
-    const todayStart = startOfDay(new Date());
-    const todayEnd = endOfDay(new Date());
+    const nowInSL = utcToZonedTime(new Date(), SL_TZ);
+    const todayStart = startOfDay(nowInSL);
+    const todayEnd = endOfDay(nowInSL);
     
     const processedInvoices = invoices.map(inv => ({...inv, date: toMillis(inv.date)}));
     
     const totalRevenue = processedInvoices.reduce((acc, inv) => acc + inv.amountPaid, 0);
     
     const todaysRevenue = processedInvoices
-      .filter(inv => inv.date >= todayStart.getTime() && inv.date <= todayEnd.getTime())
+      .filter(inv => {
+        const invoiceDateInSL = utcToZonedTime(new Date(inv.date), SL_TZ);
+        return invoiceDateInSL >= todayStart && invoiceDateInSL <= todayEnd;
+      })
       .reduce((acc, inv) => acc + inv.amountPaid, 0);
 
     const lowStockItems = products.filter(p => p.stock <= p.stockThreshold);
@@ -61,16 +67,19 @@ export async function GET() {
     ];
 
     const revenueByDay = Array.from({ length: 7 }, (_, i) => {
-        const date = subDays(new Date(), i);
-        const dayStart = startOfDay(date);
-        const dayEnd = endOfDay(date);
+        const dateInSL = subDays(nowInSL, i);
+        const dayStart = startOfDay(dateInSL);
+        const dayEnd = endOfDay(dateInSL);
 
         const dailyRevenue = processedInvoices
-            .filter(inv => inv.date >= dayStart.getTime() && inv.date <= dayEnd.getTime())
+            .filter(inv => {
+              const invoiceDateInSL = utcToZonedTime(new Date(inv.date), SL_TZ);
+              return invoiceDateInSL >= dayStart && invoiceDateInSL <= dayEnd;
+            })
             .reduce((sum, inv) => sum + inv.total, 0);
         
         return {
-            date: format(date, "MMM d"),
+            date: format(dateInSL, "MMM d"),
             revenue: dailyRevenue
         };
     }).reverse();

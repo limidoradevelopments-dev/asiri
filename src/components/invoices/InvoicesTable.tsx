@@ -17,6 +17,7 @@ import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { format as formatTz, toDate } from 'date-fns-tz';
 
 export type EnrichedInvoice = WithId<Invoice> & {
   customerName?: string;
@@ -50,8 +51,8 @@ const formatPrice = (price: number) => {
 const formatDate = (dateValue: number | any) => {
     if (!dateValue || typeof dateValue !== 'number') return 'Invalid Date';
     try {
-        const date = new Date(dateValue);
-        return date.toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' });
+        const date = toDate(dateValue, { timeZone: 'Asia/Colombo' });
+        return formatTz(date, 'MMM d, yyyy', { timeZone: 'Asia/Colombo' });
     } catch {
         return 'Invalid Date';
     }

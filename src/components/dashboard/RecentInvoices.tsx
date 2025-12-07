@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { WithId } from "@/firebase";
+import { format as formatTz, toDate } from 'date-fns-tz';
 
 type RecentInvoicesProps = {
   data: (WithId<Invoice> & { customerName: string })[];
@@ -30,6 +31,17 @@ const statusStyles: Record<Invoice['paymentStatus'], string> = {
 };
 
 export default function RecentInvoices({ data }: RecentInvoicesProps) {
+  
+  const formatDateInSL = (timestamp: number) => {
+    if (!timestamp) return 'Invalid Date';
+    try {
+      const date = toDate(timestamp, { timeZone: 'Asia/Colombo' });
+      return formatTz(date, 'MMM d, yyyy', { timeZone: 'Asia/Colombo' });
+    } catch {
+      return 'Invalid Date';
+    }
+  };
+
   return (
     <Card className="rounded-none border-0 shadow-none bg-background p-8">
       <CardHeader className="p-0 mb-8">
@@ -63,7 +75,7 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
                         {invoice.paymentStatus}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-3 px-0">{invoice.date ? new Date(invoice.date).toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' }) : 'Invalid Date'}</TableCell>
+                    <TableCell className="py-3 px-0">{formatDateInSL(invoice.date)}</TableCell>
                     <TableCell className="text-right py-3 px-0 font-mono">
                       {invoice.total.toLocaleString("en-US", {
                         style: "currency",

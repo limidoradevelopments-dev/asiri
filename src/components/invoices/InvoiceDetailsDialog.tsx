@@ -16,6 +16,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Printer, CheckCircle, AlertCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import { format as formatTz, toDate } from 'date-fns-tz';
 
 type EnrichedInvoice = WithId<Invoice> & {
   customerDetails?: WithId<Customer>;
@@ -71,6 +72,16 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange, printOnOpe
   const handlePrint = () => {
     window.print();
   }
+
+  const formatDateInSL = (timestamp: number) => {
+    if (!timestamp) return 'Invalid Date';
+    try {
+      const date = toDate(timestamp, { timeZone: 'Asia/Colombo' });
+      return formatTz(date, 'MMM d, yyyy', { timeZone: 'Asia/Colombo' });
+    } catch {
+      return 'Invalid Date';
+    }
+  };
   
   const isFullyPaid = invoice.paymentStatus === 'Paid' && invoice.balanceDue === 0;
 
@@ -114,7 +125,7 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange, printOnOpe
                     <div className="col-span-1 space-y-4 text-right">
                         <h3 className="text-xs uppercase tracking-widest text-zinc-400 font-bold">Details</h3>
                         <div className="space-y-1">
-                            <p className="text-sm"><span className="font-semibold">Date:</span> {new Date(invoice.date).toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                            <p className="text-sm"><span className="font-semibold">Date:</span> {formatDateInSL(invoice.date)}</p>
                             <p className="text-sm"><span className="font-semibold">Job By:</span> {employee?.name || 'N/A'}</p>
                         </div>
                     </div>

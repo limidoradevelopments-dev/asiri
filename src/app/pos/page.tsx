@@ -33,6 +33,7 @@ import { VanIcon } from '@/components/icons/VanIcon';
 import { JeepIcon } from '@/components/icons/JeepIcon';
 import { WithId } from '@/firebase';
 import { CartTotals } from '@/components/pos/CartTotals';
+import { utcToZonedTime } from 'date-fns-tz';
 
 // --- Types ---
 export type CartItemBase = {
@@ -425,6 +426,8 @@ export default function POSPage() {
     if (!selectedCustomer || !selectedVehicle || !selectedEmployee) return;
 
     setIsProcessing(true);
+    
+    const nowInSL = utcToZonedTime(new Date(), 'Asia/Colombo');
 
     const invoiceItems = cart.map(item => {
       const originalPrice = getItemPrice(item);
@@ -446,7 +449,7 @@ export default function POSPage() {
       customerId: selectedCustomer.id,
       vehicleId: selectedVehicle.id,
       employeeId: selectedEmployee.id,
-      date: Date.now(),
+      date: nowInSL.getTime(),
       items: invoiceItems,
       subtotal: totals.subtotal,
       globalDiscountPercent,
@@ -767,5 +770,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-    
