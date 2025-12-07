@@ -29,13 +29,7 @@ import type { Employee } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { Textarea } from '../ui/textarea';
 import { Loader2 } from 'lucide-react';
-
-const employeeSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  address: z.string().min(1, 'Address is required'),
-  mobile: z.string().min(1, 'Mobile number is required'),
-  notes: z.string().optional(),
-});
+import { employeeSchema } from '@/lib/schemas';
 
 type AddEmployeeDialogProps = {
   children: React.ReactNode;

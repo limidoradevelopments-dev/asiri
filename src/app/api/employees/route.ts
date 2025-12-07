@@ -2,14 +2,7 @@
 // app/api/employees/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
-import { z } from "zod";
-
-const employeeSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  address: z.string().min(1, 'Address is required'),
-  mobile: z.string().min(1, 'Mobile number is required'),
-  notes: z.string().optional(),
-});
+import { employeeSchema } from "@/lib/schemas";
 
 
 /**
@@ -94,4 +87,3 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ error: "Failed to delete employee" }, { status: 500 });
     }
 }
-
