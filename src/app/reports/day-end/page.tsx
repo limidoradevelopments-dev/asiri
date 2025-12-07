@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -54,13 +54,15 @@ export default function DayEndPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
 
   // --- Data Fetching ---
   const fetchReportData = useCallback(async (signal: AbortSignal, reportDate: Date) => {
     setIsLoading(true);
     setReportData(null);
     try {
-      const dateString = reportDate.toISOString().split('T')[0];
+      // Correctly format the date to ensure the local date is sent, not UTC.
+      const dateString = format(reportDate, 'yyyy-MM-dd');
       const res = await fetch(`/api/reports/day-end?date=${dateString}`, { signal });
       
       if (!res.ok) {
@@ -82,7 +84,9 @@ export default function DayEndPage() {
   useEffect(() => {
     if (date) {
       const controller = new AbortController();
-      fetchReportData(controller.signal, date);
+      startTransition(() => {
+         fetchReportData(controller.signal, date);
+      });
       return () => controller.abort();
     }
   }, [date, fetchReportData]);
@@ -91,6 +95,12 @@ export default function DayEndPage() {
   const handlePrint = () => {
     window.print();
   };
+
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+        setDate(selectedDate);
+    }
+  }
 
   // --- Render Helpers ---
   const renderStatSkeletons = () => (
@@ -119,6 +129,7 @@ export default function DayEndPage() {
                     "w-[280px] justify-start text-left font-normal rounded-none h-11 border-zinc-200 text-base",
                     !date && "text-muted-foreground"
                   )}
+                  disabled={isPending}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {date ? format(date, "PPP") : <span>Pick a date</span>}
@@ -128,7 +139,7 @@ export default function DayEndPage() {
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={handleDateSelect}
                   initialFocus
                 />
               </PopoverContent>
@@ -140,7 +151,7 @@ export default function DayEndPage() {
       </div>
 
        {/* Loading State */}
-       {isLoading && (
+       {(isLoading || isPending) && (
         <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-px bg-zinc-200 border border-zinc-200 mb-8 rounded-sm overflow-hidden">
                 {renderStatSkeletons()}
@@ -153,7 +164,7 @@ export default function DayEndPage() {
        )}
 
       {/* Report Content */}
-      {!isLoading && reportData && (
+      {!isLoading && !isPending && reportData && (
         <div className="space-y-8">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-px bg-zinc-200 border border-zinc-200 mb-8 rounded-sm overflow-hidden">
@@ -193,7 +204,7 @@ export default function DayEndPage() {
         </div>
       )}
       
-       {!isLoading && !reportData && (
+       {!isLoading && !isPending && !reportData && (
          <div className="min-h-[400px] flex items-center justify-center bg-zinc-50 border border-dashed border-zinc-200">
             <p className="text-zinc-400 uppercase text-sm tracking-widest">No data available for this date.</p>
         </div>

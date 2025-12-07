@@ -23,9 +23,9 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const dateParam = url.searchParams.get("date"); // Expects "YYYY-MM-DD"
 
-    if (!dateParam) {
+    if (!dateParam || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
       return NextResponse.json(
-        { error: "Date parameter is required" },
+        { error: "Date parameter in YYYY-MM-DD format is required" },
         { status: 400 }
       );
     }
