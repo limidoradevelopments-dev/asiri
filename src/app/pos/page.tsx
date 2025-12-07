@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
@@ -33,7 +32,6 @@ import { VanIcon } from '@/components/icons/VanIcon';
 import { JeepIcon } from '@/components/icons/JeepIcon';
 import { WithId } from '@/firebase';
 import { CartTotals } from '@/components/pos/CartTotals';
-import { toZonedTime } from 'date-fns-tz';
 
 // --- Types ---
 export type CartItemBase = {
@@ -427,8 +425,6 @@ export default function POSPage() {
 
     setIsProcessing(true);
     
-    const nowInSL = toZonedTime(new Date(), 'Asia/Colombo');
-
     const invoiceItems = cart.map(item => {
       const originalPrice = getItemPrice(item);
       const discountedPricePerUnit = Math.max(0, originalPrice - item.discountAmount);
@@ -449,7 +445,7 @@ export default function POSPage() {
       customerId: selectedCustomer.id,
       vehicleId: selectedVehicle.id,
       employeeId: selectedEmployee.id,
-      date: nowInSL.getTime(),
+      date: Date.now(), // Store as UTC milliseconds
       items: invoiceItems,
       subtotal: totals.subtotal,
       globalDiscountPercent,

@@ -40,18 +40,20 @@ export async function GET() {
     const vehicles = vehiclesData as (Vehicle & { id: string })[];
     
     // --- Calculations ---
-    const nowInSL = toZonedTime(new Date(), SL_TZ);
-    const todayStart = startOfDay(nowInSL);
-    const todayEnd = endOfDay(nowInSL);
+    const now = new Date(); // Current time is UTC on the server
     
     const processedInvoices = invoices.map(inv => ({...inv, date: toMillis(inv.date)}));
     
     const totalRevenue = processedInvoices.reduce((acc, inv) => acc + inv.amountPaid, 0);
     
+    // To calculate "Today's Revenue", we need to define "today" in SL time
+    const todayStartInSL = startOfDay(toZonedTime(now, SL_TZ));
+    const todayEndInSL = endOfDay(toZonedTime(now, SL_TZ));
+
     const todaysRevenue = processedInvoices
       .filter(inv => {
-        const invoiceDateInSL = toZonedTime(new Date(inv.date), SL_TZ);
-        return invoiceDateInSL >= todayStart && invoiceDateInSL <= todayEnd;
+        const invoiceDate = new Date(inv.date);
+        return invoiceDate >= todayStartInSL && invoiceDate <= todayEndInSL;
       })
       .reduce((acc, inv) => acc + inv.amountPaid, 0);
 
@@ -67,19 +69,21 @@ export async function GET() {
     ];
 
     const revenueByDay = Array.from({ length: 7 }, (_, i) => {
-        const dateInSL = subDays(nowInSL, i);
-        const dayStart = startOfDay(dateInSL);
-        const dayEnd = endOfDay(dateInSL);
+        const dateInUTC = subDays(now, i);
+        
+        // Define start and end of day in SL time for each of the last 7 days
+        const dayStartInSL = startOfDay(toZonedTime(dateInUTC, SL_TZ));
+        const dayEndInSL = endOfDay(toZonedTime(dateInUTC, SL_TZ));
 
         const dailyRevenue = processedInvoices
             .filter(inv => {
-              const invoiceDateInSL = toZonedTime(new Date(inv.date), SL_TZ);
-              return invoiceDateInSL >= dayStart && invoiceDateInSL <= dayEnd;
+              const invoiceDate = new Date(inv.date);
+              return invoiceDate >= dayStartInSL && invoiceDate <= dayEndInSL;
             })
             .reduce((sum, inv) => sum + inv.total, 0);
         
         return {
-            date: format(dateInSL, "MMM d"),
+            date: format(dayStartInSL, "MMM d"), // Format the date based on SL timezone
             revenue: dailyRevenue
         };
     }).reverse();
@@ -95,7 +99,7 @@ export async function GET() {
           id: inv.id,
           invoiceNumber: inv.invoiceNumber,
           customerName: customer?.name || 'Unknown Customer',
-          date: inv.date,
+          date: inv.date, // Pass the UTC timestamp to the client
           total: inv.total,
           paymentStatus: inv.paymentStatus,
         };

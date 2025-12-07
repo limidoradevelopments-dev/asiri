@@ -5,7 +5,6 @@ import { initializeFirebase } from "@/firebase/server-init";
 import { collection, query, getDocs, orderBy, limit, startAfter, doc, getDoc, Timestamp } from "firebase/firestore";
 import { z } from "zod";
 import type { Invoice, Payment } from "@/lib/data";
-import { toZonedTime } from "date-fns-tz";
 
 const BATCH_SIZE = 50;
 
@@ -113,11 +112,11 @@ export async function POST(req: NextRequest) {
     
     const { firestore } = initializeFirebase();
     
-    const nowInSL = toZonedTime(new Date(), 'Asia/Colombo');
+    const invoiceTimestamp = Timestamp.now();
     
     const invoiceDataForDb = {
         ...invoiceData,
-        date: Timestamp.fromDate(nowInSL)
+        date: invoiceTimestamp
     };
     
     const productsRef = collection(firestore, 'products');
@@ -138,7 +137,7 @@ export async function POST(req: NextRequest) {
     
     const createdInvoice = await db.create("invoices", invoiceDataForDb);
 
-    await db.update("vehicles", invoiceData.vehicleId, { lastVisit: invoiceDataForDb.date });
+    await db.update("vehicles", invoiceData.vehicleId, { lastVisit: invoiceTimestamp });
 
     return NextResponse.json(createdInvoice, { status: 201 });
   } catch (err) {

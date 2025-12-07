@@ -1,9 +1,7 @@
-
 // app/api/products/adjust-stock/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/server/db";
-import { toZonedTime } from 'date-fns-tz';
 import { Timestamp } from "firebase/firestore";
 
 const adjustmentSchema = z.object({
@@ -36,11 +34,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Prepare the log entry
-    const nowInSL = toZonedTime(new Date(), 'Asia/Colombo');
     const logEntry = {
         productId,
         productName: product.name,
-        date: Timestamp.fromDate(nowInSL),
+        date: Timestamp.now(),
         action,
         reason,
         quantity: action === 'decrement' ? quantity : null,

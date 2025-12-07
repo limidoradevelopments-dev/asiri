@@ -1,9 +1,7 @@
-
 // app/api/products/add-stock/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/server/db";
-import { toZonedTime } from "date-fns-tz";
 import { Timestamp } from "firebase/firestore";
 
 const addStockSchema = z.object({
@@ -37,11 +35,10 @@ export async function POST(req: NextRequest) {
     await db.increment("products", productId, "stock", quantity);
     
     // Create a log entry for the stock addition
-    const nowInSL = toZonedTime(new Date(), 'Asia/Colombo');
     const logEntry = {
         productId,
         productName: product.name,
-        date: Timestamp.fromDate(nowInSL),
+        date: Timestamp.now(),
         action: 'add',
         quantity,
         reason: 'Manual stock addition via "Add Stock" feature.',
