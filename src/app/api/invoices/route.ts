@@ -1,8 +1,10 @@
+
 // app/api/invoices/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import { initializeFirebase } from "@/firebase/server-init";
-import { collection, query, getDocs, orderBy, limit, startAfter, doc, getDoc } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, limit, startAfter, doc, getDoc, Timestamp } from "firebase/firestore";
+import { z } from "zod";
 import type { Invoice, Payment } from "@/lib/data";
 
 const BATCH_SIZE = 50;
