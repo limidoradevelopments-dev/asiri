@@ -1,3 +1,4 @@
+
 // app/api/invoices/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
@@ -110,7 +111,7 @@ const invoiceSchema = z.object({
 /**
  * POST /api/invoices
  * Body: JSON invoice object
- * Creates an invoice, updates stock, updates vehicle last visit
+ * Creates an invoice, updates stock for products, and updates vehicle's last visit.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -123,21 +124,49 @@ export async function POST(req: NextRequest) {
 
     const invoiceData = validation.data;
     
-    // Convert JS date timestamp to Firestore Timestamp for querying consistency
     const invoiceDataForDb = {
         ...invoiceData,
         date: Timestamp.fromMillis(invoiceData.date)
-    }
+    };
 
-    // 1. Decrement stock for products first to ensure availability.
-    const productItems = invoiceData.items.filter(item => !item.itemId.startsWith('custom-'));
+    // 1. Filter out only product items to decrement stock.
+    // We can identify products because services/custom items will not have an ID that matches a product.
+    // A robust way is to check if the itemId exists in the products collection, but for performance,
+    // we can rely on a naming convention or simply attempt the decrement and handle errors.
+    // A simpler approach is to check if the itemId is NOT a 'custom-' one.
+    // The POS logic sends product IDs from firestore, and `custom-` for custom jobs. Services have their own IDs.
+    // To robustly distinguish products from services, we'll check against the products collection.
+    // However, the current logic is to just try and decrement. A better way would be to get all product IDs first.
+    // Let's stick to the current pattern, but be more explicit about filtering.
+    // The safest way without changing too much is to filter out items that are clearly not products.
+    // Services might have IDs that look like product IDs.
+    // The current `invoiceData.items` doesn't distinguish between product/service.
+    // The POS page does. Let's assume for now any item that is not a 'custom' job could be a product.
+    
+    const productItems = invoiceData.items.filter(item => {
+        // Services/Custom items might not have a standard format.
+        // Let's assume custom jobs have 'custom-' prefix, and we only try to update stock for others.
+        // This implicitly assumes services won't cause an error, which is true for `db.increment`.
+        // A better check would be needed if services and products shared an ID space in a harmful way.
+        return !item.itemId.startsWith('custom-');
+    });
 
-    for (const item of productItems) {
+    // Check against the actual products DB to be certain.
+    const { firestore } = initializeFirebase();
+    const productsRef = collection(firestore, 'products');
+    const allProductsSnapshot = await getDocs(productsRef);
+    const productIds = new Set(allProductsSnapshot.docs.map(doc => doc.id));
+
+    const itemsToUpdateStock = productItems.filter(item => productIds.has(item.itemId));
+
+
+    for (const item of itemsToUpdateStock) {
       try {
         await db.increment("products", item.itemId, "stock", -item.quantity);
       } catch (stockError) {
         console.error(`Stock update failed for item ${item.itemId}:`, stockError);
-        return NextResponse.json({ error: `Failed to update stock for ${item.name}. Please check inventory.` }, { status: 500 });
+        // This is a critical failure. We should not create the invoice if stock cannot be guaranteed.
+        return NextResponse.json({ error: `Failed to update stock for product ${item.name}. Please check inventory.` }, { status: 500 });
       }
     }
     
@@ -154,3 +183,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create invoice" }, { status: 500 });
   }
 }
+
+    
