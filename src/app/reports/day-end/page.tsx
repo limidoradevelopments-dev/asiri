@@ -154,8 +154,8 @@ export default function DayEndPage() {
         <div className="space-y-8">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-200 border border-zinc-200 mb-8 rounded-sm overflow-hidden">
-                <StatCard title="Total Revenue" value={formatCurrency(reportData.summary.totalRevenue)} icon={DollarSign} />
-                <StatCard title="Net Profit" value={formatCurrency(reportData.summary.netProfit)} icon={TrendingUp} className={reportData.summary.netProfit >= 0 ? 'text-green-700' : 'text-red-600'} />
+                <StatCard title="Estimated Total Revenue" value={formatCurrency(reportData.summary.totalRevenue)} icon={DollarSign} />
+                <StatCard title="Estimated Net Profit" value={formatCurrency(reportData.summary.netProfit)} icon={TrendingUp} className={reportData.summary.netProfit >= 0 ? 'text-green-700' : 'text-red-600'} />
                 <StatCard title="Total Invoices" value={reportData.summary.totalInvoices.toString()} icon={Hash} />
             </div>
 
