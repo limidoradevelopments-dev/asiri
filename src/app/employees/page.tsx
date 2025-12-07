@@ -86,7 +86,7 @@ export default function EmployeesPage() {
         }
 
         toast({ title: id ? "Employee Updated" : "Employee Added", description: `${employee.name}'s record has been saved.` });
-        await fetchData(); // Refetch data
+        fetchData(); // Refetch data
         return true; // Indicate success
 
     } catch (err: any) {
@@ -117,7 +117,7 @@ export default function EmployeesPage() {
         }
         
         toast({ title: "Deleted", description: "Employee successfully deleted." });
-        await fetchData(); // Refetch data on success
+        fetchData(); // Refetch data on success
         
     } catch (err: any) {
         console.error("Delete error:", err);

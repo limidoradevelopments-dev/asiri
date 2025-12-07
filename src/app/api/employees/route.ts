@@ -60,7 +60,7 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: "ID is required for update" }, { status: 400 });
         }
 
-        const validation = employeeSchema.partial().safeParse(data);
+        const validation = employeeSchema.safeParse(data);
          if (!validation.success) {
             return NextResponse.json({ error: validation.error.flatten().fieldErrors }, { status: 400 });
         }

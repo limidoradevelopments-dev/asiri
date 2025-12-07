@@ -111,8 +111,7 @@ export default function InventoryPage() {
     return () => {
       controller.abort();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchData]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddStockDialogOpen, setAddStockDialogOpen] = useState(false);

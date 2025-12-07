@@ -119,7 +119,7 @@ export default function CustomersVehiclesTable({ data, isLoading, onEdit, onDele
           ))}
         </TableBody>
       </Table>
-       {!isLoading && showEmptyState && (
+       {showEmptyState && (
         <div className="text-center py-20 text-zinc-400 text-sm uppercase tracking-widest">
           No customer or vehicle entries found
         </div>
