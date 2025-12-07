@@ -64,7 +64,7 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
                         {invoice.paymentStatus}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-3 px-0">{format(new Date(invoice.date), "MMM d, yyyy")}</TableCell>
+                    <TableCell className="py-3 px-0">{invoice.date ? format(new Date(invoice.date), "MMM d, yyyy") : 'Invalid Date'}</TableCell>
                     <TableCell className="text-right py-3 px-0 font-mono">
                       {invoice.total.toLocaleString("en-US", {
                         style: "currency",

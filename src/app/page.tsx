@@ -70,7 +70,8 @@ export default function DashboardPage() {
     }).reverse();
 
     const recentInvoices = invoices
-      ?.sort((a, b) => b.date - a.date)
+      ?.filter(inv => inv.date && customers) // Ensure invoice has a date and customers are loaded
+      .sort((a, b) => b.date - a.date)
       .slice(0, 5)
       .map(inv => {
         const customer = customers?.find(c => c.id === inv.customerId);
