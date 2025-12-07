@@ -26,7 +26,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Date parameter is required" }, { status: 400 });
     }
 
+    // Use parseISO to correctly interpret the 'YYYY-MM-DD' string
+    // This is more robust than relying on new Date(dateParam)
     const reportDate = parseISO(dateParam);
+    if (isNaN(reportDate.getTime())) {
+        return NextResponse.json({ error: "Invalid date parameter format. Use YYYY-MM-DD." }, { status: 400 });
+    }
+    
     const dayStart = startOfDay(reportDate);
     const dayEnd = endOfDay(reportDate);
 
