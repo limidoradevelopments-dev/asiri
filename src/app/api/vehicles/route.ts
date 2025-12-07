@@ -105,18 +105,34 @@ export async function PUT(req: NextRequest) {
 
 
 /**
- * DELETE /api/vehicles?id=<id>
+ * DELETE /api/vehicles?id=<id>&customerId=<id>
  * Deletes a vehicle by its ID.
+ * If this is the customer's only vehicle, their record is also deleted.
  */
 export async function DELETE(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const id = url.searchParams.get("id");
-    if (!id) {
-      return NextResponse.json({ error: "id query param required" }, { status: 400 });
+    const customerId = url.searchParams.get("customerId");
+
+    if (!id || !customerId) {
+      return NextResponse.json({ error: "Vehicle ID and Customer ID are required" }, { status: 400 });
     }
+    
+    // Check how many vehicles this customer has
+    const { firestore } = initializeFirebase();
+    const vehiclesRef = collection(firestore, 'vehicles');
+    const q = query(vehiclesRef, where('customerId', '==', customerId));
+    const snapshot = await getDocs(q);
+    
+    const vehicleCount = snapshot.size;
 
     await db.remove("vehicles", id);
+
+    if (vehicleCount === 1) {
+        await db.remove("customers", customerId);
+    }
+
     return NextResponse.json({ success: true, id }, { status: 200 });
 
   } catch (err) {

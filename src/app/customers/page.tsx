@@ -79,54 +79,44 @@ export default function CustomersPage() {
   }, [combinedData, searchQuery]);
   
   const handleUpsert = useCallback(async (customerData: Omit<Customer, 'id'>, vehicleData: Partial<Omit<Vehicle, 'id' | 'customerId'>>, customerId?: string, vehicleId?: string) => {
-    try {
-        if (customerId && vehicleId) {
-            // Editing existing records
-            const customerPromise = fetch('/api/customers', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: customerId, ...customerData }),
-            });
-            const vehiclePromise = fetch('/api/vehicles', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: vehicleId, ...vehicleData }),
-            });
+      const isEdit = !!(customerId && vehicleId);
+      try {
+          // Centralized fetch logic for both Customer and Vehicle
+          const makeApiCall = (entity: 'customers' | 'vehicles', data: any, id?: string) => {
+              const method = id ? 'PUT' : 'POST';
+              const body = JSON.stringify(id ? { id, ...data } : data);
+              return fetch(`/api/${entity}`, {
+                  method,
+                  headers: { 'Content-Type': 'application/json' },
+                  body,
+              });
+          };
 
-            const [customerRes, vehicleRes] = await Promise.all([customerPromise, vehiclePromise]);
+          if (isEdit) {
+              const [customerRes, vehicleRes] = await Promise.all([
+                  makeApiCall('customers', customerData, customerId),
+                  makeApiCall('vehicles', vehicleData, vehicleId)
+              ]);
+              if (!customerRes.ok || !vehicleRes.ok) throw new Error('Failed to update customer or vehicle');
+              
+              toast({ title: 'Success', description: 'Customer and vehicle updated successfully.' });
+          } else {
+              const customerRes = await makeApiCall('customers', customerData);
+              if (!customerRes.ok) throw new Error('Failed to create customer');
+              const newCustomer = await customerRes.json();
 
-            if (!customerRes.ok) throw new Error('Failed to update customer');
-            if (!vehicleRes.ok) throw new Error('Failed to update vehicle');
-            
-            toast({ title: 'Success', description: 'Customer and vehicle updated successfully.' });
+              const vehicleRes = await makeApiCall('vehicles', { ...vehicleData, customerId: newCustomer.id });
+              if (!vehicleRes.ok) throw new Error('Failed to create vehicle');
 
-        } else {
-            // Creating new records
-            const customerRes = await fetch('/api/customers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(customerData),
-            });
-            if (!customerRes.ok) throw new Error('Failed to create customer');
-            const newCustomer = await customerRes.json();
+              toast({ title: 'Success', description: 'New customer and vehicle created.' });
+          }
 
-            const vehicleRes = await fetch('/api/vehicles', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...vehicleData, customerId: newCustomer.id }),
-            });
-            if (!vehicleRes.ok) throw new Error('Failed to create vehicle');
-            
-            toast({ title: 'Success', description: 'New customer and vehicle created.' });
-        }
+          fetchData(new AbortController().signal);
 
-        // Refetch data to show changes
-        fetchData(new AbortController().signal);
-        
-    } catch (err: any) {
-        const message = err.message || "An unknown error occurred.";
-        toast({ variant: 'destructive', title: 'Error', description: message });
-    }
+      } catch (err: any) {
+          const message = err.message || "An unknown error occurred.";
+          toast({ variant: 'destructive', title: 'Error', description: message });
+      }
   }, [fetchData, toast]);
 
   const handleEdit = useCallback((item: CustomerWithVehicle) => {
@@ -147,27 +137,23 @@ export default function CustomersPage() {
 
     const { customer, vehicle } = itemToDelete;
     
-    // Check if this is the customer's only vehicle
-    const customerVehiclesCount = combinedData.filter(d => d.customer.id === customer.id).length;
-
     try {
-        const vehicleRes = await fetch(`/api/vehicles?id=${vehicle.id}`, { method: 'DELETE' });
-        if (!vehicleRes.ok) throw new Error('Failed to delete vehicle');
+        const res = await fetch(`/api/vehicles?id=${vehicle.id}&customerId=${customer.id}`, { method: 'DELETE' });
 
-        if (customerVehiclesCount === 1) {
-            const customerRes = await fetch(`/api/customers?id=${customer.id}`, { method: 'DELETE' });
-            if (!customerRes.ok) throw new Error('Failed to delete customer');
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Failed to delete the entry.');
         }
         
         toast({ title: 'Deleted', description: 'The entry has been successfully deleted.' });
         fetchData(new AbortController().signal);
 
     } catch (err: any) {
-        toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to delete the entry.' });
+        toast({ variant: 'destructive', title: 'Error', description: err.message });
     } finally {
         setItemToDelete(null);
     }
-  }, [itemToDelete, combinedData, toast, fetchData]);
+  }, [itemToDelete, toast, fetchData]);
 
   const onDialogClose = useCallback((isOpen: boolean) => {
     if (!isOpen) {

@@ -1,4 +1,3 @@
-
 import { initializeFirebase } from "@/firebase/server-init";
 import {
   collection,
@@ -13,12 +12,14 @@ import {
   increment,
   Timestamp,
 } from "firebase/firestore";
+import type { Customer, Vehicle, Invoice, Employee } from "@/lib/data";
 
 /**
  * Minimal types to keep things flexible during migration.
  * Extend these as your domain grows.
  */
 export type DBRecord = Record<string, any>;
+type WithId<T> = T & { id: string };
 
 function snapshotToArray(snapshot: QuerySnapshot<DocumentData>): DBRecord[] {
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -99,5 +100,52 @@ export const db = {
       [field]: increment(value)
     });
     return { id, success: true };
+  },
+
+  async getAllCustomersWithVehicles() {
+    const { firestore } = initializeFirebase();
+    if (!firestore) throw new Error("Firestore not initialized");
+
+    const [vehicles, customers] = await Promise.all([
+      this.getAll('vehicles'),
+      this.getAll('customers'),
+    ]);
+
+    const customerMap = new Map(customers.map(c => [c.id, c as WithId<Customer>]));
+
+    const combinedData = vehicles
+      .map(vehicle => {
+        const customer = customerMap.get(vehicle.customerId);
+        return customer ? { customer, vehicle: vehicle as WithId<Vehicle> } : null;
+      })
+      .filter((item): item is { customer: WithId<Customer>; vehicle: WithId<Vehicle>; } => item !== null)
+      .sort((a, b) => a.customer.name.localeCompare(b.customer.name));
+      
+    return combinedData;
+  },
+
+  async enrichInvoices(invoices: WithId<Invoice>[]) {
+    const { firestore } = initializeFirebase();
+    if (!firestore) throw new Error("Firestore not initialized");
+
+    const [customersSnapshot, vehiclesSnapshot, employeesSnapshot] = await Promise.all([
+        getDocs(collection(firestore, 'customers')),
+        getDocs(collection(firestore, 'vehicles')),
+        getDocs(collection(firestore, 'employees'))
+    ]);
+
+    const customerMap = new Map(customersSnapshot.docs.map(doc => [doc.id, doc.data() as Customer]));
+    const vehicleMap = new Map(vehiclesSnapshot.docs.map(doc => [doc.id, doc.data() as Vehicle]));
+    const employeeMap = new Map(employeesSnapshot.docs.map(doc => [doc.id, doc.data() as Employee]));
+
+    return invoices.map(invoice => ({
+      ...invoice,
+      customerDetails: { id: invoice.customerId, ...customerMap.get(invoice.customerId) },
+      vehicleDetails: { id: invoice.vehicleId, ...vehicleMap.get(invoice.vehicleId) },
+      employeeDetails: { id: invoice.employeeId, ...employeeMap.get(invoice.employeeId) },
+      customerName: customerMap.get(invoice.customerId)?.name,
+      vehicleNumberPlate: vehicleMap.get(invoice.vehicleId)?.numberPlate,
+      employeeName: employeeMap.get(invoice.employeeId)?.name,
+    }));
   }
 };

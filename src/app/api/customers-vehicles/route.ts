@@ -15,21 +15,7 @@ export type CustomerWithVehicle = {
  */
 export async function GET(req: NextRequest) {
   try {
-    const [vehicles, customers] = await Promise.all([
-      db.getAll('vehicles'),
-      db.getAll('customers'),
-    ]);
-
-    const customerMap = new Map(customers.map(c => [c.id, c as WithId<Customer>]));
-
-    const combinedData: CustomerWithVehicle[] = vehicles
-      .map(vehicle => {
-        const customer = customerMap.get(vehicle.customerId);
-        // Only include vehicles that have a valid, linked customer
-        return customer ? { customer, vehicle: vehicle as WithId<Vehicle> } : null;
-      })
-      .filter((item): item is CustomerWithVehicle => item !== null)
-      .sort((a, b) => a.customer.name.localeCompare(b.customer.name)); // Sort by customer name for consistent order
+    const combinedData = await db.getAllCustomersWithVehicles();
 
     return NextResponse.json(combinedData, { status: 200 });
 
