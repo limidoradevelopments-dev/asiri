@@ -161,7 +161,7 @@ export default function DayEndPage() {
                 <StatCard title="Estimated Net Profit" value={formatCurrency(reportData.summary.netProfit)} icon={TrendingUp} className={reportData.summary.netProfit >= 0 ? 'text-green-700' : 'text-red-600'} />
                 <StatCard title="Total Invoices" value={reportData.summary.totalInvoices.toString()} icon={Hash} />
                 <StatCard title="Total Cash Received" value={formatCurrency(reportData.summary.totalCashReceived)} icon={Landmark} />
-                <StatCard title="Total Outstanding" value={formatCurrency(reportData.summary.totalOutstanding)} icon={Hourglass} />
+                <StatCard title="Total Outstanding" value={formatCurrency(reportData.summary.totalOutstanding)} icon={Hourglass} className="text-red-600" />
             </div>
 
             {/* Breakdowns */}
