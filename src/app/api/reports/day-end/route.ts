@@ -37,7 +37,8 @@ export async function GET(req: NextRequest) {
     const reportDateStr = dateParam;
     
     // Create a date object representing the start of that day in the target timezone
-    const zonedDateForReport = toZonedTime(reportDateStr, SL_TIME_ZONE);
+    // IMPORTANT: new Date("YYYY-MM-DD") creates a UTC date. We need to treat it as local.
+    const zonedDateForReport = toZonedTime(new Date(reportDateStr), SL_TIME_ZONE);
 
     // Get the start and end of that day IN THE TARGET TIMEZONE
     const dayStart = startOfDay(zonedDateForReport);
@@ -58,8 +59,7 @@ export async function GET(req: NextRequest) {
           if (!inv.date) return false;
           // The invoice date is in UTC.
           // We check if this UTC time falls between the start and end of the day in SL time.
-          const invoiceDateInSL = toZonedTime(inv.date, SL_TIME_ZONE);
-          return invoiceDateInSL >= dayStart && invoiceDateInSL <= dayEnd;
+          return inv.date >= dayStart && inv.date <= dayEnd;
       });
 
     // --- Calculations ---
