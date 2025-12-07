@@ -156,15 +156,22 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, onSelect, onCre
     }
   }
 
-  const formatLastVisit = (timestamp: number | undefined) => {
+  const formatLastVisit = (timestamp: any): string => {
     if (!timestamp) return 'No previous visits';
     try {
-      // Firestore serverTimestamp can return a Timestamp object or a number
-      const date = typeof timestamp === 'number' ? new Date(timestamp) : (timestamp as any).toDate();
-      if (isNaN(date.getTime())) return 'Invalid date';
+      // Handle both Firestore Timestamp object and number
+      const dateInMillis = typeof timestamp === 'number' 
+        ? timestamp 
+        : (timestamp && timestamp.seconds) 
+          ? timestamp.seconds * 1000 + (timestamp.nanoseconds || 0) / 1000000
+          : 0;
+
+      if (dateInMillis === 0) return 'Invalid date';
+
+      const date = new Date(dateInMillis);
       return `${format(date, 'MMM d, yyyy')} (${formatDistanceToNow(date, { addSuffix: true })})`;
     } catch(e) {
-      return 'Invalid date';
+      return 'Invalid date format';
     }
   };
 
@@ -311,5 +318,4 @@ export function AddCustomerVehicleDialog({ isOpen, onOpenChange, onSelect, onCre
     </Dialog>
   );
 }
-
     

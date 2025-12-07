@@ -14,6 +14,16 @@ import RecentInvoices from "@/components/dashboard/RecentInvoices";
 import { DollarSign, Archive, Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Helper to safely convert Firestore Timestamp to number
+const toMillis = (timestamp: any): number => {
+  if (typeof timestamp === 'number') return timestamp;
+  if (timestamp && typeof timestamp.toMillis === 'function') {
+    return timestamp.toMillis();
+  }
+  return 0;
+};
+
+
 export default function DashboardPage() {
   const firestore = useFirestore();
 
@@ -36,12 +46,14 @@ export default function DashboardPage() {
   const dashboardData = useMemo(() => {
     const todayStart = startOfDay(new Date());
     const todayEnd = endOfDay(new Date());
-
-    const totalRevenue = invoices?.reduce((acc, inv) => acc + inv.amountPaid, 0) ?? 0;
     
-    const todaysRevenue = invoices
-      ?.filter(inv => inv.date >= todayStart.getTime() && inv.date <= todayEnd.getTime())
-      .reduce((acc, inv) => acc + inv.amountPaid, 0) ?? 0;
+    const processedInvoices = invoices?.map(inv => ({...inv, date: toMillis(inv.date)})) || [];
+
+    const totalRevenue = processedInvoices.reduce((acc, inv) => acc + inv.amountPaid, 0);
+    
+    const todaysRevenue = processedInvoices
+      .filter(inv => inv.date >= todayStart.getTime() && inv.date <= todayEnd.getTime())
+      .reduce((acc, inv) => acc + inv.amountPaid, 0);
 
     const lowStockItems = products?.filter(p => p.stock <= p.stockThreshold) ?? [];
     
@@ -59,9 +71,9 @@ export default function DashboardPage() {
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
 
-        const dailyRevenue = invoices
-            ?.filter(inv => inv.date >= dayStart.getTime() && inv.date <= dayEnd.getTime())
-            .reduce((sum, inv) => sum + inv.total, 0) ?? 0;
+        const dailyRevenue = processedInvoices
+            .filter(inv => inv.date >= dayStart.getTime() && inv.date <= dayEnd.getTime())
+            .reduce((sum, inv) => sum + inv.total, 0);
         
         return {
             date: format(date, "MMM d"),
@@ -69,8 +81,8 @@ export default function DashboardPage() {
         };
     }).reverse();
 
-    const recentInvoices = invoices
-      ?.filter(inv => inv.date && customers) // Ensure invoice has a date and customers are loaded
+    const recentInvoices = processedInvoices
+      .filter(inv => inv.date && customers) // Ensure invoice has a date and customers are loaded
       .sort((a, b) => b.date - a.date)
       .slice(0, 5)
       .map(inv => {
@@ -79,7 +91,7 @@ export default function DashboardPage() {
           ...inv,
           customerName: customer?.name || 'Unknown Customer',
         };
-      }) ?? [];
+      });
     
     const lowStockForComponent = lowStockItems.map(item => ({...item, threshold: item.stockThreshold}))
 

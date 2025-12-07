@@ -52,7 +52,7 @@ export default function InvoicesPage() {
       // The API returns date as a Firestore Timestamp object, convert it back to a number for client-side use
       const clientReadyInvoices = newInvoices.map((inv: any) => ({
         ...inv,
-        date: inv.date._seconds ? inv.date._seconds * 1000 + inv.date._nanoseconds / 1000000 : inv.date
+        date: inv.date && inv.date._seconds ? inv.date._seconds * 1000 + inv.date._nanoseconds / 1000000 : (inv.date || 0)
       }));
 
       setAllInvoices(prev => startAfter ? [...prev, ...clientReadyInvoices] : clientReadyInvoices);
