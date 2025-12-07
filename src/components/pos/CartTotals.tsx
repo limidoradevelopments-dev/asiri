@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { CartItem } from '@/app/pos/page';
 import { CartItem as CartItemComponent } from './CartItem';
+import { PlusCircle } from 'lucide-react';
 
 interface CartTotalsProps {
   cart: CartItem[];
@@ -143,3 +144,5 @@ export function CartTotals({
     </>
   );
 }
+
+    
