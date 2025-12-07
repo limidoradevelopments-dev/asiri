@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     }
 
     // --- Corrected Timezone Handling ---
-    // 1. Construct a date object representing the local date in SL
+    // 1. Construct a date object representing the local date in SL by parsing the date string directly
     const slDay = toZonedTime(new Date(dateParam), SL_TIME_ZONE);
 
     // 2. Get the start and end of that day in SL timezone
