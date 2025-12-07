@@ -100,7 +100,7 @@ export type Invoice = {
   subtotal: number;
   globalDiscountPercent: number;
   globalDiscountAmount: number;
-al: number;
+  total: number;
   paymentStatus: InvoiceStatus;
   payments: Payment[];
   amountPaid: number;
@@ -208,5 +208,3 @@ export interface Vehicle {
   transmission?: 'Auto' | 'Manual';
   lastVisit?: number;
 }
-
-    
