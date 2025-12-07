@@ -153,24 +153,7 @@ export function AddCustomerVehicleDialog({
         </DialogHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                <h3 className="text-lg font-medium tracking-tight border-b pb-2 mb-4">Customer Details</h3>
-                <div className="grid grid-cols-2 gap-4">
-                     <FormField control={form.control} name="name" render={({ field }) => (
-                      <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="e.g., John Doe" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                     <FormField control={form.control} name="phone" render={({ field }) => (
-                      <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="e.g., 0771234567" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField control={form.control} name="address" render={({ field }) => (
-                      <FormItem><FormLabel>Address (Optional)</FormLabel><FormControl><Input placeholder="e.g., 123 Main St, Colombo" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                     <FormField control={form.control} name="nic" render={({ field }) => (
-                      <FormItem><FormLabel>NIC / License No. (Optional)</FormLabel><FormControl><Input {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                </div>
-                 <h3 className="text-lg font-medium tracking-tight border-b pb-2 mb-4 pt-6">Vehicle Details</h3>
+                <h3 className="text-lg font-medium tracking-tight border-b pb-2 mb-4">Vehicle Details</h3>
                  <div className="grid grid-cols-3 gap-4">
                      <FormField control={form.control} name="numberPlate" render={({ field }) => (
                       <FormItem><FormLabel>Vehicle Number Plate</FormLabel><FormControl><Input placeholder="e.g., ABC-1234" {...field} className={commonInputStyles} onChange={(e) => field.onChange(e.target.value.toUpperCase())} /></FormControl><FormMessage /></FormItem>
@@ -214,6 +197,23 @@ export function AddCustomerVehicleDialog({
                                 </SelectContent>
                             </Select>
                         <FormMessage /></FormItem>
+                    )} />
+                </div>
+                <h3 className="text-lg font-medium tracking-tight border-b pb-2 mb-4 pt-6">Customer Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                     <FormField control={form.control} name="name" render={({ field }) => (
+                      <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="e.g., John Doe" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                     <FormField control={form.control} name="phone" render={({ field }) => (
+                      <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="e.g., 0771234567" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="address" render={({ field }) => (
+                      <FormItem><FormLabel>Address (Optional)</FormLabel><FormControl><Input placeholder="e.g., 123 Main St, Colombo" {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                     <FormField control={form.control} name="nic" render={({ field }) => (
+                      <FormItem><FormLabel>NIC / License No. (Optional)</FormLabel><FormControl><Input {...field} className={commonInputStyles} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                 <DialogFooter className="mt-6 gap-2">
