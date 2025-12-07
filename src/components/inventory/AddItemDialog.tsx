@@ -32,6 +32,7 @@ import { WithId } from '@/firebase';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Car, Truck, Bike, Tractor } from 'lucide-react';
+import { VanIcon } from '../icons/VanIcon';
 
 // --- Schemas ---
 
@@ -147,7 +148,7 @@ export function AddItemDialog({
   const categoryIcons: Record<VehicleCategory, React.ElementType> = {
     "Bike": Bike,
     "Car": Car,
-    "Van": Car,
+    "Van": VanIcon,
     "Jeep": Tractor,
     "Lorry": Truck,
   };

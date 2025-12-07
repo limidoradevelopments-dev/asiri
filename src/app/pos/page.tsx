@@ -30,6 +30,7 @@ import { useDebouncedCallback } from 'use-debounce';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { VanIcon } from '@/components/icons/VanIcon';
 
 type WithId<T> = T & { id: string };
 
@@ -72,7 +73,7 @@ export const getItemPrice = (item: CartItem): number => {
 const categoryIcons: Record<VehicleCategory, React.ElementType> = {
     "Bike": Bike,
     "Car": Car,
-    "Van": Car,
+    "Van": VanIcon,
     "Jeep": Tractor,
     "Lorry": Truck,
 };
@@ -503,7 +504,7 @@ export default function POSPage() {
     { label: 'All', value: 'all', icon: Sparkles },
     { label: 'Bike', value: 'Bike', icon: Bike },
     { label: 'Car', value: 'Car', icon: Car },
-    { label: 'Van', value: 'Van', icon: Car },
+    { label: 'Van', value: 'Van', icon: VanIcon },
     { label: 'Jeep', value: 'Jeep', icon: Tractor },
     { label: 'Lorry', value: 'Lorry', icon: Truck },
   ];
@@ -853,5 +854,6 @@ export default function POSPage() {
     
 
     
+
 
 
