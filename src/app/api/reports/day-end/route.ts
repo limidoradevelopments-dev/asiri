@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
 
     const netProfit = safeRound(totalRevenue - totalCogs);
 
-    const paymentSummary: Record<string, number> = { Cash: 0, Card: 0, Check: 0 };
+    const paymentSummary: Record<string, number> = { Cash: 0, Card: 0, Cheque: 0 };
     for (const invoice of dailyInvoices) {
       for (const payment of invoice.payments) {
         paymentSummary[payment.method] = safeRound(paymentSummary[payment.method] + payment.amount);

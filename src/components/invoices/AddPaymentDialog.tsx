@@ -42,7 +42,7 @@ const formatCurrency = (amount: number) => {
 const availableMethods: { id: PaymentMethod, icon: React.ElementType }[] = [
     { id: 'Cash', icon: Banknote },
     { id: 'Card', icon: CreditCard },
-    { id: 'Check', icon: Wallet },
+    { id: 'Cheque', icon: Wallet },
 ];
 
 export function AddPaymentDialog({
@@ -75,7 +75,7 @@ export function AddPaymentDialog({
     const amount = tenderedAmount || 0;
     const diff = safeRound(amount - balanceDue);
     
-    const chequeInfoMissing = paymentMethod === 'Check' && (!chequeNumber.trim() || !bank.trim());
+    const chequeInfoMissing = paymentMethod === 'Cheque' && (!chequeNumber.trim() || !bank.trim());
     const amountInsufficient = amount < balanceDue;
 
     return {
@@ -98,7 +98,7 @@ export function AddPaymentDialog({
       toast({
         variant: "destructive",
         title: "Missing Cheque Details",
-        description: "Please fill in the Cheque Number and Bank for 'Check' payments.",
+        description: "Please fill in the Cheque Number and Bank for 'Cheque' payments.",
       });
       return;
     }
@@ -107,7 +107,7 @@ export function AddPaymentDialog({
       method: paymentMethod,
       amount: tenderedAmount,
     };
-    if (paymentMethod === 'Check') {
+    if (paymentMethod === 'Cheque') {
       newPayment.chequeNumber = chequeNumber;
       newPayment.bank = bank;
     }
@@ -169,7 +169,7 @@ export function AddPaymentDialog({
             </div>
           </div>
           
-          {paymentMethod === 'Check' && (
+          {paymentMethod === 'Cheque' && (
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <Label className="text-xs uppercase tracking-widest text-zinc-400">Cheque No.</Label>
@@ -215,7 +215,7 @@ export function AddPaymentDialog({
             {isChequeInfoMissing && (
                  <div className="p-3 bg-amber-50 text-amber-700 text-xs rounded-md flex items-center gap-2">
                     <Info className="w-4 h-4" />
-                    <span>Cheque Number and Bank are required for 'Check' payments.</span>
+                    <span>Cheque Number and Bank are required for 'Cheque' payments.</span>
                 </div>
             )}
         </div>

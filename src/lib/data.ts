@@ -72,7 +72,7 @@ export const lowStockItemsData: LowStockItem[] = [
 ];
 
 export type InvoiceStatus = 'Paid' | 'Partial' | 'Unpaid';
-export type PaymentMethod = 'Cash' | 'Card' | 'Check';
+export type PaymentMethod = 'Cash' | 'Card' | 'Cheque';
 
 export interface Payment {
   id?: string;

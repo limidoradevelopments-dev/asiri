@@ -1,0 +1,589 @@
+
+{
+  "entities": {
+    "Customer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Customer",
+      "type": "object",
+      "description": "Represents a customer of the vehicle service station.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The full name of the customer."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The primary phone number of the customer."
+        },
+        "address": {
+          "type": "string",
+          "description": "The customer's mailing address."
+        },
+        "nic": {
+          "type": "string",
+          "description": "The customer's National ID Card or Driving License number."
+        }
+      },
+      "required": [
+        "name",
+        "phone"
+      ]
+    },
+    "Vehicle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vehicle",
+      "type": "object",
+      "description": "Represents a customer's vehicle.",
+      "properties": {
+        "customerId": {
+          "type": "string",
+          "description": "Reference to the Customer who owns this vehicle."
+        },
+        "numberPlate": {
+          "type": "string",
+          "description": "The vehicle's license plate number."
+        },
+        "make": {
+          "type": "string",
+          "description": "The brand of the vehicle (e.g., Toyota)."
+        },
+        "model": {
+          "type": "string",
+          "description": "The model of the vehicle (e.g., Corolla)."
+        },
+        "year": {
+          "type": "number",
+          "description": "The year the vehicle was manufactured."
+        },
+        "mileage": {
+          "type": "number",
+          "description": "The vehicle's current mileage (odometer reading)."
+        },
+        "fuelType": {
+          "type": "string",
+          "description": "The vehicle's fuel type.",
+          "enum": [
+            "Petrol",
+            "Diesel",
+            "Hybrid",
+            "EV"
+          ]
+        },
+        "transmission": {
+          "type": "string",
+          "description": "The vehicle's transmission type.",
+          "enum": [
+            "Auto",
+            "Manual"
+          ]
+        },
+        "lastVisit": {
+          "type": "number",
+          "description": "Timestamp of the last visit/invoice date."
+        }
+      },
+      "required": [
+        "customerId",
+        "numberPlate",
+        "make",
+        "model",
+        "year"
+      ]
+    },
+    "Invoice": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Invoice",
+      "type": "object",
+      "description": "Represents an invoice for a service performed.",
+      "properties": {
+        "invoiceNumber": {
+          "type": "string",
+          "description": "The sequential invoice number."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "ID of the customer."
+        },
+        "vehicleId": {
+          "type": "string",
+          "description": "ID of the vehicle."
+        },
+        "employeeId": {
+          "type": "string",
+          "description": "ID of the employee who performed the job."
+        },
+        "date": {
+          "type": "number",
+          "description": "The date the invoice was created (timestamp)."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "unitPrice": {
+                "type": "number"
+              },
+              "discount": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "itemId",
+              "name",
+              "quantity",
+              "unitPrice",
+              "total"
+            ]
+          }
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "globalDiscountPercent": {
+          "type": "number"
+        },
+        "globalDiscountAmount": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "The payment status of the invoice.",
+          "enum": [
+            "Paid",
+            "Partial",
+            "Unpaid"
+          ]
+        },
+        "payments": {
+          "type": "array",
+          "description": "A list of payments made for this invoice.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "method": {
+                "type": "string",
+                "description": "The method of payment.",
+                "enum": ["Cash", "Card", "Cheque"]
+              },
+              "amount": {
+                "type": "number",
+                "description": "The amount paid with this method."
+              },
+              "chequeNumber": {
+                "type": "string",
+                "description": "The cheque number if payment method is Cheque."
+              },
+              "bank": {
+                "type": "string",
+                "description": "The bank name if payment method is Cheque."
+              }
+            },
+            "required": ["method", "amount"]
+          }
+        },
+        "amountPaid": {
+          "type": "number",
+          "description": "The total amount paid by the customer."
+        },
+        "balanceDue": {
+          "type": "number",
+          "description": "The remaining balance to be paid."
+        },
+        "changeGiven": {
+          "type": "number",
+          "description": "The amount of change returned to the customer."
+        }
+      },
+      "required": [
+        "invoiceNumber",
+        "customerId",
+        "vehicleId",
+        "employeeId",
+        "date",
+        "items",
+        "total",
+        "paymentStatus",
+        "amountPaid",
+        "balanceDue"
+      ]
+    },
+    "StockItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StockItem",
+      "type": "object",
+      "description": "Represents an item in the service station's stock.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the stock item."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the stock item."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the item in stock."
+        },
+        "reorderPoint": {
+          "type": "number",
+          "description": "The quantity at which the item should be reordered."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "quantity",
+        "reorderPoint"
+      ]
+    },
+    "Revenue": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Revenue",
+      "type": "object",
+      "description": "Represents revenue data for the service station.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the revenue record."
+        },
+        "date": {
+          "type": "number",
+          "description": "The date for which the revenue is recorded."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of revenue for the given date."
+        }
+      },
+      "required": [
+        "id",
+        "date",
+        "amount"
+      ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product in inventory.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "sku": {
+          "type": "string",
+          "description": "The Stock Keeping Unit."
+        },
+        "description": {
+          "type": "string",
+          "description": "An optional description of the product."
+        },
+        "stock": {
+          "type": "number",
+          "description": "The current stock level."
+        },
+        "stockThreshold": {
+          "type": "number",
+          "description": "The re-order level for the product."
+        },
+        "actualPrice": {
+          "type": "number",
+          "description": "The cost of the product."
+        },
+        "sellingPrice": {
+          "type": "number",
+          "description": "The selling price of the product."
+        },
+        "createdAt": {
+            "type": "number",
+            "description": "Timestamp of when the product was created."
+        },
+        "updatedAt": {
+            "type": "number",
+            "description": "Timestamp of when the product was last updated."
+        }
+      },
+      "required": [
+        "name",
+        "sku",
+        "stock",
+        "stockThreshold",
+        "actualPrice",
+        "sellingPrice"
+      ]
+    },
+    "Service": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Service",
+      "type": "object",
+      "description": "Represents a service offered.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the service."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the service."
+        },
+        "description": {
+          "type": "string",
+          "description": "An optional description of the service."
+        },
+        "vehicleCategory": {
+            "type": "string",
+            "description": "An optional category for the type of vehicle this service applies to.",
+            "enum": ["Bike", "Car", "Van", "Jeep", "Lorry"]
+        },
+        "createdAt": {
+            "type": "number",
+            "description": "Timestamp of when the service was created."
+        },
+        "updatedAt": {
+            "type": "number",
+            "description": "Timestamp of when the service was last updated."
+        }
+      },
+      "required": [
+        "name",
+        "price"
+      ]
+    },
+    "Employee": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Employee",
+      "type": "object",
+      "description": "Represents an employee.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the employee."
+        },
+        "address": {
+          "type": "string",
+          "description": "The employee's address."
+        },
+        "mobile": {
+          "type": "string",
+          "description": "The employee's mobile number."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes about the employee."
+        }
+      },
+      "required": [
+        "name",
+        "address",
+        "mobile"
+      ]
+    },
+     "StockAdjustmentLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Stock Adjustment Log",
+      "type": "object",
+      "description": "Logs changes made to product stock or status.",
+      "properties": {
+        "productId": {
+          "type": "string",
+          "description": "The ID of the product that was adjusted."
+        },
+        "productName": {
+            "type": "string",
+            "description": "The name of the product at the time of adjustment."
+        },
+        "date": {
+          "type": "number",
+          "description": "Timestamp of when the adjustment was made."
+        },
+        "action": {
+          "type": "string",
+          "description": "The type of adjustment made.",
+          "enum": ["decrement", "delete", "add"]
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity adjusted."
+        },
+        "reason": {
+          "type": "string",
+          "description": "The reason for the adjustment."
+        }
+      },
+      "required": ["productId", "productName", "date", "action", "quantity", "reason"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/customers/{customerId}",
+        "definition": {
+          "entityName": "Customer",
+          "schema": {
+            "$ref": "#/backend/entities/Customer"
+          },
+          "description": "Stores customer data.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "The unique ID of the customer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/vehicles/{vehicleId}",
+        "definition": {
+          "entityName": "Vehicle",
+          "schema": {
+            "$ref": "#/backend/entities/Vehicle"
+          },
+          "description": "Stores vehicle data, linked to a customer.",
+          "params": [
+            {
+              "name": "vehicleId",
+              "description": "The unique ID of the vehicle."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/invoices/{invoiceId}",
+        "definition": {
+          "entityName": "Invoice",
+          "schema": {
+            "$ref": "#/backend/entities/Invoice"
+          },
+          "description": "Stores invoices for services.",
+          "params": [
+            {
+              "name": "invoiceId",
+              "description": "The unique ID of the invoice."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stock_items/{stockItemId}",
+        "definition": {
+          "entityName": "StockItem",
+          "schema": {
+            "$ref": "#/backend/entities/StockItem"
+          },
+          "description": "Stores stock item data. Segregated for homogeneous security posture; all stock items share the same access requirements.",
+          "params": [
+            {
+              "name": "stockItemId",
+              "description": "The unique ID of the stock item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/revenue/{revenueId}",
+        "definition": {
+          "entityName": "Revenue",
+          "schema": {
+            "$ref": "#/backend/entities/Revenue"
+          },
+          "description": "Stores revenue data. Segregated for homogeneous security posture; all revenue entries share the same access requirements.",
+          "params": [
+            {
+              "name": "revenueId",
+              "description": "The unique ID of the revenue record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores product inventory.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique ID of the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/services/{serviceId}",
+        "definition": {
+          "entityName": "Service",
+          "schema": {
+            "$ref": "#/backend/entities/Service"
+          },
+          "description": "Stores available services.",
+          "params": [
+            {
+              "name": "serviceId",
+              "description": "The unique ID of the service."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/employees/{employeeId}",
+        "definition": {
+          "entityName": "Employee",
+          "schema": {
+            "$ref": "#/backend/entities/Employee"
+          },
+          "description": "Stores employee data.",
+          "params": [
+            {
+              "name": "employeeId",
+              "description": "The unique ID of the employee."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stock_adjustment_logs/{logId}",
+        "definition": {
+          "entityName": "StockAdjustmentLog",
+          "schema": {
+            "$ref": "#/backend/entities/StockAdjustmentLog"
+          },
+          "description": "Logs all manual stock adjustments and deletions for auditing purposes.",
+          "params": [
+            {
+              "name": "logId",
+              "description": "The unique ID of the log entry."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the ServicePulse Dashboard application. Key entities like Customers, Vehicles, Products, and Services are stored in separate top-level collections to maintain structural segregation and allow for independent security rules. This approach simplifies querying (e.g., listing all vehicles) and aligns with best practices for authorization independence, as access to one collection does not depend on data from another. A new collection for stock adjustment logs is added to ensure a clear audit trail for inventory changes."
+  }
+}

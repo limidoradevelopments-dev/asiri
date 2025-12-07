@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -48,7 +47,7 @@ const formatCurrency = (amount: number) => {
 const availableMethods: { id: PaymentMethod, icon: React.ElementType }[] = [
     { id: 'Cash', icon: Banknote },
     { id: 'Card', icon: CreditCard },
-    { id: 'Check', icon: Wallet },
+    { id: 'Cheque', icon: Wallet },
 ];
 
 export function PaymentDialog({
@@ -75,7 +74,7 @@ export function PaymentDialog({
     
     let infoMissing = false;
     for (const p of payments) {
-      if (p.method === 'Check' && (!p.chequeNumber?.trim() || !p.bank?.trim())) {
+      if (p.method === 'Cheque' && (!p.chequeNumber?.trim() || !p.bank?.trim())) {
         infoMissing = true;
         break;
       }
@@ -135,7 +134,7 @@ export function PaymentDialog({
       toast({
         variant: "destructive",
         title: "Missing Cheque Details",
-        description: "Please fill in the Cheque Number and Bank for all 'Check' payments.",
+        description: "Please fill in the Cheque Number and Bank for all 'Cheque' payments.",
       });
       return;
     }
@@ -199,7 +198,7 @@ export function PaymentDialog({
                 </div>
 
                 {/* --- Amount Input --- */}
-                <div className={cn("space-y-1.5", payment.method === 'Check' ? 'col-span-3' : 'col-span-8')}>
+                <div className={cn("space-y-1.5", payment.method === 'Cheque' ? 'col-span-3' : 'col-span-8')}>
                   {index === 0 && <Label className="text-xs uppercase tracking-widest text-zinc-400">Amount</Label>}
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 font-mono">LKR</span>
@@ -214,7 +213,7 @@ export function PaymentDialog({
                 </div>
                 
                 {/* --- Cheque Details --- */}
-                {payment.method === 'Check' && (
+                {payment.method === 'Cheque' && (
                   <>
                     <div className="col-span-3 space-y-1.5">
                       {index === 0 && <Label className="text-xs uppercase tracking-widest text-zinc-400">Cheque No.</Label>}
@@ -238,7 +237,7 @@ export function PaymentDialog({
                 )}
 
                 {/* --- Remove Button --- */}
-                <div className={cn("flex items-center", payment.method === 'Check' ? 'col-span-12' : 'col-span-1')}>
+                <div className={cn("flex items-center", payment.method === 'Cheque' ? 'col-span-12' : 'col-span-1')}>
                    <div className="w-full flex justify-end">
                       {payments.length > 1 && (
                         <Button onClick={() => handleRemovePayment(payment.id!)} variant="ghost" size="icon" className="h-11 w-11 text-zinc-400 hover:text-red-500 hover:bg-red-50">
@@ -286,7 +285,7 @@ export function PaymentDialog({
             {isChequeInfoMissing && (
                  <div className="p-3 bg-amber-50 text-amber-700 text-xs rounded-md flex items-center gap-2">
                     <Info className="w-4 h-4" />
-                    <span>Cheque Number and Bank are required for 'Check' payments.</span>
+                    <span>Cheque Number and Bank are required for 'Cheque' payments.</span>
                 </div>
             )}
         </div>

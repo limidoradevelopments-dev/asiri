@@ -181,7 +181,7 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange, printOnOpe
                             <div key={index} className="flex justify-between">
                                 <div className="text-zinc-600">
                                     Paid by {payment.method}
-                                    {payment.method === 'Check' && payment.chequeNumber && (
+                                    {payment.method === 'Cheque' && payment.chequeNumber && (
                                         <span className="block text-xs text-zinc-400">
                                             (No: {payment.chequeNumber}, Bank: {payment.bank})
                                         </span>

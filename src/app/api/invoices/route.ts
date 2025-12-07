@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
 
 const paymentSchema = z.object({
   id: z.string().optional(),
-  method: z.enum(['Cash', 'Card', 'Check']),
+  method: z.enum(['Cash', 'Card', 'Cheque']),
   amount: z.number().positive('Payment amount must be positive.'),
   chequeNumber: z.string().optional(),
   bank: z.string().optional(),
