@@ -23,28 +23,24 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronsUpDown, Check, Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '../ui/scroll-area';
 
 type StockAdjustmentDialogProps = {
   children: React.ReactNode;
@@ -79,7 +75,6 @@ export function StockAdjustmentDialog({
   onOpenChange,
 }: StockAdjustmentDialogProps) {
   const { toast } = useToast();
-  const [productPopoverOpen, setProductPopoverOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof adjustmentSchema>>({
@@ -165,52 +160,13 @@ export function StockAdjustmentDialog({
                     name="productId"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
-                        <FormLabel>Product</FormLabel>
-                        <Popover
-                          modal={false}
-                          open={productPopoverOpen}
-                          onOpenChange={setProductPopoverOpen}
-                        >
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant="outline"
-                                role="combobox"
-                                className={cn("justify-between font-normal", commonInputStyles, !field.value && "text-muted-foreground")}
-                                >
-                                {field.value ? products.find(p => p.id === field.value)?.name : "Select product"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[300px] p-0 rounded-none">
-                            <Command>
-                                <CommandInput placeholder="Search product..." />
-                                <CommandList>
-                                <CommandEmpty>No product found.</CommandEmpty>
-                                <CommandGroup>
-                                    {products.map(product => (
-                                    <CommandItem
-                                        value={product.name}
-                                        key={product.id}
-                                        onSelect={() => {
-                                        form.setValue("productId", product.id);
-                                        setProductPopoverOpen(false);
-                                        }}
-                                    >
-                                        <Check className={cn("mr-2 h-4 w-4", product.id === field.value ? "opacity-100" : "opacity-0")} />
-                                        <div>
-                                            <p>{product.name}</p>
-                                            <p className="text-xs text-muted-foreground">Stock: {product.stock}</p>
-                                        </div>
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
+                            <FormLabel>Product</FormLabel>
+                            <ProductSelector
+                                products={products}
+                                selectedId={field.value}
+                                onSelect={(id) => form.setValue('productId', id, { shouldValidate: true })}
+                            />
+                            <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -298,4 +254,95 @@ export function StockAdjustmentDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+
+// --- Product Selector Sub-component ---
+function ProductSelector({ products, selectedId, onSelect }: {
+  products: WithId<Product>[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const selectedProduct = useMemo(() => products.find(p => p.id === selectedId), [products, selectedId]);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery) return products;
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(lowercasedQuery) ||
+        product.sku.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [products, searchQuery]);
+
+  const handleSelect = (id: string) => {
+    onSelect(id);
+    setIsOpen(false);
+    setSearchQuery('');
+  }
+
+  return (
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            className={cn(
+              "justify-start font-normal rounded-none h-11 text-base w-full",
+              !selectedId && "text-muted-foreground"
+            )}
+          >
+            {selectedProduct ? selectedProduct.name : "Select product"}
+          </Button>
+        </SheetTrigger>
+        <SheetContent className="w-[400px] sm:w-[540px] p-0 flex flex-col">
+            <SheetHeader className="p-6 pb-4">
+                <SheetTitle>Select a Product</SheetTitle>
+                <SheetDescription>Search for and choose the product to adjust.</SheetDescription>
+            </SheetHeader>
+            <div className="relative px-6 mb-4">
+              <Search className="absolute left-9 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <Input
+                  placeholder="Search by name or SKU..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={cn("rounded-md h-11 text-base pl-10")}
+              />
+            </div>
+            <ScrollArea className="flex-1 px-6">
+               <div className="pb-6">
+                 {filteredProducts.length > 0 ? (
+                    filteredProducts.map((product) => (
+                    <button
+                        key={product.id}
+                        onClick={() => handleSelect(product.id)}
+                        className={cn(
+                            "w-full text-left p-2.5 my-1 rounded-md transition-colors text-sm flex justify-between items-center",
+                            selectedId === product.id
+                                ? "bg-black text-white"
+                                : "hover:bg-zinc-100"
+                        )}
+                    >
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className={cn("text-xs", selectedId === product.id ? 'text-zinc-300' : 'text-zinc-400')}>{product.sku}</p>
+                      </div>
+                       <p className={cn("text-xs font-mono", selectedId === product.id ? 'text-zinc-300' : 'text-zinc-400')}>
+                            Stock: {product.stock}
+                        </p>
+                    </button>
+                    ))
+                 ) : (
+                    <div className="text-center p-8 text-xs text-zinc-400 uppercase tracking-widest">
+                        No products found
+                    </div>
+                 )}
+               </div>
+            </ScrollArea>
+        </SheetContent>
+      </Sheet>
+  )
 }
