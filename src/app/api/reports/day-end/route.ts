@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import type { Invoice, Payment, Product } from "@/lib/data";
 import { startOfDay, endOfDay, parseISO } from 'date-fns';
+import { toZonedTime, format as formatInTimeZone } from 'date-fns-tz';
+
+const SL_TIME_ZONE = 'Asia/Colombo';
 
 const safeRound = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
 
@@ -26,15 +29,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Date parameter is required" }, { status: 400 });
     }
     
-    // Parse the date as UTC
-    const reportDate = parseISO(dateParam);
-    if (isNaN(reportDate.getTime())) {
-        return NextResponse.json({ error: "Invalid date parameter format. Use YYYY-MM-DD." }, { status: 400 });
-    }
+    // The date string from the frontend (e.g., "2024-12-08")
+    const reportDateStr = dateParam;
     
-    // Define the day's boundaries in UTC
-    const dayStart = startOfDay(reportDate);
-    const dayEnd = endOfDay(reportDate);
+    // Create a date object representing the start of that day in the target timezone
+    const zonedDate = toZonedTime(reportDateStr, SL_TIME_ZONE);
+
+    // Get the start and end of that day IN THE TARGET TIMEZONE
+    const dayStart = startOfDay(zonedDate);
+    const dayEnd = endOfDay(zonedDate);
 
     // Fetch all data needed
     const [allInvoicesData, allProducts] = await Promise.all([
@@ -44,11 +47,13 @@ export async function GET(req: NextRequest) {
 
     const productMap = new Map(allProducts.map(p => [p.id, p]));
 
-    // Filter invoices by comparing their UTC timestamp against the UTC day boundaries
+    // Filter invoices by checking if their UTC timestamp falls within the SL day's boundaries
     const dailyInvoices = allInvoicesData
       .map(inv => ({...inv, date: toMillis(inv.date)})) // Convert Firestore Timestamps to JS millis
       .filter(inv => {
           if (inv.date === 0) return false;
+          // The invoice date is in UTC (milliseconds).
+          // We check if this UTC time falls between the start and end of the day in SL time.
           return inv.date >= dayStart.getTime() && inv.date <= dayEnd.getTime();
       });
 
@@ -94,7 +99,7 @@ export async function GET(req: NextRequest) {
     }
 
     const responsePayload = {
-      date: reportDate.toISOString(),
+      date: dayStart.toISOString(), // Send back a consistent UTC date for the report
       summary: {
         totalRevenue: safeRound(totalRevenue),
         netProfit,
