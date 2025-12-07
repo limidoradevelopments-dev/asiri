@@ -97,27 +97,37 @@ export default function CustomersPage() {
                   makeApiCall('customers', customerData, customerId),
                   makeApiCall('vehicles', vehicleData, vehicleId)
               ]);
-              if (!customerRes.ok || !vehicleRes.ok) throw new Error('Failed to update customer or vehicle');
+              if (!customerRes.ok) throw new Error('Failed to update customer');
+              if (!vehicleRes.ok) throw new Error('Failed to update vehicle');
               
               toast({ title: 'Success', description: 'Customer and vehicle updated successfully.' });
           } else {
               const customerRes = await makeApiCall('customers', customerData);
-              if (!customerRes.ok) throw new Error('Failed to create customer');
+              if (!customerRes.ok) {
+                 const errorData = await customerRes.json();
+                 throw new Error(errorData.error || 'Failed to create customer.');
+              }
               const newCustomer = await customerRes.json();
 
-              const vehicleRes = await makeApiCall('vehicles', { ...vehicleData, customerId: newCustomer.id });
-              if (!vehicleRes.ok) throw new Error('Failed to create vehicle');
-
+              const vehiclePayload = { ...vehicleData, customerId: newCustomer.id };
+              const vehicleRes = await makeApiCall('vehicles', vehiclePayload);
+              if (!vehicleRes.ok) {
+                 const errorData = await vehicleRes.json();
+                 throw new Error(errorData.error || 'Failed to create vehicle.');
+              }
               toast({ title: 'Success', description: 'New customer and vehicle created.' });
           }
 
+          setAddDialogOpen(false);
           fetchData(new AbortController().signal);
-
+          return true;
       } catch (err: any) {
           const message = err.message || "An unknown error occurred.";
           toast({ variant: 'destructive', title: 'Error', description: message });
+          return false;
       }
   }, [fetchData, toast]);
+
 
   const handleEdit = useCallback((item: CustomerWithVehicle) => {
     setItemToEdit(item);
@@ -190,15 +200,7 @@ export default function CustomersPage() {
                         itemToEdit={itemToEdit}
                         isOpen={isAddDialogOpen}
                         onOpenChange={onDialogClose}
-                      >
-                        <Button 
-                            onClick={() => setAddDialogOpen(true)}
-                            className="h-10 px-6 rounded-none bg-black text-white text-xs uppercase tracking-[0.15em] hover:bg-zinc-800 transition-all shadow-none"
-                        >
-                            <Plus className="mr-2 h-3 w-3" />
-                            New Entry
-                        </Button>
-                    </AddCustomerVehicleDialog>
+                      />
                 </div>
             </div>
         </div>
