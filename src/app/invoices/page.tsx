@@ -1,12 +1,12 @@
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
+import type { Invoice, Customer, Vehicle, Employee, Payment } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { InvoicesTable } from '@/components/invoices/InvoicesTable';
 import { cn } from '@/lib/utils';
 import { InvoiceDetailsDialog } from '@/components/invoices/InvoiceDetailsDialog';
+import { AddPaymentDialog } from '@/components/invoices/AddPaymentDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { WithId } from '@/firebase';
@@ -34,8 +34,10 @@ export default function InvoicesPage() {
 
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<EnrichedInvoice | null>(null);
+  const [invoiceToPay, setInvoiceToPay] = useState<EnrichedInvoice | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  const fetchInvoices = useCallback(async (startAfter: number | null = null, signal: AbortSignal) => {
+  const fetchInvoices = useCallback(async (startAfter: number | null = null, signal?: AbortSignal) => {
     setLoadingState(startAfter ? 'loadingMore' : 'initial');
     
     try {
@@ -52,10 +54,8 @@ export default function InvoicesPage() {
       const clientReadyInvoices = newInvoices.map((inv: any) => {
         let dateInMillis = 0;
         if (inv.date && typeof inv.date === 'object' && inv.date._seconds !== undefined) {
-          // Handle Firestore Timestamp object from the API
           dateInMillis = inv.date._seconds * 1000 + (inv.date._nanoseconds || 0) / 1000000;
         } else if (typeof inv.date === 'number') {
-          // Handle case where it might already be a number
           dateInMillis = inv.date;
         }
         return { ...inv, date: dateInMillis };
@@ -85,7 +85,6 @@ export default function InvoicesPage() {
     };
   }, [fetchInvoices]);
 
-  // When filter changes, close details dialog to prevent stale views
   useEffect(() => {
     setSelectedInvoice(null);
   }, [activeFilter]);
@@ -94,7 +93,7 @@ export default function InvoicesPage() {
     if (hasMore && allInvoices.length > 0 && loadingState === 'idle') {
       const lastInvoice = allInvoices[allInvoices.length - 1];
       const lastDate = Number(lastInvoice.date);
-      fetchInvoices(lastDate, new AbortController().signal);
+      fetchInvoices(lastDate);
     }
   };
 
@@ -107,8 +106,33 @@ export default function InvoicesPage() {
   
   const isLoading = loadingState === 'initial';
 
-  const handleViewDetails = (invoice: EnrichedInvoice) => {
-    setSelectedInvoice(invoice);
+  const handleAddPaymentRequest = (invoice: EnrichedInvoice) => {
+    setInvoiceToPay(invoice);
+  };
+  
+  const handleConfirmPayment = async (newPayments: Omit<Payment, 'id'>[]) => {
+    if (!invoiceToPay) return;
+    setIsProcessingPayment(true);
+    try {
+        const res = await fetch('/api/invoices', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invoiceId: invoiceToPay.id, newPayments }),
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Failed to update payment");
+        }
+        
+        toast({ title: 'Payment Added', description: `Payment successfully added to invoice ${invoiceToPay.invoiceNumber}.` });
+        setInvoiceToPay(null);
+        fetchInvoices(null); // Refetch all invoices to show updated status
+    } catch (err: any) {
+        toast({ variant: 'destructive', title: 'Error', description: err.message });
+    } finally {
+        setIsProcessingPayment(false);
+    }
   };
 
   const filterButtons: { label: string; value: FilterStatus }[] = [
@@ -120,7 +144,6 @@ export default function InvoicesPage() {
 
   return (
     <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-8 pb-12">
-      {/* --- HEADER --- */}
       <div className="flex justify-between items-start mb-16 gap-8">
         <div>
           <h1 className="text-5xl font-light tracking-tighter mb-2">INVOICES</h1>
@@ -147,7 +170,8 @@ export default function InvoicesPage() {
         <InvoicesTable 
             data={filteredInvoices} 
             isLoading={isLoading} 
-            onViewDetails={handleViewDetails}
+            onViewDetails={setSelectedInvoice}
+            onAddPayment={handleAddPaymentRequest}
         />
       </div>
 
@@ -173,6 +197,14 @@ export default function InvoicesPage() {
         invoice={selectedInvoice}
         isOpen={!!selectedInvoice}
         onOpenChange={(isOpen) => !isOpen && setSelectedInvoice(null)}
+      />
+
+      <AddPaymentDialog
+        invoice={invoiceToPay}
+        isOpen={!!invoiceToPay}
+        onOpenChange={(isOpen) => !isOpen && setInvoiceToPay(null)}
+        onConfirmPayment={handleConfirmPayment}
+        isProcessing={isProcessingPayment}
       />
     </div>
   );

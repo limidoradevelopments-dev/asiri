@@ -4,7 +4,7 @@ import { db } from "@/lib/server/db";
 import { z } from "zod";
 import { initializeFirebase } from "@/firebase/server-init";
 import { collection, query, getDocs, orderBy, limit, startAfter, Timestamp } from "firebase/firestore";
-import type { Invoice } from "@/lib/data";
+import type { Invoice, Payment } from "@/lib/data";
 
 const BATCH_SIZE = 50;
 
@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
 
 
 const paymentSchema = z.object({
+  id: z.string().optional(),
   method: z.enum(['Cash', 'Card', 'Check']),
   amount: z.number().positive('Payment amount must be positive.'),
   chequeNumber: z.string().optional(),
@@ -136,4 +137,62 @@ export async function POST(req: NextRequest) {
   }
 }
 
+const addPaymentSchema = z.object({
+  invoiceId: z.string(),
+  newPayments: z.array(paymentSchema).nonempty(),
+});
+
+/**
+ * PUT /api/invoices
+ * Body: { invoiceId: string, newPayments: Payment[] }
+ * Adds new payments to an existing invoice and updates its status.
+ */
+export async function PUT(req: NextRequest) {
+    try {
+        const payload = await req.json();
+        const validation = addPaymentSchema.safeParse(payload);
+
+        if (!validation.success) {
+            return NextResponse.json({ error: validation.error.flatten().fieldErrors }, { status: 400 });
+        }
+
+        const { invoiceId, newPayments } = validation.data;
+
+        const existingInvoice = await db.getOne("invoices", invoiceId) as Invoice | null;
+        if (!existingInvoice) {
+            return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+        }
+        
+        // --- LOGIC TO MERGE PAYMENTS AND UPDATE TOTALS ---
+        const allPayments = [...existingInvoice.payments, ...newPayments];
+        const totalAmountPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
+
+        let newBalanceDue = existingInvoice.total - totalAmountPaid;
+        let newPaymentStatus: Invoice['paymentStatus'] = 'Partial';
+        let changeGiven = 0;
+
+        if (newBalanceDue <= 0) {
+            changeGiven = Math.abs(newBalanceDue);
+            newBalanceDue = 0;
+            newPaymentStatus = 'Paid';
+        }
+
+        const updateData = {
+            payments: allPayments,
+            amountPaid: totalAmountPaid,
+            balanceDue: newBalanceDue,
+            paymentStatus: newPaymentStatus,
+            changeGiven: existingInvoice.changeGiven ? existingInvoice.changeGiven + changeGiven : changeGiven,
+        };
+        
+        const updatedInvoice = await db.update("invoices", invoiceId, updateData);
+
+        return NextResponse.json(updatedInvoice, { status: 200 });
+
+    } catch (err) {
+        console.error("PUT /api/invoices error:", err);
+        const message = err instanceof Error ? err.message : "Failed to update invoice payment";
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
+}
     

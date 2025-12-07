@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -39,6 +38,7 @@ type InvoicesTableProps = {
   data: EnrichedInvoice[];
   isLoading: boolean;
   onViewDetails: (invoice: EnrichedInvoice) => void;
+  onAddPayment: (invoice: EnrichedInvoice) => void;
 };
 
 const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
@@ -47,7 +47,7 @@ const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
   Unpaid: "bg-red-100 text-red-800 border-red-200",
 };
 
-export function InvoicesTable({ data, isLoading, onViewDetails }: InvoicesTableProps) {
+export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: InvoicesTableProps) {
   const [showEmptyState, setShowEmptyState] = useState(false);
 
   useEffect(() => {
@@ -97,34 +97,38 @@ export function InvoicesTable({ data, isLoading, onViewDetails }: InvoicesTableP
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isLoading ? renderSkeleton() : data.map((invoice) => (
-            <TableRow key={invoice.id} className="border-zinc-100 text-sm hover:bg-zinc-50/50 cursor-pointer" onClick={() => onViewDetails(invoice)}>
-              <TableCell className="p-2 h-12 font-mono text-blue-600 hover:underline text-xs">{invoice.invoiceNumber}</TableCell>
-              <TableCell className="p-2 h-12 font-medium">{invoice.customerName}</TableCell>
-              <TableCell className="p-2 h-12">{invoice.vehicleNumberPlate}</TableCell>
-              <TableCell className="p-2 h-12">{format(new Date(invoice.date), "MMM d, yyyy")}</TableCell>
-              <TableCell className="p-2 h-12">
-                <Badge className={cn("capitalize text-xs font-semibold rounded-md border", statusStyles[invoice.paymentStatus])} variant="outline">
-                    {invoice.paymentStatus}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right p-2 h-12 font-mono">{formatPrice(invoice.total)}</TableCell>
-              <TableCell className="text-right p-2 h-12" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Actions</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-none border-zinc-200">
-                    <DropdownMenuItem onClick={() => onViewDetails(invoice)} className="text-xs">View Details</DropdownMenuItem>
-                    <DropdownMenuItem disabled className="text-xs">Print Invoice</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
+          {isLoading ? renderSkeleton() : data.map((invoice) => {
+            const isPayable = invoice.paymentStatus === 'Partial' || invoice.paymentStatus === 'Unpaid';
+            return (
+              <TableRow key={invoice.id} className="border-zinc-100 text-sm hover:bg-zinc-50/50">
+                <TableCell className="p-2 h-12 font-mono text-blue-600 hover:underline text-xs cursor-pointer" onClick={() => onViewDetails(invoice)}>{invoice.invoiceNumber}</TableCell>
+                <TableCell className="p-2 h-12 font-medium">{invoice.customerName}</TableCell>
+                <TableCell className="p-2 h-12">{invoice.vehicleNumberPlate}</TableCell>
+                <TableCell className="p-2 h-12">{format(new Date(invoice.date), "MMM d, yyyy")}</TableCell>
+                <TableCell className="p-2 h-12">
+                  <Badge className={cn("capitalize text-xs font-semibold rounded-md border", statusStyles[invoice.paymentStatus])} variant="outline">
+                      {invoice.paymentStatus}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right p-2 h-12 font-mono">{formatPrice(invoice.total)}</TableCell>
+                <TableCell className="text-right p-2 h-12">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Actions</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-none border-zinc-200">
+                      <DropdownMenuItem onClick={() => onViewDetails(invoice)} className="text-xs">View Details</DropdownMenuItem>
+                      <DropdownMenuItem disabled={!isPayable} onClick={() => isPayable && onAddPayment(invoice)} className="text-xs">Add Payment</DropdownMenuItem>
+                      <DropdownMenuItem disabled className="text-xs">Print Invoice</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
       {showEmptyState && (
