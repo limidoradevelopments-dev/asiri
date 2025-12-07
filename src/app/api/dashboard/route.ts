@@ -1,3 +1,4 @@
+
 // src/app/api/dashboard/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
@@ -12,13 +13,17 @@ const formatCurrency = (amount: number) => {
      return `Rs. ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-// Helper to safely convert Firestore Timestamp to number
-const toMillis = (timestamp: any): number => {
-  if (typeof timestamp === 'number') return timestamp; // Already a millisecond timestamp
-  if (timestamp && typeof timestamp.toMillis === 'function') { // Firestore Timestamp object
-    return timestamp.toMillis();
+// Helper to safely convert Firestore Timestamp to a JS Date object
+const toDate = (timestamp: any): Date | null => {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  if (typeof timestamp.toDate === 'function') { // Firestore Timestamp object
+    return timestamp.toDate();
   }
-  return 0; // Return 0 for invalid or missing timestamps
+  if (typeof timestamp === 'number') { // Millisecond timestamp
+    return new Date(timestamp);
+  }
+  return null; // Return null for invalid or missing timestamps
 };
 
 /**
@@ -42,7 +47,15 @@ export async function GET() {
     // --- Calculations ---
     const now = new Date(); // Current time is UTC on the server
     
-    const processedInvoices = invoices.map(inv => ({...inv, date: toMillis(inv.date)}));
+    // Convert Firestore timestamps to JS Date objects for all invoices
+    const processedInvoices = invoices.map(inv => {
+        const invoiceDate = toDate(inv.date);
+        return {
+            ...inv,
+            date: invoiceDate, // Now a Date object
+            dateMillis: invoiceDate?.getTime() || 0 // Keep millis for sorting if needed
+        };
+    }).filter(inv => inv.date !== null); // Filter out any invoices with invalid dates
     
     const totalRevenue = processedInvoices.reduce((acc, inv) => acc + inv.amountPaid, 0);
     
@@ -52,9 +65,8 @@ export async function GET() {
 
     const todaysRevenue = processedInvoices
       .filter(inv => {
-        const invoiceDateInUTC = new Date(inv.date);
-        // Compare the UTC invoice date with the calculated SL timezone boundaries
-        return invoiceDateInUTC >= todayStartInSL && invoiceDateInUTC <= todayEndInSL;
+        // Compare the invoice's Date object with the calculated SL timezone boundaries
+        return inv.date! >= todayStartInSL && inv.date! <= todayEndInSL;
       })
       .reduce((acc, inv) => acc + inv.amountPaid, 0);
 
@@ -78,8 +90,8 @@ export async function GET() {
 
         const dailyRevenue = processedInvoices
             .filter(inv => {
-              const invoiceDateInUTC = new Date(inv.date);
-              return invoiceDateInUTC >= dayStartInSL && invoiceDateInUTC <= dayEndInSL;
+              // Compare the invoice's Date object with the daily boundaries
+              return inv.date! >= dayStartInSL && inv.date! <= dayEndInSL;
             })
             .reduce((sum, inv) => sum + inv.total, 0);
         
@@ -92,7 +104,7 @@ export async function GET() {
     const customerMap = new Map(customers.map(c => [c.id, c]));
     
     const recentInvoices = processedInvoices
-      .sort((a, b) => b.date - a.date)
+      .sort((a, b) => b.dateMillis - a.dateMillis)
       .slice(0, 5)
       .map(inv => {
         const customer = customerMap.get(inv.customerId);
@@ -100,7 +112,7 @@ export async function GET() {
           id: inv.id,
           invoiceNumber: inv.invoiceNumber,
           customerName: customer?.name || 'Unknown Customer',
-          date: inv.date, // Pass the UTC timestamp to the client
+          date: inv.dateMillis, // Pass the UTC timestamp to the client
           total: inv.total,
           paymentStatus: inv.paymentStatus,
         };
