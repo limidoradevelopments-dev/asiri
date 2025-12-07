@@ -95,16 +95,24 @@ export async function GET(req: NextRequest) {
         // Margin Calculation
         const marginPercent = revenue !== 0 ? safeRound((profit / revenue) * 100) : 0;
         
-        let invoiceDate = invoice.date;
-        if (invoiceDate && typeof invoiceDate === 'object' && '_seconds' in invoiceDate) {
-             invoiceDate = (invoiceDate as any)._seconds * 1000;
+        // Ensure date is always a number (milliseconds)
+        let dateInMillis = 0;
+        if (invoice.date) {
+            if (typeof invoice.date === 'number') {
+                dateInMillis = invoice.date;
+            } else if (invoice.date && typeof (invoice.date as any).toMillis === 'function') {
+                // This handles Firestore Timestamp objects
+                dateInMillis = (invoice.date as any).toMillis();
+            } else if (invoice.date && typeof (invoice.date as any)._seconds === 'number') {
+                // Fallback for serialized Timestamps
+                dateInMillis = (invoice.date as any)._seconds * 1000;
+            }
         }
-
 
         processedItems.push({
           id: `${invoice.id}-${item.itemId}`,
           invoiceNumber: invoice.invoiceNumber,
-          date: invoiceDate,
+          date: dateInMillis,
           productName: item.name || product.name || 'Unknown Product',
           quantity,
           costOfGoods,
