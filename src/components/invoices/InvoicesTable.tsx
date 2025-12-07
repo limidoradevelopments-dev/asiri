@@ -34,7 +34,6 @@ type InvoicesTableProps = {
   isLoading: boolean;
   onViewDetails: (invoice: EnrichedInvoice) => void;
   onAddPayment: (invoice: EnrichedInvoice) => void;
-  onPrint: (invoice: EnrichedInvoice) => void;
 };
 
 const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
@@ -43,7 +42,7 @@ const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
   Unpaid: "bg-red-100 text-red-800 border-red-200",
 };
 
-export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, onPrint }: InvoicesTableProps) {
+export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: InvoicesTableProps) {
   const [showEmptyState, setShowEmptyState] = useState(false);
 
   useEffect(() => {
@@ -125,14 +124,6 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, on
                            </Button>
                         </TooltipTrigger>
                         <TooltipContent>Add Payment</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-blue-600" onClick={() => onPrint(invoice)}>
-                              <Printer className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Print Invoice</TooltipContent>
                       </Tooltip>
                     </div>
                   </TableCell>

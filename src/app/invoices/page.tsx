@@ -184,7 +184,6 @@ export default function InvoicesPage() {
             isLoading={isLoading} 
             onViewDetails={handleViewDetails}
             onAddPayment={handleAddPaymentRequest}
-            onPrint={handlePrintRequest}
         />
       </div>
 
