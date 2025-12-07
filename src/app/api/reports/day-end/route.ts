@@ -3,8 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import type { Invoice, Payment, Product } from "@/lib/data";
-import { startOfDay, endOfDay } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { formatInTimeZone } from 'date-fns-tz';
 
 const SL_TIME_ZONE = "Asia/Colombo";
 
@@ -22,7 +21,7 @@ const toDate = (timestamp: any): Date | null => {
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
-    const dateParam = url.searchParams.get("date");
+    const dateParam = url.searchParams.get("date"); // Expects "YYYY-MM-DD"
 
     if (!dateParam) {
       return NextResponse.json(
@@ -30,15 +29,9 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    // --- Corrected Timezone Handling ---
-    // 1. Construct a date object representing the local date in SL by parsing the date string directly
-    const slDay = toZonedTime(new Date(dateParam), SL_TIME_ZONE);
-
-    // 2. Get the start and end of that day in SL timezone
-    const slDayStart = startOfDay(slDay);
-    const slDayEnd = endOfDay(slDay);
-    // --- End Correction ---
+    
+    // The selected date string from the frontend
+    const selectedDateStr = dateParam;
 
     const [allInvoicesData, allProducts] = await Promise.all([
       db.getAll("invoices") as Promise<(Invoice & { id: string })[]>,
@@ -51,11 +44,12 @@ export async function GET(req: NextRequest) {
       .map((inv) => ({ ...inv, date: toDate(inv.date) }))
       .filter((inv) => {
         if (!inv.date) return false;
-
-        // Convert invoice's UTC timestamp into SL time for comparison
-        const invoiceInSL = toZonedTime(inv.date, SL_TIME_ZONE);
-
-        return invoiceInSL >= slDayStart && invoiceInSL <= slDayEnd;
+        
+        // Convert invoice's UTC timestamp into a "YYYY-MM-DD" string in SL time
+        const invoiceDateStr = formatInTimeZone(inv.date, SL_TIME_ZONE, 'yyyy-MM-dd');
+        
+        // Compare the generated string with the selected date string
+        return invoiceDateStr === selectedDateStr;
       });
 
     // Calculations
@@ -127,9 +121,12 @@ export async function GET(req: NextRequest) {
         );
       }
     }
+    
+    // We send back the original dateParam to be displayed, ensuring consistency.
+    const reportDate = new Date(`${dateParam}T00:00:00`);
 
     const responsePayload = {
-      date: slDayStart.toISOString(),
+      date: reportDate.toISOString(),
       summary: {
         totalRevenue: safeRound(totalRevenue),
         netProfit,
