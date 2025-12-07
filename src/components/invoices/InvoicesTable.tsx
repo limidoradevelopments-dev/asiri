@@ -10,11 +10,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { FileText, DollarSign, Printer } from 'lucide-react';
+import { FileText, DollarSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WithId } from '@/firebase';
 import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -34,6 +33,7 @@ type InvoicesTableProps = {
   isLoading: boolean;
   onViewDetails: (invoice: EnrichedInvoice) => void;
   onAddPayment: (invoice: EnrichedInvoice) => void;
+  onPrint: (invoice: EnrichedInvoice) => void;
 };
 
 const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
@@ -42,7 +42,7 @@ const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
   Unpaid: "bg-red-100 text-red-800 border-red-200",
 };
 
-export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: InvoicesTableProps) {
+export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, onPrint }: InvoicesTableProps) {
   const [showEmptyState, setShowEmptyState] = useState(false);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: 
         <TableCell className="p-2 h-12"><Skeleton className="h-5 w-24" /></TableCell>
         <TableCell className="p-2 h-12"><Skeleton className="h-5 w-20" /></TableCell>
         <TableCell className="p-2 h-12 text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
-        <TableCell className="p-2 h-12"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+        <TableCell className="p-2 h-12"><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
       </TableRow>
     ))
   );
@@ -100,7 +100,7 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: 
                   <TableCell className="p-2 h-12 font-mono text-blue-600 hover:underline text-xs cursor-pointer" onClick={() => onViewDetails(invoice)}>{invoice.invoiceNumber}</TableCell>
                   <TableCell className="p-2 h-12 font-medium">{invoice.customerName}</TableCell>
                   <TableCell className="p-2 h-12">{invoice.vehicleNumberPlate}</TableCell>
-                  <TableCell className="p-2 h-12">{format(new Date(invoice.date), "MMM d, yyyy")}</TableCell>
+                  <TableCell className="p-2 h-12">{new Date(invoice.date).toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' })}</TableCell>
                   <TableCell className="p-2 h-12">
                     <Badge className={cn("capitalize text-xs font-semibold rounded-md border", statusStyles[invoice.paymentStatus])} variant="outline">
                         {invoice.paymentStatus}

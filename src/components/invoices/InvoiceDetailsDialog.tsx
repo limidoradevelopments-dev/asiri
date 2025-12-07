@@ -11,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button';
 import type { Invoice, Customer, Vehicle, Employee, Payment } from '@/lib/data';
 import { WithId } from '@/firebase';
-import { format } from 'date-fns';
 import { Separator } from '../ui/separator';
 import { ScrollArea } from '../ui/scroll-area';
 import { Printer, CheckCircle, AlertCircle } from 'lucide-react';
@@ -115,7 +114,7 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange, printOnOpe
                     <div className="col-span-1 space-y-4 text-right">
                         <h3 className="text-xs uppercase tracking-widest text-zinc-400 font-bold">Details</h3>
                         <div className="space-y-1">
-                            <p className="text-sm"><span className="font-semibold">Date:</span> {format(new Date(invoice.date), "MMM d, yyyy")}</p>
+                            <p className="text-sm"><span className="font-semibold">Date:</span> {new Date(invoice.date).toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' })}</p>
                             <p className="text-sm"><span className="font-semibold">Job By:</span> {employee?.name || 'N/A'}</p>
                         </div>
                     </div>

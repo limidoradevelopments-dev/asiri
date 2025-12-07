@@ -1,6 +1,5 @@
 
 import type { Invoice } from "@/lib/data";
-import { format } from "date-fns";
 import {
   Card,
   CardContent,
@@ -64,7 +63,7 @@ export default function RecentInvoices({ data }: RecentInvoicesProps) {
                         {invoice.paymentStatus}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-3 px-0">{invoice.date ? format(new Date(invoice.date), "MMM d, yyyy") : 'Invalid Date'}</TableCell>
+                    <TableCell className="py-3 px-0">{invoice.date ? new Date(invoice.date).toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' }) : 'Invalid Date'}</TableCell>
                     <TableCell className="text-right py-3 px-0 font-mono">
                       {invoice.total.toLocaleString("en-US", {
                         style: "currency",
