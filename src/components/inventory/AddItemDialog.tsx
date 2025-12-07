@@ -31,7 +31,7 @@ import type { Product, Service, VehicleCategory } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Car, Truck, Bike } from 'lucide-react';
+import { Car, Truck, Bike, Tractor } from 'lucide-react';
 
 // --- Schemas ---
 
@@ -51,7 +51,7 @@ const serviceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   price: z.coerce.number().min(0, 'Price cannot be negative'),
-  vehicleCategory: z.enum(["Car", "Jeep/Van", "Bike"]).optional(),
+  vehicleCategory: z.enum(["Bike", "Car", "Van", "Jeep", "Lorry"]).optional(),
 });
 
 // --- Types ---
@@ -145,9 +145,11 @@ export function AddItemDialog({
   const commonButtonStyles = "rounded-none uppercase tracking-widest text-xs h-11";
 
   const categoryIcons: Record<VehicleCategory, React.ElementType> = {
-    "Car": Car,
-    "Jeep/Van": Truck,
     "Bike": Bike,
+    "Car": Car,
+    "Van": Truck,
+    "Jeep": Tractor,
+    "Lorry": Truck,
   };
 
   return (
@@ -338,7 +340,7 @@ export function AddItemDialog({
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent className="rounded-none border-zinc-200">
-                                   {(["Car", "Jeep/Van", "Bike"] as VehicleCategory[]).map(cat => {
+                                   {(["Bike", "Car", "Van", "Jeep", "Lorry"] as VehicleCategory[]).map(cat => {
                                       const Icon = categoryIcons[cat];
                                       return (
                                         <SelectItem key={cat} value={cat}>
@@ -373,5 +375,4 @@ export function AddItemDialog({
     </>
   );
 }
-
     

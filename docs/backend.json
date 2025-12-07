@@ -333,7 +333,7 @@
         "vehicleCategory": {
             "type": "string",
             "description": "An optional category for the type of vehicle this service applies to.",
-            "enum": ["Car", "Jeep/Van", "Bike"]
+            "enum": ["Bike", "Car", "Van", "Jeep", "Lorry"]
         }
       },
       "required": [

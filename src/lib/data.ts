@@ -168,7 +168,7 @@ export interface Product {
   sellingPrice: number;
 }
 
-export type VehicleCategory = "Car" | "Jeep/Van" | "Bike";
+export type VehicleCategory = "Bike" | "Car" | "Van" | "Jeep" | "Lorry";
 
 export interface Service {
   name: string;

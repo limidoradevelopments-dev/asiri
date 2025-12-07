@@ -6,7 +6,7 @@ import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMet
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive, PlusCircle, Car, Bike, Truck, Sparkles, Loader2 } from 'lucide-react';
+import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive, PlusCircle, Car, Bike, Truck, Sparkles, Loader2, Tractor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -70,9 +70,11 @@ export const getItemPrice = (item: CartItem): number => {
 };
 
 const categoryIcons: Record<VehicleCategory, React.ElementType> = {
-    "Car": Car,
-    "Jeep/Van": Truck,
     "Bike": Bike,
+    "Car": Car,
+    "Van": Truck,
+    "Jeep": Tractor,
+    "Lorry": Truck,
 };
 
 export default function POSPage() {
@@ -229,7 +231,6 @@ export default function POSPage() {
 
     let validatedUpdates = { ...updates };
 
-    // --- Start Validation Logic ---
     if ('quantity' in validatedUpdates && validatedUpdates.quantity !== undefined) {
       const newQuantity = validatedUpdates.quantity;
       if (item.type === 'product') {
@@ -263,14 +264,8 @@ export default function POSPage() {
         validatedUpdates.discountAmount = 0;
       }
     }
-    // --- End Validation Logic ---
-
-    // Set state immediately with validated data
-    setCart(prev => prev.map(i => i.cartId === cartId ? {...i, ...validatedUpdates} : i));
     
-    // Debounce the state update for performance (optional, but can be good for rapid input)
-    // Note: The debounced version uses the same validated data.
-    debouncedUpdateCartItem(cartId, validatedUpdates);
+    setCart(prev => prev.map(i => i.cartId === cartId ? {...i, ...validatedUpdates} : i));
   }
   
   const removeFromCart = (id: string) => {
@@ -512,7 +507,9 @@ export default function POSPage() {
     { label: 'All', value: 'all', icon: Sparkles },
     { label: 'Bike', value: 'Bike', icon: Bike },
     { label: 'Car', value: 'Car', icon: Car },
-    { label: 'Jeep/Van', value: 'Jeep/Van', icon: Truck },
+    { label: 'Van', value: 'Van', icon: Truck },
+    { label: 'Jeep', value: 'Jeep', icon: Tractor },
+    { label: 'Lorry', value: 'Lorry', icon: Truck },
   ];
 
   const isLoading = productsLoading || servicesLoading || employeesLoading;

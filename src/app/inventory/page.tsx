@@ -42,7 +42,7 @@ const ServiceSchema = z.object({
     name: z.string(),
     price: z.number(),
     description: z.string().optional().nullable(),
-    vehicleCategory: z.enum(["Car", "Jeep/Van", "Bike"]).optional().nullable(),
+    vehicleCategory: z.enum(["Bike", "Car", "Van", "Jeep", "Lorry"]).optional().nullable(),
 });
 const ServicesSchema = z.array(ServiceSchema);
 
@@ -52,13 +52,16 @@ export default function InventoryPage() {
 
   const [products, setProducts] = useState<WithId<ProductType>[]>([]);
   const [services, setServices] = useState<WithId<ServiceType>[]>([]);
-  const [productsLoading, setProductsLoading] = useState(true);
-  const [servicesLoading, setServicesLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchData = useCallback(async (signal: AbortSignal) => {
+  const fetchData = useCallback(async (signal: AbortSignal, isRefresh = false) => {
     try {
-      setProductsLoading(true);
-      setServicesLoading(true);
+      if (!isRefresh) {
+        setInitialLoad(true);
+      } else {
+        setRefreshing(true);
+      }
       const [productsRes, servicesRes] = await Promise.all([
         fetch('/api/products', { signal }),
         fetch('/api/services', { signal }),
@@ -94,8 +97,10 @@ export default function InventoryPage() {
       const message = err instanceof Error ? err.message : 'Could not fetch inventory data.';
       toast({ variant: 'destructive', title: 'Error', description: message });
     } finally {
-      setProductsLoading(false);
-      setServicesLoading(false);
+      if (!isRefresh) {
+        setInitialLoad(false);
+      }
+      setRefreshing(false);
     }
   }, [toast]);
 
@@ -150,9 +155,8 @@ export default function InventoryPage() {
         
         toast({ title: id ? "Updated" : "Created", description: "Item saved successfully." });
         
-        // Re-fetch data to get the latest state without showing main loaders
         const refreshController = new AbortController();
-        fetchData(refreshController.signal);
+        fetchData(refreshController.signal, true);
 
       } catch (err: any) {
         if (err.name === 'AbortError') return;
@@ -168,7 +172,6 @@ export default function InventoryPage() {
   );
   
   const handleAddStock = useCallback(async (productId: string, quantity: number) => {
-    // Optimistic UI update
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: (p.stock || 0) + quantity } : p));
     
     try {
@@ -184,7 +187,6 @@ export default function InventoryPage() {
       }
 
       toast({ title: "Stock Updated", description: `Added ${quantity} to stock.` });
-      // The optimistic update is likely correct, but we'll get the true state from the server response
       const updatedProduct = await res.json();
       setProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p));
 
@@ -192,9 +194,8 @@ export default function InventoryPage() {
       console.error("Add stock error:", err);
       const message = err instanceof Error ? err.message : 'An unknown error occurred while adding stock.';
       toast({ variant: 'destructive', title: 'Error', description: message });
-      // Revert optimistic update by re-fetching
       const refreshController = new AbortController();
-      fetchData(refreshController.signal);
+      fetchData(refreshController.signal, true);
     } finally {
       setAddStockDialogOpen(false);
     }
@@ -205,7 +206,6 @@ export default function InventoryPage() {
     if (!itemToDelete) return;
     const { id, type } = itemToDelete;
     
-    // Optimistic UI update
     if (type === 'product') setProducts(prev => prev.filter(p => p.id !== id));
     else setServices(prev => prev.filter(s => s.id !== id));
     
@@ -218,14 +218,12 @@ export default function InventoryPage() {
       }
 
       toast({ title: "Deleted", description: "Item successfully deleted." });
-      // No re-fetch needed if optimistic update is trusted
     } catch (err) {
       console.error("Delete error:", err);
       const message = err instanceof Error ? err.message : 'An unknown error occurred while deleting the item.';
       toast({ variant: 'destructive', title: 'Error', description: message });
-      // Re-fetch to revert optimistic update
       const refreshController = new AbortController();
-      fetchData(refreshController.signal);
+      fetchData(refreshController.signal, true);
     } finally {
       setItemToDelete(null);
     }
@@ -321,7 +319,7 @@ export default function InventoryPage() {
             <InventoryTable
               data={filteredProducts}
               type="product"
-              isLoading={productsLoading}
+              isLoading={initialLoad}
               onEdit={handleEdit}
               onDelete={handleDeleteRequest}
             />
@@ -330,7 +328,7 @@ export default function InventoryPage() {
             <InventoryTable
               data={filteredServices}
               type="service"
-              isLoading={servicesLoading}
+              isLoading={initialLoad}
               onEdit={handleEdit}
               onDelete={handleDeleteRequest}
             />
