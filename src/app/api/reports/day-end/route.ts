@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     const reportDateStr = dateParam;
     
     // Create a date object representing the start of that day in the target timezone
-    // IMPORTANT: new Date("YYYY-MM-DD") creates a UTC date. We need to treat it as local.
+    // This correctly treats the date string as belonging to the SL timezone.
     const zonedDateForReport = toZonedTime(new Date(reportDateStr), SL_TIME_ZONE);
 
     // Get the start and end of that day IN THE TARGET TIMEZONE
@@ -57,9 +57,9 @@ export async function GET(req: NextRequest) {
       .map(inv => ({...inv, date: toDate(inv.date)})) // Convert Firestore Timestamps to JS Date objects
       .filter(inv => {
           if (!inv.date) return false;
-          // The invoice date is in UTC.
-          // We check if this UTC time falls between the start and end of the day in SL time.
-          return inv.date >= dayStart && inv.date <= dayEnd;
+          // Convert the invoice's UTC date to SL time to perform the comparison
+          const invoiceDateInSL = toZonedTime(inv.date, SL_TIME_ZONE);
+          return invoiceDateInSL >= dayStart && invoiceDateInSL <= dayEnd;
       });
 
     // --- Calculations ---
