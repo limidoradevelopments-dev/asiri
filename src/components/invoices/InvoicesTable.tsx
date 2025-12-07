@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { FileText, DollarSign } from 'lucide-react';
+import { FileText, DollarSign, Printer } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WithId } from '@/firebase';
 import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
@@ -33,6 +33,7 @@ type InvoicesTableProps = {
   isLoading: boolean;
   onViewDetails: (invoice: EnrichedInvoice) => void;
   onAddPayment: (invoice: EnrichedInvoice) => void;
+  onPrintRequest: (invoice: EnrichedInvoice) => void;
 };
 
 const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
@@ -41,7 +42,7 @@ const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
   Unpaid: "bg-red-100 text-red-800 border-red-200",
 };
 
-export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: InvoicesTableProps) {
+export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, onPrintRequest }: InvoicesTableProps) {
   const [showEmptyState, setShowEmptyState] = useState(false);
 
   useEffect(() => {
@@ -62,17 +63,14 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: 
     return price.toLocaleString('en-US', { style: 'currency', currency: 'LKR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('LKR', 'Rs.');
   };
   
-  const formatDate = (date: number | any) => {
-    if (!date) return 'Invalid Date';
-    let dateObj;
-    if(typeof date === 'number') {
-      dateObj = new Date(date);
-    } else if (date.seconds) { // Handle Firestore Timestamp object
-      dateObj = new Date(date.seconds * 1000 + (date.nanoseconds || 0) / 1000000);
-    } else {
-      return 'Invalid Date';
+  const formatDate = (dateValue: number | any) => {
+    if (!dateValue || typeof dateValue !== 'number') return 'Invalid Date';
+    try {
+        const date = new Date(dateValue);
+        return date.toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' });
+    } catch {
+        return 'Invalid Date';
     }
-    return dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' });
   };
   
   const renderSkeleton = () => (

@@ -55,8 +55,10 @@ export default function InvoicesPage() {
       const clientReadyInvoices = newInvoices.map((inv: any) => {
         let dateInMillis = 0;
         if (inv.date && typeof inv.date === 'object' && inv.date._seconds !== undefined) {
+          // Handle Firestore Timestamp from server-side rendering
           dateInMillis = inv.date._seconds * 1000 + (inv.date._nanoseconds || 0) / 1000000;
         } else if (typeof inv.date === 'number') {
+          // Handle numeric timestamp (e.g., from client-side creation)
           dateInMillis = inv.date;
         }
         return { ...inv, date: dateInMillis };
@@ -184,6 +186,7 @@ export default function InvoicesPage() {
             isLoading={isLoading} 
             onViewDetails={handleViewDetails}
             onAddPayment={handleAddPaymentRequest}
+            onPrintRequest={handlePrintRequest}
         />
       </div>
 
