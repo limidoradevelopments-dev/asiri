@@ -18,36 +18,38 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from "@/hooks/use-toast";
-
-type WithId<T> = T & { id: string };
+import { WithId } from "@/firebase";
 
 export default function EmployeesPage() {
   const { toast } = useToast();
   
   const [employees, setEmployees] = useState<WithId<Employee>[]>([]);
-  const [employeesLoading, setEmployeesLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddEmployeeDialogOpen, setAddEmployeeDialogOpen] = useState(false);
   const [employeeToEdit, setEmployeeToEdit] = useState<WithId<Employee> | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
+    setIsLoading(true);
     try {
-      setEmployeesLoading(true);
-      const res = await fetch('/api/employees');
+      const res = await fetch('/api/employees', { signal });
       if (!res.ok) throw new Error('Failed to fetch employees');
       setEmployees(await res.json());
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       console.error(err);
       toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch employee data.' });
     } finally {
-      setEmployeesLoading(false);
+      setIsLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
   }, [fetchData]);
 
 
@@ -75,16 +77,22 @@ export default function EmployeesPage() {
 
         if (!res.ok) {
             const errorData = await res.json();
+            // Handle Zod validation errors
+            if (res.status === 400 && errorData.error) {
+              const messages = Object.values(errorData.error).flat().join(' ');
+              throw new Error(messages || 'Invalid data provided.');
+            }
             throw new Error(errorData.error || 'Failed to save employee.');
         }
 
         toast({ title: id ? "Employee Updated" : "Employee Added", description: `${employee.name}'s record has been saved.` });
-        await fetchData();
-        onDialogClose(false);
+        await fetchData(); // Refetch data
+        return true; // Indicate success
 
     } catch (err: any) {
         console.error("Upsert error:", err);
         toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to save employee.' });
+        return false; // Indicate failure
     }
   }, [fetchData, toast]);
 
@@ -100,20 +108,20 @@ export default function EmployeesPage() {
   const confirmDelete = useCallback(async () => {
     if (!employeeToDelete) return;
     
-    // Optimistic UI update
-    setEmployees(prev => prev.filter(p => p.id !== employeeToDelete));
-    
     try {
         const res = await fetch(`/api/employees?id=${encodeURIComponent(employeeToDelete)}`, { method: "DELETE" });
 
         if (!res.ok) {
-            throw new Error("Delete failed on the server.");
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Delete failed on the server.");
         }
+        
         toast({ title: "Deleted", description: "Employee successfully deleted." });
-    } catch (err) {
+        await fetchData(); // Refetch data on success
+        
+    } catch (err: any) {
         console.error("Delete error:", err);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete employee.' });
-        fetchData(); // Re-fetch to revert optimistic update
     } finally {
         setEmployeeToDelete(null);
     }
@@ -170,7 +178,7 @@ export default function EmployeesPage() {
         <div className="min-h-[400px]">
           <EmployeesTable 
             data={filteredEmployees}
-            isLoading={employeesLoading}
+            isLoading={isLoading}
             onEdit={handleEdit}
             onDelete={handleDeleteRequest}
           />

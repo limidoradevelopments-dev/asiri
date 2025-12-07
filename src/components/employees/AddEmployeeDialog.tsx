@@ -25,7 +25,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
 import type { Employee } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { Textarea } from '../ui/textarea';
@@ -39,7 +38,7 @@ const employeeSchema = z.object({
 
 type AddEmployeeDialogProps = {
   children: React.ReactNode;
-  onUpsertEmployee: (employee: Omit<Employee, 'id'>, id?: string) => void;
+  onUpsertEmployee: (employee: Omit<Employee, 'id'>, id?: string) => Promise<boolean>;
   employeeToEdit?: WithId<Employee> | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -52,7 +51,6 @@ export function AddEmployeeDialog({
   isOpen, 
   onOpenChange 
 }: AddEmployeeDialogProps) {
-  const { toast } = useToast();
   
   const isEditMode = !!employeeToEdit;
   
@@ -74,10 +72,11 @@ export function AddEmployeeDialog({
   }, [employeeToEdit, isEditMode, form, isOpen]);
 
 
-  const onSubmit = (values: z.infer<typeof employeeSchema>) => {
-    onUpsertEmployee(values, employeeToEdit?.id);
-    toast({ title: isEditMode ? 'Employee Updated' : 'Employee Added', description: `${values.name}'s record has been saved.` });
-    onOpenChange(false);
+  const onSubmit = async (values: z.infer<typeof employeeSchema>) => {
+    const success = await onUpsertEmployee(values, employeeToEdit?.id);
+    if (success) {
+      onOpenChange(false);
+    }
   };
 
   const commonInputStyles = "rounded-none h-11 text-base";

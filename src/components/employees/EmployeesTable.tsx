@@ -66,10 +66,13 @@ export default function EmployeesTable({ data, isLoading, onEdit, onDelete }: Em
     let timer: NodeJS.Timeout;
 
     if (!isLoading) {
+      // After loading, wait a bit before showing the empty state.
+      // This prevents a flash of "No employees" if the data is just about to arrive.
       timer = setTimeout(() => {
         setShowEmptyState(data.length === 0);
       }, 300);
     } else {
+      // While loading, never show the empty state.
       setShowEmptyState(false);
     }
 
@@ -116,7 +119,7 @@ export default function EmployeesTable({ data, isLoading, onEdit, onDelete }: Em
           ))}
         </TableBody>
       </Table>
-       {!isLoading && showEmptyState && (
+       {showEmptyState && (
         <div className="text-center py-20 text-zinc-400 text-sm uppercase tracking-widest">
           No employees found
         </div>
