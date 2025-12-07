@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -289,9 +288,10 @@ export default function ProfitLossPage() {
                   value={formatCurrency(summary.totalProfit)} 
                   icon={TrendingUp}
                   className={cn(
-                      "bg-zinc-50 shadow-md border-zinc-200", 
+                      "relative bg-no-repeat bg-right bg-cover shadow-md hover:shadow-xl hover:scale-[1.01] transition-all duration-300", 
                       summary.totalProfit >= 0 ? "text-green-700" : "text-red-600"
                   )}
+                  style={{ backgroundImage: "url('/stat-card-decoration.svg')" }}
                 />
               </>
             )}
