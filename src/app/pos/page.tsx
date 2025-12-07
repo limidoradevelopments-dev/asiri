@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
@@ -5,7 +6,7 @@ import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMet
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Search, UserPlus, Car, Bike, Truck, Sparkles, Loader2, ChevronsUpDown, Check } from 'lucide-react';
+import { Search, UserPlus, Car, Bike, Truck, Sparkles, Loader2, ChevronsUpDown, Check, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
