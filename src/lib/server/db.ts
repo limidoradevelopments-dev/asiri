@@ -11,6 +11,7 @@ import {
   DocumentData,
   QuerySnapshot,
   increment,
+  Timestamp,
 } from "firebase/firestore";
 
 /**
@@ -51,17 +52,35 @@ export const db = {
   async create(collectionName: string, payload: DBRecord) {
     const { firestore } = initializeFirebase();
     if (!firestore) throw new Error("Firestore not initialized");
+    
+    // Convert any JS Date objects to Firestore Timestamps before writing
+    const sanitizedPayload = { ...payload };
+    for (const key in sanitizedPayload) {
+      if (sanitizedPayload[key] instanceof Date) {
+        sanitizedPayload[key] = Timestamp.fromDate(sanitizedPayload[key]);
+      }
+    }
+
     const colRef = collection(firestore, collectionName);
-    const ref = await addDoc(colRef, payload);
-    return { id: ref.id, ...payload };
+    const ref = await addDoc(colRef, sanitizedPayload);
+    return { id: ref.id, ...sanitizedPayload };
   },
 
   async update(collectionName: string, id: string, payload: DBRecord) {
     const { firestore } = initializeFirebase();
     if (!firestore) throw new Error("Firestore not initialized");
+
+    // Convert any JS Date objects to Firestore Timestamps before writing
+    const sanitizedPayload = { ...payload };
+    for (const key in sanitizedPayload) {
+      if (sanitizedPayload[key] instanceof Date) {
+        sanitizedPayload[key] = Timestamp.fromDate(sanitizedPayload[key]);
+      }
+    }
+
     const docRef = doc(firestore, collectionName, id);
-    await updateDoc(docRef, payload);
-    return { id, ...payload };
+    await updateDoc(docRef, sanitizedPayload);
+    return { id, ...sanitizedPayload };
   },
 
   async remove(collectionName: string, id: string) {

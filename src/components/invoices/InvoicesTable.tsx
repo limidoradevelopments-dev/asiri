@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -47,8 +48,23 @@ const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
 };
 
 export function InvoicesTable({ data, isLoading, onViewDetails }: InvoicesTableProps) {
+  const [showEmptyState, setShowEmptyState] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (!isLoading) {
+      timer = setTimeout(() => {
+        setShowEmptyState(data.length === 0);
+      }, 300); // 300ms delay
+    } else {
+      setShowEmptyState(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isLoading, data.length]);
+
 
   const formatPrice = (price: number) => {
+    if (typeof price !== 'number') return 'Rs. 0.00';
     return price.toLocaleString('en-US', { style: 'currency', currency: 'LKR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('LKR', 'Rs.');
   };
   
@@ -111,7 +127,7 @@ export function InvoicesTable({ data, isLoading, onViewDetails }: InvoicesTableP
           ))}
         </TableBody>
       </Table>
-      {!isLoading && data.length === 0 && (
+      {showEmptyState && (
         <div className="flex items-center justify-center text-center py-20 text-zinc-400 text-sm uppercase tracking-widest">
           No invoices found for this filter
         </div>

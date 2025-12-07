@@ -1,16 +1,19 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import { collection } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, WithId } from '@/firebase';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { InvoicesTable } from '@/components/invoices/InvoicesTable';
 import { cn } from '@/lib/utils';
 import { InvoiceDetailsDialog } from '@/components/invoices/InvoiceDetailsDialog';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import { WithId } from '@/firebase';
 
-type EnrichedInvoice = WithId<Invoice> & {
+const BATCH_SIZE = 50;
+
+export type EnrichedInvoice = WithId<Invoice> & {
   customerName?: string;
   vehicleNumberPlate?: string;
   employeeName?: string;
@@ -20,52 +23,83 @@ type EnrichedInvoice = WithId<Invoice> & {
 };
 
 type FilterStatus = 'all' | 'Paid' | 'Partial' | 'Unpaid';
+type LoadingState = 'idle' | 'initial' | 'loadingMore';
 
 export default function InvoicesPage() {
-  const firestore = useFirestore();
-
-  const invoicesCollection = useMemoFirebase(() => collection(firestore, 'invoices'), [firestore]);
-  const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
-  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
-  const employeesCollection = useMemoFirebase(() => collection(firestore, 'employees'), [firestore]);
-
-  const { data: invoices, isLoading: invoicesLoading } = useCollection<Invoice>(invoicesCollection);
-  const { data: customers, isLoading: customersLoading } = useCollection<WithId<Customer>>(customersCollection);
-  const { data: vehicles, isLoading: vehiclesLoading } = useCollection<WithId<Vehicle>>(vehiclesCollection);
-  const { data: employees, isLoading: employeesLoading } = useCollection<WithId<Employee>>(employeesCollection);
+  const { toast } = useToast();
   
+  const [allInvoices, setAllInvoices] = useState<EnrichedInvoice[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingState, setLoadingState] = useState<LoadingState>('initial');
+
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<EnrichedInvoice | null>(null);
 
-
-  const enrichedInvoices = useMemo(() => {
-    if (!invoices || !customers || !vehicles || !employees) return [];
+  const fetchInvoices = useCallback(async (startAfter: number | null = null, signal: AbortSignal) => {
+    setLoadingState(startAfter ? 'loadingMore' : 'initial');
     
-    const customerMap = new Map(customers.map(c => [c.id, c]));
-    const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
-    const employeeMap = new Map(employees.map(e => [e.id, e]));
+    try {
+      let url = `/api/invoices?limit=${BATCH_SIZE}`;
+      if (startAfter) {
+        url += `&startAfter=${startAfter}`;
+      }
 
-    return invoices
-      .map(invoice => ({
-        ...invoice,
-        customerName: customerMap.get(invoice.customerId)?.name || 'N/A',
-        vehicleNumberPlate: vehicleMap.get(invoice.vehicleId)?.numberPlate || 'N/A',
-        employeeName: employeeMap.get(invoice.employeeId)?.name || 'N/A',
-        customerDetails: customerMap.get(invoice.customerId),
-        vehicleDetails: vehicleMap.get(invoice.vehicleId),
-        employeeDetails: employeeMap.get(invoice.employeeId),
-      }))
-      .sort((a, b) => b.date - a.date); // Sort by most recent first
-  }, [invoices, customers, vehicles, employees]);
+      const res = await fetch(url, { signal });
+      if (!res.ok) throw new Error('Failed to fetch invoices from server.');
+
+      const { invoices: newInvoices, hasMore: moreToLoad } = await res.json();
+      
+      // The API returns date as a Firestore Timestamp object, convert it back to a number for client-side use
+      const clientReadyInvoices = newInvoices.map((inv: any) => ({
+        ...inv,
+        date: inv.date._seconds ? inv.date._seconds * 1000 + inv.date._nanoseconds / 1000000 : inv.date
+      }));
+
+      setAllInvoices(prev => startAfter ? [...prev, ...clientReadyInvoices] : clientReadyInvoices);
+      setHasMore(moreToLoad);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        toast({
+          variant: 'destructive',
+          title: 'Error Fetching Invoices',
+          description: err.message || 'There was a problem loading invoice data.',
+        });
+      }
+    } finally {
+      setLoadingState('idle');
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchInvoices(null, controller.signal);
+    
+    return () => {
+      controller.abort();
+    };
+  }, [fetchInvoices]);
+
+  // When filter changes, close details dialog to prevent stale views
+  useEffect(() => {
+    setSelectedInvoice(null);
+  }, [activeFilter]);
   
+  const handleLoadMore = () => {
+    if (hasMore && allInvoices.length > 0 && loadingState === 'idle') {
+      const lastInvoice = allInvoices[allInvoices.length - 1];
+      const lastDate = Number(lastInvoice.date);
+      fetchInvoices(lastDate, new AbortController().signal);
+    }
+  };
+
   const filteredInvoices = useMemo(() => {
     if (activeFilter === 'all') {
-      return enrichedInvoices;
+      return allInvoices;
     }
-    return enrichedInvoices.filter(invoice => invoice.paymentStatus === activeFilter);
-  }, [enrichedInvoices, activeFilter]);
+    return allInvoices.filter(invoice => invoice.paymentStatus === activeFilter);
+  }, [allInvoices, activeFilter]);
   
-  const isLoading = invoicesLoading || customersLoading || vehiclesLoading || employeesLoading;
+  const isLoading = loadingState === 'initial';
 
   const handleViewDetails = (invoice: EnrichedInvoice) => {
     setSelectedInvoice(invoice);
@@ -110,6 +144,24 @@ export default function InvoicesPage() {
             onViewDetails={handleViewDetails}
         />
       </div>
+
+      {hasMore && loadingState !== 'initial' && (
+        <div className="text-center mt-8">
+          <Button
+            onClick={handleLoadMore}
+            disabled={loadingState === 'loadingMore'}
+            variant="outline"
+            className="rounded-none uppercase tracking-widest text-xs h-11 border-zinc-200 hover:bg-zinc-100"
+          >
+            {loadingState === 'loadingMore' ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : 'Load More Invoices'}
+          </Button>
+        </div>
+      )}
       
       <InvoiceDetailsDialog
         invoice={selectedInvoice}
