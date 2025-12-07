@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import {
   Table,
   TableBody,
@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { FileText, DollarSign, Printer } from 'lucide-react';
+import { FileText, DollarSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WithId } from '@/firebase';
 import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
@@ -42,7 +42,65 @@ const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
   Unpaid: "bg-red-100 text-red-800 border-red-200",
 };
 
-export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, onPrintRequest }: InvoicesTableProps) {
+const formatPrice = (price: number) => {
+    if (typeof price !== 'number') return 'Rs. 0.00';
+    return price.toLocaleString('en-US', { style: 'currency', currency: 'LKR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('LKR', 'Rs.');
+};
+  
+const formatDate = (dateValue: number | any) => {
+    if (!dateValue || typeof dateValue !== 'number') return 'Invalid Date';
+    try {
+        const date = new Date(dateValue);
+        return date.toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' });
+    } catch {
+        return 'Invalid Date';
+    }
+};
+
+const MemoizedTableRow = memo(({ invoice, onViewDetails, onAddPayment }: {
+    invoice: EnrichedInvoice;
+    onViewDetails: (invoice: EnrichedInvoice) => void;
+    onAddPayment: (invoice: EnrichedInvoice) => void;
+}) => {
+    const isPayable = invoice.paymentStatus === 'Partial' || invoice.paymentStatus === 'Unpaid';
+    return (
+        <TableRow key={invoice.id} className="border-zinc-100 text-sm hover:bg-zinc-50/50">
+            <TableCell className="p-2 h-12 font-mono text-blue-600 hover:underline text-xs cursor-pointer" onClick={() => onViewDetails(invoice)}>{invoice.invoiceNumber}</TableCell>
+            <TableCell className="p-2 h-12 font-medium">{invoice.customerName}</TableCell>
+            <TableCell className="p-2 h-12">{invoice.vehicleNumberPlate}</TableCell>
+            <TableCell className="p-2 h-12">{formatDate(invoice.date)}</TableCell>
+            <TableCell className="p-2 h-12">
+            <Badge className={cn("capitalize text-xs font-semibold rounded-md border", statusStyles[invoice.paymentStatus])} variant="outline">
+                {invoice.paymentStatus}
+            </Badge>
+            </TableCell>
+            <TableCell className="text-right p-2 h-12 font-mono">{formatPrice(invoice.total)}</TableCell>
+            <TableCell className="text-center p-2 h-12">
+            <div className="flex items-center justify-center gap-1">
+                <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-zinc-900" onClick={() => onViewDetails(invoice)}>
+                        <FileText className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>View Details</p></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-green-600 disabled:opacity-30 disabled:cursor-not-allowed" disabled={!isPayable} onClick={() => onAddPayment(invoice)}>
+                        <DollarSign className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Add Payment</p></TooltipContent>
+                </Tooltip>
+            </div>
+            </TableCell>
+        </TableRow>
+    )
+});
+MemoizedTableRow.displayName = 'MemoizedTableRow';
+
+export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: Omit<InvoicesTableProps, 'onPrintRequest'>) {
   const [showEmptyState, setShowEmptyState] = useState(false);
 
   useEffect(() => {
@@ -56,22 +114,6 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, on
     }
     return () => clearTimeout(timer);
   }, [isLoading, data.length]);
-
-
-  const formatPrice = (price: number) => {
-    if (typeof price !== 'number') return 'Rs. 0.00';
-    return price.toLocaleString('en-US', { style: 'currency', currency: 'LKR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('LKR', 'Rs.');
-  };
-  
-  const formatDate = (dateValue: number | any) => {
-    if (!dateValue || typeof dateValue !== 'number') return 'Invalid Date';
-    try {
-        const date = new Date(dateValue);
-        return date.toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', year: 'numeric', month: 'short', day: 'numeric' });
-    } catch {
-        return 'Invalid Date';
-    }
-  };
   
   const renderSkeleton = () => (
     Array.from({ length: 10 }).map((_, index) => (
@@ -103,47 +145,18 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, on
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? renderSkeleton() : data.map((invoice) => {
-              const isPayable = invoice.paymentStatus === 'Partial' || invoice.paymentStatus === 'Unpaid';
-              return (
-                <TableRow key={invoice.id} className="border-zinc-100 text-sm hover:bg-zinc-50/50">
-                  <TableCell className="p-2 h-12 font-mono text-blue-600 hover:underline text-xs cursor-pointer" onClick={() => onViewDetails(invoice)}>{invoice.invoiceNumber}</TableCell>
-                  <TableCell className="p-2 h-12 font-medium">{invoice.customerName}</TableCell>
-                  <TableCell className="p-2 h-12">{invoice.vehicleNumberPlate}</TableCell>
-                  <TableCell className="p-2 h-12">{formatDate(invoice.date)}</TableCell>
-                  <TableCell className="p-2 h-12">
-                    <Badge className={cn("capitalize text-xs font-semibold rounded-md border", statusStyles[invoice.paymentStatus])} variant="outline">
-                        {invoice.paymentStatus}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right p-2 h-12 font-mono">{formatPrice(invoice.total)}</TableCell>
-                  <TableCell className="text-center p-2 h-12">
-                    <div className="flex items-center justify-center gap-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-zinc-900" onClick={() => onViewDetails(invoice)}>
-                              <FileText className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>View Details</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-green-600 disabled:opacity-30 disabled:cursor-not-allowed" disabled={!isPayable} onClick={() => onAddPayment(invoice)}>
-                              <DollarSign className="h-4 w-4" />
-                           </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Add Payment</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
+            {isLoading ? renderSkeleton() : data.map((invoice) => (
+              <MemoizedTableRow
+                key={invoice.id}
+                invoice={invoice}
+                onViewDetails={onViewDetails}
+                onAddPayment={onAddPayment}
+              />
+            ))}
           </TableBody>
         </Table>
       </TooltipProvider>
-      {showEmptyState && (
+      {!isLoading && data.length === 0 && (
         <div className="flex items-center justify-center text-center py-20 text-zinc-400 text-sm uppercase tracking-widest">
           No invoices found for this filter
         </div>

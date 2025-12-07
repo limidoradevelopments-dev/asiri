@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type { Invoice, Customer, Vehicle, Employee, Payment } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { InvoicesTable } from '@/components/invoices/InvoicesTable';
@@ -10,6 +10,7 @@ import { AddPaymentDialog } from '@/components/invoices/AddPaymentDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { WithId } from '@/firebase';
+import { useIntersectionObserver } from '@/hooks/use-intersection-observer';
 
 const BATCH_SIZE = 50;
 
@@ -23,14 +24,15 @@ export type EnrichedInvoice = WithId<Invoice> & {
 };
 
 type FilterStatus = 'all' | 'Paid' | 'Partial' | 'Unpaid';
-type LoadingState = 'idle' | 'initial' | 'loadingMore';
+type LoadingState = 'idle' | 'loading' | 'loading-more';
 
 export default function InvoicesPage() {
   const { toast } = useToast();
   
   const [allInvoices, setAllInvoices] = useState<EnrichedInvoice[]>([]);
   const [hasMore, setHasMore] = useState(true);
-  const [loadingState, setLoadingState] = useState<LoadingState>('initial');
+  const [lastVisibleId, setLastVisibleId] = useState<string | null>(null);
+  const [loadingState, setLoadingState] = useState<LoadingState>('loading');
 
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<EnrichedInvoice | null>(null);
@@ -38,69 +40,56 @@ export default function InvoicesPage() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [printOnOpen, setPrintOnOpen] = useState(false);
 
-  const fetchInvoices = useCallback(async (startAfter: number | null = null, signal?: AbortSignal) => {
-    setLoadingState(startAfter ? 'loadingMore' : 'initial');
+  const fetchInvoices = useCallback(async (startAfterId: string | null = null, isInitialLoad = false) => {
+    setLoadingState(isInitialLoad ? 'loading' : 'loading-more');
     
     try {
       let url = `/api/invoices?limit=${BATCH_SIZE}`;
-      if (startAfter) {
-        url += `&startAfter=${startAfter}`;
+      if (startAfterId) {
+        url += `&startAfter=${startAfterId}`;
       }
 
-      const res = await fetch(url, { signal });
+      const res = await fetch(url); // No signal needed as we control load state
       if (!res.ok) throw new Error('Failed to fetch invoices from server.');
 
-      const { invoices: newInvoices, hasMore: moreToLoad } = await res.json();
+      const { invoices: newInvoices, hasMore: moreToLoad, lastVisibleId: newLastVisibleId } = await res.json();
       
-      const clientReadyInvoices = newInvoices.map((inv: any) => {
-        let dateInMillis = 0;
-        if (inv.date && typeof inv.date === 'object' && inv.date._seconds !== undefined) {
-          // Handle Firestore Timestamp from server-side rendering
-          dateInMillis = inv.date._seconds * 1000 + (inv.date._nanoseconds || 0) / 1000000;
-        } else if (typeof inv.date === 'number') {
-          // Handle numeric timestamp (e.g., from client-side creation)
-          dateInMillis = inv.date;
-        }
-        return { ...inv, date: dateInMillis };
-      });
-      
-      setAllInvoices(prev => startAfter ? [...prev, ...clientReadyInvoices] : clientReadyInvoices);
+      setAllInvoices(prev => startAfterId ? [...prev, ...newInvoices] : newInvoices);
       setHasMore(moreToLoad);
+      setLastVisibleId(newLastVisibleId);
+
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
         toast({
           variant: 'destructive',
           title: 'Error Fetching Invoices',
           description: err.message || 'There was a problem loading invoice data.',
         });
-      }
     } finally {
       setLoadingState('idle');
     }
   }, [toast]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchInvoices(null, controller.signal);
-    
-    return () => {
-      controller.abort();
-    };
+    fetchInvoices(null, true);
   }, [fetchInvoices]);
+
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  useIntersectionObserver({
+    target: loadMoreRef,
+    onIntersect: () => {
+      if (hasMore && loadingState === 'idle') {
+        fetchInvoices(lastVisibleId);
+      }
+    },
+    enabled: hasMore && loadingState === 'idle',
+  });
+
 
   useEffect(() => {
     if (!selectedInvoice) {
       setPrintOnOpen(false);
     }
   }, [selectedInvoice]);
-  
-  const handleLoadMore = () => {
-    if (hasMore && allInvoices.length > 0 && loadingState === 'idle') {
-      const lastInvoice = allInvoices[allInvoices.length - 1];
-      const lastDate = Number(lastInvoice.date);
-      fetchInvoices(lastDate);
-    }
-  };
 
   const filteredInvoices = useMemo(() => {
     if (activeFilter === 'all') {
@@ -109,7 +98,7 @@ export default function InvoicesPage() {
     return allInvoices.filter(invoice => invoice.paymentStatus === activeFilter);
   }, [allInvoices, activeFilter]);
   
-  const isLoading = loadingState === 'initial';
+  const isLoading = loadingState === 'loading';
 
   const handleAddPaymentRequest = (invoice: EnrichedInvoice) => {
     setInvoiceToPay(invoice);
@@ -132,7 +121,7 @@ export default function InvoicesPage() {
         
         toast({ title: 'Payment Added', description: `Payment successfully added to invoice ${invoiceToPay.invoiceNumber}.` });
         setInvoiceToPay(null);
-        fetchInvoices(null); // Refetch all invoices to show updated status
+        fetchInvoices(null, true); // Refetch all invoices to show updated status
     } catch (err: any) {
         toast({ variant: 'destructive', title: 'Error', description: err.message });
     } finally {
@@ -190,23 +179,18 @@ export default function InvoicesPage() {
         />
       </div>
 
-      {hasMore && loadingState !== 'initial' && (
-        <div className="text-center mt-8">
-          <Button
-            onClick={handleLoadMore}
-            disabled={loadingState === 'loadingMore'}
+      <div ref={loadMoreRef} className="text-center mt-8 h-10">
+        {loadingState === 'loading-more' && (
+           <Button
+            disabled={true}
             variant="outline"
             className="rounded-none uppercase tracking-widest text-xs h-11 border-zinc-200 hover:bg-zinc-100"
           >
-            {loadingState === 'loadingMore' ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
-              </>
-            ) : 'Load More Invoices'}
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading...
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       
       <InvoiceDetailsDialog
         invoice={selectedInvoice}

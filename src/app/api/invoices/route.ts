@@ -1,9 +1,8 @@
 // app/api/invoices/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
-import { z } from "zod";
 import { initializeFirebase } from "@/firebase/server-init";
-import { collection, query, getDocs, orderBy, limit, startAfter, Timestamp } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, limit, startAfter, doc, getDoc } from "firebase/firestore";
 import type { Invoice, Payment } from "@/lib/data";
 
 const BATCH_SIZE = 50;
@@ -11,7 +10,7 @@ const BATCH_SIZE = 50;
 /**
  * GET /api/invoices
  * Returns paginated, enriched invoices.
- * Supports cursor-based pagination with `startAfter` (timestamp).
+ * Supports cursor-based pagination with `startAfter` (document ID).
  */
 export async function GET(req: NextRequest) {
   try {
@@ -19,33 +18,39 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const cursor = url.searchParams.get("startAfter");
 
-    // --- Base Query ---
     let invoicesQuery = query(
       collection(firestore, 'invoices'),
       orderBy("date", "desc"),
       limit(BATCH_SIZE)
     );
     
-    // --- Pagination ---
     if (cursor) {
-      // Create a Firestore Timestamp from the numeric cursor
-      const cursorTimestamp = Timestamp.fromMillis(Number(cursor));
-      invoicesQuery = query(
-        collection(firestore, 'invoices'),
-        orderBy("date", "desc"),
-        startAfter(cursorTimestamp),
-        limit(BATCH_SIZE)
-      );
+      const cursorDoc = await getDoc(doc(firestore, "invoices", cursor));
+      if (cursorDoc.exists()) {
+          invoicesQuery = query(
+            collection(firestore, 'invoices'),
+            orderBy("date", "desc"),
+            startAfter(cursorDoc),
+            limit(BATCH_SIZE)
+          );
+      }
     }
     
     const invoicesSnapshot = await getDocs(invoicesQuery);
-    const invoices = invoicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (Invoice & { id: string })[];
+    const invoices = invoicesSnapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data(),
+        // Ensure date is always a numeric timestamp
+        date: doc.data().date.toMillis() 
+    })) as (Invoice & { id: string })[];
 
     const enrichedInvoices = await db.enrichInvoices(invoices);
     
+    const lastVisible = invoicesSnapshot.docs[invoicesSnapshot.docs.length - 1];
+    const lastVisibleId = lastVisible ? lastVisible.id : null;
     const hasMore = invoices.length === BATCH_SIZE;
 
-    return NextResponse.json({ invoices: enrichedInvoices, hasMore }, { status: 200 });
+    return NextResponse.json({ invoices: enrichedInvoices, hasMore, lastVisibleId }, { status: 200 });
 
   } catch (err) {
     console.error("GET /api/invoices error:", err);
@@ -104,12 +109,13 @@ export async function POST(req: NextRequest) {
 
     const invoiceData = validation.data;
     
+    const { firestore } = initializeFirebase();
+    
     const invoiceDataForDb = {
         ...invoiceData,
         date: Timestamp.fromMillis(invoiceData.date)
     };
     
-    const { firestore } = initializeFirebase();
     const productsRef = collection(firestore, 'products');
     const allProductsSnapshot = await getDocs(productsRef);
     const productIds = new Set(allProductsSnapshot.docs.map(doc => doc.id));
