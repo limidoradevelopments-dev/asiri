@@ -56,3 +56,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create vehicle" }, { status: 500 });
   }
 }
+
+
+/**
+ * DELETE /api/vehicles?id=<id>
+ * Deletes a vehicle by its ID.
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "id query param required" }, { status: 400 });
+    }
+
+    await db.remove("vehicles", id);
+    return NextResponse.json({ success: true, id }, { status: 200 });
+
+  } catch (err) {
+    console.error("DELETE /api/vehicles error:", err);
+    return NextResponse.json({ error: "Failed to delete vehicle" }, { status: 500 });
+  }
+}

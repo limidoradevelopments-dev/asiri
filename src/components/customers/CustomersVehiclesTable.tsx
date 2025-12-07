@@ -1,5 +1,5 @@
 
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
 import type { Customer, Vehicle } from "@/lib/data";
 import { WithId } from "@/firebase";
 import {
@@ -65,6 +65,22 @@ const MemoizedRow = memo(function CustomersVehiclesTableRow({ item, onEdit, onDe
 
 export default function CustomersVehiclesTable({ data, isLoading, onEdit, onDelete, onViewDetails }: CustomersVehiclesTableProps) {
   
+  const [showEmptyState, setShowEmptyState] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (!isLoading) {
+      timer = setTimeout(() => {
+        setShowEmptyState(data.length === 0);
+      }, 300);
+    } else {
+      setShowEmptyState(false);
+    }
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isLoading, data.length]);
+
   const renderSkeleton = () => (
     Array.from({ length: 8 }).map((_, index) => (
       <TableRow key={index} className="border-zinc-100">
@@ -103,7 +119,7 @@ export default function CustomersVehiclesTable({ data, isLoading, onEdit, onDele
           ))}
         </TableBody>
       </Table>
-       {!isLoading && data.length === 0 && (
+       {!isLoading && showEmptyState && (
         <div className="text-center py-20 text-zinc-400 text-sm uppercase tracking-widest">
           No customer or vehicle entries found
         </div>

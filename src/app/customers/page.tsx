@@ -1,14 +1,13 @@
-
 'use client';
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { collection, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import type { Customer, Vehicle } from "@/lib/data";
 import { AddCustomerVehicleDialog } from "@/components/customers/AddCustomerVehicleDialog";
 import CustomersVehiclesTable from "@/components/customers/CustomersVehiclesTable";
-import { useFirestore, useCollection, useMemoFirebase, WithId } from "@/firebase";
+import { useFirestore, useMemoFirebase, WithId }from "@/firebase/provider";
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
   AlertDialog,
@@ -21,6 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { CustomerVehicleDetailsDialog } from "@/components/customers/CustomerVehicleDetailsDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export type CustomerWithVehicle = {
   customer: WithId<Customer>;
@@ -29,30 +29,47 @@ export type CustomerWithVehicle = {
 
 export default function CustomersPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
 
-  const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
-  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
-
-  const { data: customers, isLoading: customersLoading } = useCollection<Customer>(customersCollection);
-  const { data: vehicles, isLoading: vehiclesLoading } = useCollection<Vehicle>(vehiclesCollection);
+  const [combinedData, setCombinedData] = useState<CustomerWithVehicle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<CustomerWithVehicle | null>(null);
   const [itemToDelete, setItemToDelete] = useState<CustomerWithVehicle | null>(null);
   const [itemToView, setItemToView] = useState<CustomerWithVehicle | null>(null);
+  
+  const customersCollection = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
+  const vehiclesCollection = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
 
-  const combinedData = useMemo(() => {
-    if (!customers || !vehicles) return [];
-    
-    const customerMap = new Map(customers.map(c => [c.id, c]));
-    
-    return vehicles.map(vehicle => {
-      const customer = customerMap.get(vehicle.customerId);
-      return customer ? { customer, vehicle } : null;
-    }).filter((item): item is CustomerWithVehicle => item !== null);
+  const fetchData = useCallback(async (signal: AbortSignal) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/customers-vehicles', { signal });
+      if (!res.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      const data: CustomerWithVehicle[] = await res.json();
+      setCombinedData(data);
+    } catch (err: any) {
+       if (err.name !== 'AbortError') {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Could not fetch customer and vehicle data.',
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
-  }, [customers, vehicles]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [fetchData]);
 
 
   const filteredData = useMemo(() => {
@@ -82,11 +99,14 @@ export default function CustomersPage() {
         const customerRef = await addDocumentNonBlocking(customersCollection, customerData);
         if(customerRef) {
           const newVehicleData = { ...vehicleData, customerId: customerRef.id };
-          await addDocumentNonBlocking(vehiclesCollection, newVehicleData);
+          await addDocumentNonBlocking(vehiclesCollection, newVehicleData as DocumentData);
         }
       }
     }
-  }, [firestore, customersCollection, vehiclesCollection]);
+    // Give Firestore some time to process, then refetch
+    setTimeout(() => fetchData(new AbortController().signal), 500);
+
+  }, [firestore, customersCollection, vehiclesCollection, fetchData]);
 
   const handleEdit = useCallback((item: CustomerWithVehicle) => {
     setItemToEdit(item);
@@ -101,24 +121,32 @@ export default function CustomersPage() {
     setItemToView(item);
   }, []);
 
-  const confirmDelete = useCallback(() => {
+  const confirmDelete = useCallback(async () => {
     if (!itemToDelete) return;
 
     const { customer, vehicle } = itemToDelete;
     
-    const vehicleDocRef = doc(firestore, 'vehicles', vehicle.id);
-    deleteDocumentNonBlocking(vehicleDocRef);
-
     // Check if this is the customer's only vehicle
-    const customerVehicles = vehicles?.filter(v => v.customerId === customer.id);
-    if (customerVehicles?.length === 1) {
-      const customerDocRef = doc(firestore, 'customers', customer.id);
-      deleteDocumentNonBlocking(customerDocRef);
+    const customerVehiclesCount = combinedData.filter(d => d.customer.id === customer.id).length;
+
+    try {
+        const vehicleRes = await fetch(`/api/vehicles?id=${vehicle.id}`, { method: 'DELETE' });
+        if (!vehicleRes.ok) throw new Error('Failed to delete vehicle');
+
+        if (customerVehiclesCount === 1) {
+            const customerRes = await fetch(`/api/customers?id=${customer.id}`, { method: 'DELETE' });
+            if (!customerRes.ok) throw new Error('Failed to delete customer');
+        }
+        
+        toast({ title: 'Deleted', description: 'The entry has been successfully deleted.' });
+        fetchData(new AbortController().signal);
+
+    } catch (err: any) {
+        toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to delete the entry.' });
+    } finally {
+        setItemToDelete(null);
     }
-    
-    // Close the dialog immediately for optimistic UI update
-    setItemToDelete(null);
-  }, [itemToDelete, firestore, vehicles]);
+  }, [itemToDelete, combinedData, toast, fetchData]);
 
   const onDialogClose = useCallback((isOpen: boolean) => {
     if (!isOpen) {
@@ -126,8 +154,6 @@ export default function CustomersPage() {
     }
     setAddDialogOpen(isOpen);
   }, []);
-  
-  const isLoading = customersLoading || vehiclesLoading;
 
   return (
     <div className="relative z-10 w-full max-w-7xl mx-auto px-12 pt-8 pb-12">
