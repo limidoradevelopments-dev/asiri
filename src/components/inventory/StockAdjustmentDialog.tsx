@@ -82,7 +82,7 @@ export function StockAdjustmentDialog({
     defaultValues: {
       productId: '',
       action: undefined,
-      quantity: undefined,
+      quantity: '' as any,
       reason: '',
     },
   });
