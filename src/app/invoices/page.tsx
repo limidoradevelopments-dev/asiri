@@ -49,12 +49,18 @@ export default function InvoicesPage() {
 
       const { invoices: newInvoices, hasMore: moreToLoad } = await res.json();
       
-      // The API returns date as a Firestore Timestamp object, convert it back to a number for client-side use
-      const clientReadyInvoices = newInvoices.map((inv: any) => ({
-        ...inv,
-        date: inv.date && inv.date._seconds ? inv.date._seconds * 1000 + inv.date._nanoseconds / 1000000 : (inv.date || 0)
-      }));
-
+      const clientReadyInvoices = newInvoices.map((inv: any) => {
+        let dateInMillis = 0;
+        if (inv.date && typeof inv.date === 'object' && inv.date._seconds !== undefined) {
+          // Handle Firestore Timestamp object from the API
+          dateInMillis = inv.date._seconds * 1000 + (inv.date._nanoseconds || 0) / 1000000;
+        } else if (typeof inv.date === 'number') {
+          // Handle case where it might already be a number
+          dateInMillis = inv.date;
+        }
+        return { ...inv, date: dateInMillis };
+      });
+      
       setAllInvoices(prev => startAfter ? [...prev, ...clientReadyInvoices] : clientReadyInvoices);
       setHasMore(moreToLoad);
     } catch (err: any) {
