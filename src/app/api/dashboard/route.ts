@@ -1,10 +1,9 @@
-
 // src/app/api/dashboard/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import type { Invoice, Product, Customer, Vehicle } from "@/lib/data";
-import { toZonedTime } from 'date-fns-tz';
-import { format, startOfDay, endOfDay, subDays } from 'date-fns';
+import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { startOfDay, endOfDay, subDays } from 'date-fns';
 
 const SL_TZ = "Asia/Colombo";
 
@@ -98,7 +97,7 @@ export async function GET() {
             .reduce((sum, inv) => sum + inv.total, 0);
         
         return {
-            date: format(dayStartInSL, "MMM d"), // Format the date based on SL timezone
+            date: formatInTimeZone(dayStartInSL, SL_TZ, "MMM d"), // Format the date based on SL timezone
             revenue: dailyRevenue
         };
     }).reverse();

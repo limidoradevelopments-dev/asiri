@@ -1,12 +1,21 @@
-
 // src/app/api/reports/profit-loss/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { initializeFirebase } from "@/firebase/server-init";
-import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/server/db";
 import type { Invoice, Product } from "@/lib/data";
+import { toZonedTime } from 'date-fns-tz';
+import { startOfDay, endOfDay, parseISO } from 'date-fns';
 
-// Helper for safe rounding to avoid floating point issues
+const SL_TZ = "Asia/Colombo";
+
 const safeRound = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
+
+const toDate = (timestamp: any): Date | null => {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  if (typeof timestamp.toDate === 'function') return timestamp.toDate();
+  if (typeof timestamp === 'number') return new Date(timestamp);
+  return null;
+};
 
 interface ExtendedInvoiceItem {
   itemId: string;
@@ -14,22 +23,18 @@ interface ExtendedInvoiceItem {
   quantity: number;
   unitPrice: number;
   total: number;
-  buyPrice?: number; // Historical cost if available
+  buyPrice?: number;
   discount: number;
 }
 
 interface ExtendedInvoice extends Omit<Invoice, 'items'> {
   items: ExtendedInvoiceItem[];
-  status?: string; // e.g., 'paid', 'pending', 'cancelled'
+  status?: string;
 }
-
 
 export async function GET(req: NextRequest) {
   try {
-    const { firestore } = initializeFirebase();
     const url = new URL(req.url);
-
-    // --- 1. Get Query Parameters ---
     const startDateParam = url.searchParams.get("startDate");
     const endDateParam = url.searchParams.get("endDate");
     const productId = url.searchParams.get("productId");
@@ -38,81 +43,52 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "startDate and endDate are required" }, { status: 400 });
     }
 
-    const startDate = Timestamp.fromMillis(Number(startDateParam));
-    const endDate = Timestamp.fromMillis(Number(endDateParam));
-
-    // --- 2. Fetch Data from Firestore ---
-    const productsCollection = collection(firestore, 'products');
-    const invoicesCollection = collection(firestore, 'invoices');
-
-    const invoicesQuery = query(
-      invoicesCollection,
-      where('date', '>=', startDate),
-      where('date', '<=', endDate)
-    );
-
-    const [productsSnapshot, invoicesSnapshot] = await Promise.all([
-      getDocs(productsCollection),
-      getDocs(invoicesQuery)
+    const [allProducts, allInvoices] = await Promise.all([
+        db.getAll("products") as Promise<(Product & { id: string })[]>,
+        db.getAll("invoices") as Promise<(ExtendedInvoice & { id: string })[]>
     ]);
 
-    const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (Product & { id: string })[];
-    const rawInvoices = invoicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (ExtendedInvoice & { id: string })[];
+    const startDate = parseISO(startDateParam);
+    const endDate = parseISO(endDateParam);
+    
+    // Define the date range in the correct timezone
+    const rangeStart = startOfDay(toZonedTime(startDate, SL_TZ));
+    const rangeEnd = endOfDay(toZonedTime(endDate, SL_TZ));
 
+    const processedInvoices = allInvoices.map(inv => ({
+        ...inv,
+        date: toDate(inv.date)
+    })).filter(inv => {
+        if (!inv.date) return false;
+        const invoiceDateInSL = toZonedTime(inv.date, SL_TZ);
+        return invoiceDateInSL >= rangeStart && invoiceDateInSL <= rangeEnd;
+    });
 
-    // --- 3. Process Data ---
-    const productMap = new Map(products.map(p => [p.id, p]));
+    const productMap = new Map(allProducts.map(p => [p.id, p]));
     let processedItems: any[] = [];
 
-    for (const invoice of rawInvoices) {
-      // Ignore cancelled/refunded invoices
+    for (const invoice of processedInvoices) {
       if (invoice.status === 'cancelled' || invoice.status === 'refunded') continue;
 
       for (const item of invoice.items) {
-        // Filter by specific product if selected
         if (productId && item.itemId !== productId) continue;
         
         const product = productMap.get(item.itemId);
-        
-        // This item is a service or custom job, not a product, so it has no COGS
         if (!product) continue;
 
-        // Determine Cost Basis (historical > current > 0)
-        let costPerUnit = item.buyPrice;
-        let isEstimate = false;
-        if (costPerUnit === undefined || costPerUnit === null) {
-          costPerUnit = product.actualPrice ?? 0;
-          isEstimate = true; // Flag that we used current cost
-        }
-
+        let costPerUnit = item.buyPrice ?? product.actualPrice ?? 0;
+        const isEstimate = item.buyPrice === undefined;
+        
         const quantity = item.quantity || 0;
         const costOfGoods = safeRound(quantity * costPerUnit);
-        
-        // Revenue for this line item already accounts for item-specific discounts
         const revenue = safeRound(item.total);
         const profit = safeRound(revenue - costOfGoods);
-        
-        // Margin Calculation
         const marginPercent = revenue !== 0 ? safeRound((profit / revenue) * 100) : 0;
         
-        // Ensure date is always a number (milliseconds)
-        let dateInMillis = 0;
-        if (invoice.date) {
-            if (typeof invoice.date === 'number') {
-                dateInMillis = invoice.date;
-            } else if (invoice.date && typeof (invoice.date as any).toMillis === 'function') {
-                // This handles Firestore Timestamp objects
-                dateInMillis = (invoice.date as any).toMillis();
-            } else if (invoice.date && typeof (invoice.date as any)._seconds === 'number') {
-                // Fallback for serialized Timestamps
-                dateInMillis = (invoice.date as any)._seconds * 1000;
-            }
-        }
-
         processedItems.push({
           id: `${invoice.id}-${item.itemId}`,
           invoiceNumber: invoice.invoiceNumber,
-          date: dateInMillis,
+          date: invoice.date!.getTime(),
           productName: item.name || product.name || 'Unknown Product',
           quantity,
           costOfGoods,
@@ -124,7 +100,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // --- 4. Calculate Summary ---
     const summary = processedItems.reduce((acc, item) => {
         acc.totalRevenue = safeRound(acc.totalRevenue + item.revenue);
         acc.totalCost = safeRound(acc.totalCost + item.costOfGoods);
@@ -143,7 +118,6 @@ export async function GET(req: NextRequest) {
           : 0
     };
 
-    // --- 5. Return Response ---
     return NextResponse.json({ items: processedItems, summary: finalSummary }, { status: 200 });
 
   } catch (err: any) {

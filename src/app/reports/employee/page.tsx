@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Loader2, User, Wrench, Hash } from 'lucide-react';
+import { Calendar as CalendarIcon, User, Wrench } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -51,7 +50,7 @@ export default function EmployeeReportPage() {
     setIsLoading(true);
     setReportData(null);
     try {
-      const dateString = reportDate.toISOString().split('T')[0];
+      const dateString = format(reportDate, 'yyyy-MM-dd');
       const res = await fetch(`/api/reports/employee?date=${dateString}`, { signal });
       
       if (!res.ok) {

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { Invoice, Product } from '@/lib/data';
+import type { Product } from '@/lib/data';
 import { DateRange } from 'react-day-picker';
-import { addDays, format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 import StatCard from '@/components/dashboard/StatCard';
@@ -64,7 +64,7 @@ export default function ProfitLossPage() {
 
   // --- State Management ---
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfDay(addDays(new Date(), -30)),
+    from: startOfDay(new Date(new Date().setDate(new Date().getDate() - 30))),
     to: endOfDay(new Date()),
   });
 
@@ -101,8 +101,8 @@ export default function ProfitLossPage() {
     setIsLoading(true);
     try {
         const params = new URLSearchParams({
-            startDate: startOfDay(dateRange.from).getTime().toString(),
-            endDate: endOfDay(dateRange.to).getTime().toString(),
+            startDate: format(dateRange.from, 'yyyy-MM-dd'),
+            endDate: format(dateRange.to, 'yyyy-MM-dd'),
         });
         if (selectedProductId) {
             params.append('productId', selectedProductId);

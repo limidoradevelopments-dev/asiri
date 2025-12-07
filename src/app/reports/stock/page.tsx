@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { DateRange } from 'react-day-picker';
-import { addDays, format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -18,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Download, Search, AlertTriangle, ArrowDown, ArrowUp, ShoppingCart, Wrench, Trash2, Plus, GripVertical } from 'lucide-react';
+import { Download, Search, AlertTriangle, Wrench, Trash2, Plus, ShoppingCart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { StockTransaction } from '@/app/api/reports/stock/route';
@@ -36,7 +35,7 @@ export default function StockReportPage() {
   const { toast } = useToast();
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfDay(addDays(new Date(), -30)),
+    from: startOfDay(new Date(new Date().setDate(new Date().getDate() - 30))),
     to: endOfDay(new Date()),
   });
 
@@ -51,8 +50,8 @@ export default function StockReportPage() {
     setIsLoading(true);
     try {
         const params = new URLSearchParams({
-            startDate: startOfDay(dateRange.from).getTime().toString(),
-            endDate: endOfDay(dateRange.to).getTime().toString(),
+            startDate: format(dateRange.from, 'yyyy-MM-dd'),
+            endDate: format(dateRange.to, 'yyyy-MM-dd'),
         });
 
         const res = await fetch(`/api/reports/stock?${params.toString()}`, { signal });

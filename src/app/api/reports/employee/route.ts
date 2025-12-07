@@ -2,9 +2,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/server/db";
 import type { Invoice, Employee } from "@/lib/data";
-import { startOfDay, endOfDay, parseISO } from 'date-fns';
-import { toZonedTime } from "date-fns-tz";
+import { startOfDay, endOfDay } from 'date-fns';
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { WithId } from "@/firebase";
+
+const SL_TIME_ZONE = "Asia/Colombo";
 
 // Helper to safely convert Firestore Timestamp to number
 const toMillis = (timestamp: any): number => {
@@ -18,20 +20,13 @@ const toMillis = (timestamp: any): number => {
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
-    const dateParam = url.searchParams.get("date");
+    const dateParam = url.searchParams.get("date"); // Expects YYYY-MM-DD
 
-    if (!dateParam) {
-      return NextResponse.json({ error: "Date parameter is required" }, { status: 400 });
+    if (!dateParam || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      return NextResponse.json({ error: "Date parameter in YYYY-MM-DD format is required" }, { status: 400 });
     }
 
-    const reportDate = parseISO(dateParam);
-    if (isNaN(reportDate.getTime())) {
-        return NextResponse.json({ error: "Invalid date parameter format. Use YYYY-MM-DD." }, { status: 400 });
-    }
-    
-    // We need to compare against dates stored in UTC, so we define the day's boundaries in UTC.
-    const dayStart = startOfDay(reportDate);
-    const dayEnd = endOfDay(reportDate);
+    const reportDateStr = dateParam;
 
     // Fetch all employees and all invoices
     const [allEmployees, allInvoices] = await Promise.all([
@@ -39,10 +34,17 @@ export async function GET(req: NextRequest) {
       db.getAll("invoices") as Promise<WithId<Invoice>[]>,
     ]);
 
-    // Filter invoices for the selected day
+    // Filter invoices for the selected day in SL timezone
     const dailyInvoices = allInvoices
-      .map(inv => ({...inv, date: toMillis(inv.date)}))
-      .filter(inv => inv.date >= dayStart.getTime() && inv.date <= dayEnd.getTime());
+      .filter(inv => {
+        const invoiceDate = toMillis(inv.date);
+        if (!invoiceDate) return false;
+        // Convert invoice's UTC timestamp into a "YYYY-MM-DD" string in SL time
+        const invoiceDateStr = formatInTimeZone(invoiceDate, SL_TIME_ZONE, 'yyyy-MM-dd');
+        // Compare the generated string with the selected date string
+        return invoiceDateStr === reportDateStr;
+      })
+      .map(inv => ({...inv, date: toMillis(inv.date)}));
       
     // Enrich invoices with customer and vehicle details for the preview dialog
     const enrichedDailyInvoices = await db.enrichInvoices(dailyInvoices);
