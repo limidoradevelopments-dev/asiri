@@ -6,7 +6,7 @@ import type { Product, Service, Employee, Customer, Vehicle, Invoice, PaymentMet
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive, PlusCircle, Car, Bike, Truck, Sparkles, Loader2, Tractor } from 'lucide-react';
+import { Search, Trash2, ChevronsUpDown, Check, UserPlus, Archive, PlusCircle, Car, Bike, Truck, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -31,6 +31,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { VanIcon } from '@/components/icons/VanIcon';
+import { JeepIcon } from '@/components/icons/JeepIcon';
 
 type WithId<T> = T & { id: string };
 
@@ -74,7 +75,7 @@ const categoryIcons: Record<VehicleCategory, React.ElementType> = {
     "Bike": Bike,
     "Car": Car,
     "Van": VanIcon,
-    "Jeep": Tractor,
+    "Jeep": JeepIcon,
     "Lorry": Truck,
 };
 
@@ -505,7 +506,7 @@ export default function POSPage() {
     { label: 'Bike', value: 'Bike', icon: Bike },
     { label: 'Car', value: 'Car', icon: Car },
     { label: 'Van', value: 'Van', icon: VanIcon },
-    { label: 'Jeep', value: 'Jeep', icon: Tractor },
+    { label: 'Jeep', value: 'Jeep', icon: JeepIcon },
     { label: 'Lorry', value: 'Lorry', icon: Truck },
   ];
 
@@ -854,6 +855,7 @@ export default function POSPage() {
     
 
     
+
 
 
 

@@ -31,8 +31,9 @@ import type { Product, Service, VehicleCategory } from '@/lib/data';
 import { WithId } from '@/firebase';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Car, Truck, Bike, Tractor } from 'lucide-react';
+import { Car, Truck, Bike } from 'lucide-react';
 import { VanIcon } from '../icons/VanIcon';
+import { JeepIcon } from '../icons/JeepIcon';
 
 // --- Schemas ---
 
@@ -149,7 +150,7 @@ export function AddItemDialog({
     "Bike": Bike,
     "Car": Car,
     "Van": VanIcon,
-    "Jeep": Tractor,
+    "Jeep": JeepIcon,
     "Lorry": Truck,
   };
 
