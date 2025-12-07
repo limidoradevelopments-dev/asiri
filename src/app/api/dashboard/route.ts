@@ -52,8 +52,9 @@ export async function GET() {
 
     const todaysRevenue = processedInvoices
       .filter(inv => {
-        const invoiceDate = new Date(inv.date);
-        return invoiceDate >= todayStartInSL && invoiceDate <= todayEndInSL;
+        const invoiceDateInUTC = new Date(inv.date);
+        // Compare the UTC invoice date with the calculated SL timezone boundaries
+        return invoiceDateInUTC >= todayStartInSL && invoiceDateInUTC <= todayEndInSL;
       })
       .reduce((acc, inv) => acc + inv.amountPaid, 0);
 
@@ -77,8 +78,8 @@ export async function GET() {
 
         const dailyRevenue = processedInvoices
             .filter(inv => {
-              const invoiceDate = new Date(inv.date);
-              return invoiceDate >= dayStartInSL && invoiceDate <= dayEndInSL;
+              const invoiceDateInUTC = new Date(inv.date);
+              return invoiceDateInUTC >= dayStartInSL && invoiceDateInUTC <= dayEndInSL;
             })
             .reduce((sum, inv) => sum + inv.total, 0);
         
