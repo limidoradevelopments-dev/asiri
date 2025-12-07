@@ -47,6 +47,7 @@ export const menuItems = [
 const reportMenuItems = [
     { href: "/reports/profit-loss", label: "Profit & Loss" },
     { href: "/reports/day-end", label: "Day End Report" },
+    { href: "/reports/stock", label: "Stock Report" },
     { href: "/reports/customer", label: "Customer Report" },
 ]
 

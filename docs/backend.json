@@ -401,18 +401,18 @@
         "action": {
           "type": "string",
           "description": "The type of adjustment made.",
-          "enum": ["decrement", "delete"]
+          "enum": ["decrement", "delete", "add"]
         },
         "quantity": {
           "type": "number",
-          "description": "The quantity adjusted (for decrements)."
+          "description": "The quantity adjusted."
         },
         "reason": {
           "type": "string",
           "description": "The reason for the adjustment."
         }
       },
-      "required": ["productId", "productName", "date", "action", "reason"]
+      "required": ["productId", "productName", "date", "action", "quantity", "reason"]
     }
   },
   "auth": {
