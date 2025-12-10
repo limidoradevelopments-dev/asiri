@@ -385,6 +385,10 @@
           "type": "string",
           "description": "The employee's mobile number."
         },
+        "nic": {
+          "type": "string",
+          "description": "The employee's National ID Card number."
+        },
         "notes": {
           "type": "string",
           "description": "Additional notes about the employee."

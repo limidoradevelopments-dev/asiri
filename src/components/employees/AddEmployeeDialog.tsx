@@ -53,7 +53,7 @@ export function AddEmployeeDialog({
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
-      name: '', address: '', mobile: '', notes: '',
+      name: '', address: '', mobile: '', nic: '', notes: '',
     },
   });
 
@@ -62,7 +62,7 @@ export function AddEmployeeDialog({
       form.reset(employeeToEdit);
     } else {
       form.reset({
-        name: '', address: '', mobile: '', notes: '',
+        name: '', address: '', mobile: '', nic: '', notes: '',
       });
     }
   }, [employeeToEdit, isEditMode, form, isOpen]);
@@ -121,19 +121,34 @@ export function AddEmployeeDialog({
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="mobile"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mobile Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., 0771234567" {...field} className={commonInputStyles}/>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+               <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="mobile"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Mobile Number</FormLabel>
+                        <FormControl>
+                        <Input placeholder="e.g., 0771234567" {...field} className={commonInputStyles}/>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="nic"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>NIC (Optional)</FormLabel>
+                        <FormControl>
+                        <Input placeholder="e.g., 901234567V" {...field} className={commonInputStyles}/>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="notes"
