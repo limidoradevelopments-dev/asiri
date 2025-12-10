@@ -32,6 +32,7 @@ type DetailsDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   printOnOpen?: boolean;
+  shareOnOpen?: boolean;
 };
 
 const DetailItem = ({ label, value }: { label: string; value?: string | number | null }) => (
@@ -48,25 +49,27 @@ const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
 };
 
 
-export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange, printOnOpen = false }: DetailsDialogProps) {
+export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange, printOnOpen = false, shareOnOpen = false }: DetailsDialogProps) {
   const { toast } = useToast();
-  const printTriggered = useRef(false);
+  const actionTriggered = useRef(false);
   const invoiceContentRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
 
 
   useEffect(() => {
-    if (isOpen && printOnOpen && !printTriggered.current) {
-      printTriggered.current = true;
-      // Allow dialog to render before printing
-      setTimeout(() => {
-        handlePrint();
-      }, 500); 
+    if (isOpen && !actionTriggered.current) {
+        if (printOnOpen) {
+            actionTriggered.current = true;
+            setTimeout(() => handlePrint(), 500);
+        } else if (shareOnOpen) {
+            actionTriggered.current = true;
+            setTimeout(() => handleShare(), 500);
+        }
     }
     if (!isOpen) {
-      printTriggered.current = false;
+      actionTriggered.current = false;
     }
-  }, [isOpen, printOnOpen]);
+  }, [isOpen, printOnOpen, shareOnOpen]);
 
   if (!invoice) return null;
 
@@ -103,9 +106,9 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange, printOnOpe
 
     try {
         const canvas = await html2canvas(invoiceContentRef.current, {
-            scale: 2, // Higher scale for better quality
-            backgroundColor: '#ffffff', // Ensure a solid background
-            useCORS: true, // If you have external images
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
         });
         
         const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -116,19 +119,23 @@ export function InvoiceDetailsDialog({ invoice, isOpen, onOpenChange, printOnOpe
 
         const file = new File([blob], `invoice-${invoice.invoiceNumber}.png`, { type: 'image/png' });
 
-        await navigator.share({
-            files: [file],
-            title: `Invoice ${invoice.invoiceNumber}`,
-            text: `Here is the invoice for ${customer?.name}. Total: ${formatPrice(invoice.total)}`,
-        });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: `Invoice ${invoice.invoiceNumber}`,
+                text: `Here is the invoice for ${customer?.name}. Total: ${formatPrice(invoice.total)}`,
+            });
+        } else {
+            throw new Error("Cannot share files on this browser.");
+        }
 
     } catch (error: any) {
-        if (error.name !== 'AbortError') { // Don't show error if user cancels share dialog
+        if (error.name !== 'AbortError') { 
             console.error("Share error:", error);
             toast({
                 variant: 'destructive',
                 title: 'Failed to Share',
-                description: 'There was an error trying to share the invoice.'
+                description: error.message || 'There was an error trying to share the invoice.'
             });
         }
     } finally {

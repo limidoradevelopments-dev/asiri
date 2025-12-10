@@ -40,6 +40,8 @@ export default function InvoicesPage() {
   const [invoiceToPay, setInvoiceToPay] = useState<EnrichedInvoice | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [printOnOpen, setPrintOnOpen] = useState(false);
+  const [shareOnOpen, setShareOnOpen] = useState(false);
+
 
   const fetchInvoices = useCallback(async (startAfterId: string | null = null, isInitialLoad = false) => {
     setLoadingState(isInitialLoad ? 'loading' : 'loading-more');
@@ -89,6 +91,7 @@ export default function InvoicesPage() {
   useEffect(() => {
     if (!selectedInvoice) {
       setPrintOnOpen(false);
+      setShareOnOpen(false);
     }
   }, [selectedInvoice]);
 
@@ -139,6 +142,11 @@ export default function InvoicesPage() {
     setPrintOnOpen(true);
   };
 
+  const handleShareRequest = (invoice: EnrichedInvoice) => {
+    setSelectedInvoice(invoice);
+    setShareOnOpen(true);
+  };
+
   const filterButtons: { label: string; value: FilterStatus }[] = [
     { label: 'All Invoices', value: 'all' },
     { label: 'Paid', value: 'Paid' },
@@ -177,6 +185,7 @@ export default function InvoicesPage() {
             onViewDetails={handleViewDetails}
             onAddPayment={handleAddPaymentRequest}
             onPrintRequest={handlePrintRequest}
+            onShareRequest={handleShareRequest}
         />
       </div>
 
@@ -198,6 +207,7 @@ export default function InvoicesPage() {
         isOpen={!!selectedInvoice}
         onOpenChange={(isOpen) => !isOpen && setSelectedInvoice(null)}
         printOnOpen={printOnOpen}
+        shareOnOpen={shareOnOpen}
       />
 
       <AddPaymentDialog

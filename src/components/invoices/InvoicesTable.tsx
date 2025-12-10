@@ -43,6 +43,7 @@ type InvoicesTableProps = {
   onViewDetails: (invoice: EnrichedInvoice) => void;
   onAddPayment: (invoice: EnrichedInvoice) => void;
   onPrintRequest: (invoice: EnrichedInvoice) => void;
+  onShareRequest: (invoice: EnrichedInvoice) => void;
 };
 
 const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
@@ -66,11 +67,12 @@ const formatDate = (dateValue: number | any) => {
     }
 };
 
-const MemoizedTableRow = memo(({ invoice, onViewDetails, onAddPayment, onPrintRequest }: {
+const MemoizedTableRow = memo(({ invoice, onViewDetails, onAddPayment, onPrintRequest, onShareRequest }: {
     invoice: EnrichedInvoice;
     onViewDetails: (invoice: EnrichedInvoice) => void;
     onAddPayment: (invoice: EnrichedInvoice) => void;
     onPrintRequest: (invoice: EnrichedInvoice) => void;
+    onShareRequest: (invoice: EnrichedInvoice) => void;
 }) => {
     const isPayable = invoice.paymentStatus === 'Partial' || invoice.paymentStatus === 'Unpaid';
     return (
@@ -107,6 +109,10 @@ const MemoizedTableRow = memo(({ invoice, onViewDetails, onAddPayment, onPrintRe
                             <Printer className="mr-2 h-4 w-4" />
                             Print / Save PDF
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onShareRequest(invoice)} className="text-xs">
+                            <Share2 className="mr-2 h-4 w-4" />
+                            Share
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -116,7 +122,7 @@ const MemoizedTableRow = memo(({ invoice, onViewDetails, onAddPayment, onPrintRe
 });
 MemoizedTableRow.displayName = 'MemoizedTableRow';
 
-export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, onPrintRequest }: InvoicesTableProps) {
+export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, onPrintRequest, onShareRequest }: InvoicesTableProps) {
   const [showEmptyState, setShowEmptyState] = useState(false);
 
   useEffect(() => {
@@ -168,6 +174,7 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, on
                 onViewDetails={onViewDetails}
                 onAddPayment={onAddPayment}
                 onPrintRequest={onPrintRequest}
+                onShareRequest={onShareRequest}
               />
             ))}
           </TableBody>
