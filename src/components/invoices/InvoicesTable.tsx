@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { FileText, DollarSign, Printer } from 'lucide-react';
+import { FileText, DollarSign, Printer, Share2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WithId } from '@/firebase';
 import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
@@ -18,6 +18,14 @@ import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { format as formatTz, toDate } from 'date-fns-tz';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+
 
 export type EnrichedInvoice = WithId<Invoice> & {
   customerName?: string;
@@ -79,31 +87,28 @@ const MemoizedTableRow = memo(({ invoice, onViewDetails, onAddPayment, onPrintRe
             <TableCell className="text-right p-2 h-12 font-mono">{formatPrice(invoice.total)}</TableCell>
             <TableCell className="text-center p-2 h-12">
             <div className="flex items-center justify-center gap-1">
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-zinc-900" onClick={() => onViewDetails(invoice)}>
-                        <FileText className="h-4 w-4" />
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Actions</span>
                     </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>View Details</p></TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-green-600 disabled:opacity-30 disabled:cursor-not-allowed" disabled={!isPayable} onClick={() => onAddPayment(invoice)}>
-                        <DollarSign className="h-4 w-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Add Payment</p></TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-blue-600" onClick={() => onPrintRequest(invoice)}>
-                        <Printer className="h-4 w-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Print / Save as PDF</p></TooltipContent>
-                </Tooltip>
-
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-none border-zinc-200">
+                        <DropdownMenuItem onClick={() => onViewDetails(invoice)} className="text-xs">
+                            <FileText className="mr-2 h-4 w-4" />
+                            View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onAddPayment(invoice)} className="text-xs" disabled={!isPayable}>
+                            <DollarSign className="mr-2 h-4 w-4" />
+                            Add Payment
+                        </DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => onPrintRequest(invoice)} className="text-xs">
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print / Save PDF
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
             </TableCell>
         </TableRow>
