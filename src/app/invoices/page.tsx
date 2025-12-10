@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { WithId } from '@/firebase';
 import { useIntersectionObserver } from '@/hooks/use-intersection-observer';
+import { format as formatTz, toDate } from 'date-fns-tz';
 
 const BATCH_SIZE = 50;
 
@@ -138,6 +139,32 @@ export default function InvoicesPage() {
     setPrintOnOpen(true);
   };
 
+  const handleShare = (invoice: EnrichedInvoice, method: 'whatsapp' | 'email') => {
+    const formatDate = (timestamp: number) => formatTz(toDate(timestamp), 'MMM d, yyyy', { timeZone: 'Asia/Colombo' });
+    const formatCurrency = (amount: number) => `Rs. ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const messageBody = `
+Invoice Summary:
+Invoice No: ${invoice.invoiceNumber}
+Customer: ${invoice.customerName}
+Date: ${formatDate(invoice.date)}
+Total Amount: ${formatCurrency(invoice.total)}
+Amount Paid: ${formatCurrency(invoice.amountPaid)}
+Balance Due: ${formatCurrency(invoice.balanceDue)}
+Status: ${invoice.paymentStatus}
+
+Thank you for your business!
+Asiri Service Center
+    `.trim().replace(/\n/g, '%0A');
+
+    if (method === 'whatsapp') {
+      window.open(`https://wa.me/?text=${messageBody}`, '_blank');
+    } else if (method === 'email') {
+      const subject = `Invoice Summary: ${invoice.invoiceNumber}`;
+      window.location.href = `mailto:?subject=${subject}&body=${messageBody}`;
+    }
+  };
+
   const filterButtons: { label: string; value: FilterStatus }[] = [
     { label: 'All Invoices', value: 'all' },
     { label: 'Paid', value: 'Paid' },
@@ -176,6 +203,7 @@ export default function InvoicesPage() {
             onViewDetails={handleViewDetails}
             onAddPayment={handleAddPaymentRequest}
             onPrintRequest={handlePrintRequest}
+            onShare={handleShare}
         />
       </div>
 

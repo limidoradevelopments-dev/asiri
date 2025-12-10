@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { FileText, DollarSign } from 'lucide-react';
+import { FileText, DollarSign, Share2, Mail, MessageSquare } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WithId } from '@/firebase';
 import type { Invoice, Customer, Vehicle, Employee } from '@/lib/data';
@@ -18,6 +18,16 @@ import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { format as formatTz, toDate } from 'date-fns-tz';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export type EnrichedInvoice = WithId<Invoice> & {
   customerName?: string;
@@ -35,6 +45,7 @@ type InvoicesTableProps = {
   onViewDetails: (invoice: EnrichedInvoice) => void;
   onAddPayment: (invoice: EnrichedInvoice) => void;
   onPrintRequest: (invoice: EnrichedInvoice) => void;
+  onShare: (invoice: EnrichedInvoice, method: 'whatsapp' | 'email') => void;
 };
 
 const statusStyles: Record<EnrichedInvoice['paymentStatus'], string> = {
@@ -58,10 +69,11 @@ const formatDate = (dateValue: number | any) => {
     }
 };
 
-const MemoizedTableRow = memo(({ invoice, onViewDetails, onAddPayment }: {
+const MemoizedTableRow = memo(({ invoice, onViewDetails, onAddPayment, onShare }: {
     invoice: EnrichedInvoice;
     onViewDetails: (invoice: EnrichedInvoice) => void;
     onAddPayment: (invoice: EnrichedInvoice) => void;
+    onShare: (invoice: EnrichedInvoice, method: 'whatsapp' | 'email') => void;
 }) => {
     const isPayable = invoice.paymentStatus === 'Partial' || invoice.paymentStatus === 'Unpaid';
     return (
@@ -94,6 +106,30 @@ const MemoizedTableRow = memo(({ invoice, onViewDetails, onAddPayment }: {
                 </TooltipTrigger>
                 <TooltipContent><p>Add Payment</p></TooltipContent>
                 </Tooltip>
+
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-blue-600">
+                            <Share2 className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Share Invoice</p></TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent className="rounded-none border-zinc-200">
+                    <DropdownMenuItem className="text-xs" onClick={() => onShare(invoice, 'whatsapp')}>
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        <span>WhatsApp</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-xs" onClick={() => onShare(invoice, 'email')}>
+                        <Mail className="mr-2 h-4 w-4" />
+                        <span>Email</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
             </div>
             </TableCell>
         </TableRow>
@@ -101,7 +137,7 @@ const MemoizedTableRow = memo(({ invoice, onViewDetails, onAddPayment }: {
 });
 MemoizedTableRow.displayName = 'MemoizedTableRow';
 
-export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: Omit<InvoicesTableProps, 'onPrintRequest'>) {
+export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment, onShare }: Omit<InvoicesTableProps, 'onPrintRequest'>) {
   const [showEmptyState, setShowEmptyState] = useState(false);
 
   useEffect(() => {
@@ -125,7 +161,7 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: 
         <TableCell className="p-2 h-12"><Skeleton className="h-5 w-24" /></TableCell>
         <TableCell className="p-2 h-12"><Skeleton className="h-5 w-20" /></TableCell>
         <TableCell className="p-2 h-12 text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
-        <TableCell className="p-2 h-12"><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
+        <TableCell className="p-2 h-12"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
       </TableRow>
     ))
   );
@@ -152,6 +188,7 @@ export function InvoicesTable({ data, isLoading, onViewDetails, onAddPayment }: 
                 invoice={invoice}
                 onViewDetails={onViewDetails}
                 onAddPayment={onAddPayment}
+                onShare={onShare}
               />
             ))}
           </TableBody>
