@@ -187,11 +187,11 @@
               },
               "chequeNumber": {
                 "type": "string",
-                "description": "The cheque number if payment method is Cheque."
+                "description": "The cheque number if payment method is Check."
               },
               "bank": {
                 "type": "string",
-                "description": "The bank name if payment method is Cheque."
+                "description": "The bank name if payment method is Check."
               }
             },
             "required": ["method", "amount"]
@@ -385,6 +385,10 @@
           "type": "string",
           "description": "The employee's mobile number."
         },
+        "nic": {
+          "type": "string",
+          "description": "The employee's National ID Card number."
+        },
         "notes": {
           "type": "string",
           "description": "Additional notes about the employee."
@@ -393,7 +397,8 @@
       "required": [
         "name",
         "address",
-        "mobile"
+        "mobile",
+        "nic"
       ]
     },
      "StockAdjustmentLog": {

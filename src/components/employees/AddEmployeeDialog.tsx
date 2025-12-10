@@ -140,7 +140,7 @@ export function AddEmployeeDialog({
                     name="nic"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>NIC (Optional)</FormLabel>
+                        <FormLabel>NIC</FormLabel>
                         <FormControl>
                         <Input placeholder="e.g., 901234567V" {...field} className={commonInputStyles}/>
                         </FormControl>
