@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from "@/hooks/use-toast";
 import { WithId } from "@/firebase";
+import { EmployeeDetailsDialog } from "@/components/employees/EmployeeDetailsDialog";
 
 export default function EmployeesPage() {
   const { toast } = useToast();
@@ -30,6 +31,7 @@ export default function EmployeesPage() {
   const [isAddEmployeeDialogOpen, setAddEmployeeDialogOpen] = useState(false);
   const [employeeToEdit, setEmployeeToEdit] = useState<WithId<Employee> | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+  const [employeeToView, setEmployeeToView] = useState<WithId<Employee> | null>(null);
 
   const fetchData = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
@@ -103,6 +105,10 @@ export default function EmployeesPage() {
   
   const handleDeleteRequest = useCallback((id: string) => {
     setEmployeeToDelete(id);
+  }, []);
+
+  const handleViewDetails = useCallback((employee: WithId<Employee>) => {
+    setEmployeeToView(employee);
   }, []);
 
   const confirmDelete = useCallback(async () => {
@@ -181,6 +187,7 @@ export default function EmployeesPage() {
             isLoading={isLoading}
             onEdit={handleEdit}
             onDelete={handleDeleteRequest}
+            onViewDetails={handleViewDetails}
           />
         </div>
 
@@ -208,6 +215,12 @@ export default function EmployeesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EmployeeDetailsDialog
+        employee={employeeToView}
+        isOpen={!!employeeToView}
+        onOpenChange={(isOpen) => !isOpen && setEmployeeToView(null)}
+      />
     </div>
   );
 }

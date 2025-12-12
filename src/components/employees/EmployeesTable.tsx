@@ -27,20 +27,25 @@ type EmployeesTableProps = {
   isLoading: boolean;
   onEdit: (employee: WithId<Employee>) => void;
   onDelete: (id: string) => void;
+  onViewDetails: (employee: WithId<Employee>) => void;
 };
 
-const MemoizedRow = memo(function EmployeeTableRow({ employee, onEdit, onDelete }: {
+const MemoizedRow = memo(function EmployeeTableRow({ employee, onEdit, onDelete, onViewDetails }: {
     employee: WithId<Employee>;
     onEdit: (employee: WithId<Employee>) => void;
     onDelete: (id: string) => void;
+    onViewDetails: (employee: WithId<Employee>) => void;
 }) {
     return (
-        <TableRow className="border-zinc-100">
+        <TableRow 
+            className="border-zinc-100 cursor-pointer hover:bg-zinc-50/50"
+            onClick={() => onViewDetails(employee)}
+        >
             <TableCell className="py-4 px-0 font-medium">{employee.name}</TableCell>
             <TableCell className="py-4 px-0">{employee.address}</TableCell>
             <TableCell className="py-4 px-0">{employee.mobile}</TableCell>
             <TableCell className="py-4 px-0 truncate max-w-xs">{employee.notes}</TableCell>
-            <TableCell className="text-right py-4 px-0">
+            <TableCell className="text-right py-4 px-0" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -57,8 +62,10 @@ const MemoizedRow = memo(function EmployeeTableRow({ employee, onEdit, onDelete 
         </TableRow>
     );
 });
+MemoizedRow.displayName = 'MemoizedRow';
 
-export default function EmployeesTable({ data, isLoading, onEdit, onDelete }: EmployeesTableProps) {
+
+export default function EmployeesTable({ data, isLoading, onEdit, onDelete, onViewDetails }: EmployeesTableProps) {
   
   const [showEmptyState, setShowEmptyState] = useState(false);
 
@@ -115,6 +122,7 @@ export default function EmployeesTable({ data, isLoading, onEdit, onDelete }: Em
                 employee={employee}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onViewDetails={onViewDetails}
             />
           ))}
         </TableBody>
