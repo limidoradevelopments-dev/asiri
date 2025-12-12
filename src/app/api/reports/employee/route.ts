@@ -55,23 +55,28 @@ export async function GET(req: NextRequest) {
     const jobsByEmployee = dailyInvoices.reduce((acc, invoice) => {
       const employeeId = invoice.employeeId;
       if (!acc[employeeId]) {
-        acc[employeeId] = [];
+        acc[employeeId] = {
+            jobs: [],
+            totalEarnings: 0,
+        };
       }
-      acc[employeeId].push({
+      acc[employeeId].jobs.push({
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
       });
+      acc[employeeId].totalEarnings += invoice.total;
       return acc;
-    }, {} as Record<string, { invoiceId: string; invoiceNumber: string }[]>);
+    }, {} as Record<string, { jobs: { invoiceId: string; invoiceNumber: string }[], totalEarnings: number }>);
 
     // Format the final report
     const report = allEmployees.map(employee => {
-      const jobs = jobsByEmployee[employee.id] || [];
+      const employeeJobs = jobsByEmployee[employee.id] || { jobs: [], totalEarnings: 0 };
       return {
         employeeId: employee.id,
         employeeName: employee.name,
-        jobCount: jobs.length,
-        jobs: jobs,
+        jobCount: employeeJobs.jobs.length,
+        jobs: employeeJobs.jobs,
+        totalEarnings: employeeJobs.totalEarnings,
       };
     }).sort((a,b) => b.jobCount - a.jobCount); // Sort by most jobs first
 

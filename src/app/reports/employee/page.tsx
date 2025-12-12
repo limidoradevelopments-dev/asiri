@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, User, Wrench } from 'lucide-react';
+import { Calendar as CalendarIcon, User, Wrench, DollarSign } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -13,11 +13,13 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { InvoiceDetailsDialog } from '@/components/invoices/InvoiceDetailsDialog';
 import type { EnrichedInvoice } from '@/app/invoices/page';
+import { Separator } from '@/components/ui/separator';
 
 // --- Types ---
 type EmployeeJob = {
@@ -30,11 +32,17 @@ type EmployeeReportData = {
     employeeName: string;
     jobCount: number;
     jobs: EmployeeJob[];
+    totalEarnings: number;
 };
 
 type FullReportResponse = {
     report: EmployeeReportData[];
     fullInvoices: Record<string, EnrichedInvoice>;
+}
+
+const formatCurrency = (amount: number) => {
+     if (typeof amount !== 'number') return 'Rs. 0.00';
+     return `Rs. ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function EmployeeReportPage() {
@@ -90,18 +98,21 @@ export default function EmployeeReportPage() {
 
   const renderSkeletons = () => (
     Array.from({ length: 4 }).map((_, i) => (
-      <Card key={i} className="rounded-none border-zinc-200 shadow-sm">
+      <Card key={i} className="rounded-none border-zinc-200 shadow-sm flex flex-col">
         <CardHeader>
           <Skeleton className="h-6 w-1/2" />
           <Skeleton className="h-4 w-1/4" />
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-grow">
           <div className="space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
           </div>
         </CardContent>
+         <CardFooter>
+            <Skeleton className="h-6 w-full" />
+        </CardFooter>
       </Card>
     ))
   );
@@ -146,7 +157,7 @@ export default function EmployeeReportPage() {
                 renderSkeletons()
             ) : reportData && reportData.length > 0 ? (
                 reportData.map((emp) => (
-                    <Card key={emp.employeeId} className="rounded-none border-zinc-200 shadow-sm">
+                    <Card key={emp.employeeId} className="rounded-none border-zinc-200 shadow-sm flex flex-col">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-3">
                                 <User className="w-5 h-5 text-zinc-400"/>
@@ -157,7 +168,7 @@ export default function EmployeeReportPage() {
                                 <span>Completed <strong>{emp.jobCount}</strong> job(s)</span>
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="flex-grow">
                             {emp.jobCount > 0 ? (
                                 <div className="space-y-1">
                                     <h4 className="text-xs uppercase tracking-widest text-zinc-500 font-semibold mb-2">Invoice Numbers</h4>
@@ -179,6 +190,17 @@ export default function EmployeeReportPage() {
                                 <p className="text-sm text-zinc-500 text-center py-4">No jobs recorded for this day.</p>
                             )}
                         </CardContent>
+                        <CardFooter className="bg-zinc-50 border-t mt-4 p-4">
+                           <div className="flex items-center justify-between w-full">
+                                <span className="text-xs uppercase tracking-widest font-semibold text-zinc-500 flex items-center gap-2">
+                                    <DollarSign className="w-4 h-4"/>
+                                    Total Earnings
+                                </span>
+                                <span className="font-mono text-lg font-semibold text-zinc-900">
+                                    {formatCurrency(emp.totalEarnings)}
+                                </span>
+                            </div>
+                        </CardFooter>
                     </Card>
                 ))
             ) : (
