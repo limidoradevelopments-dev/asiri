@@ -11,7 +11,7 @@ import { DesktopOnlyWrapper } from "@/components/DesktopOnlyWrapper";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Asiri Service Dashboard",
+  title: "Mahesh Accessaries Center Dashboard",
   description: "Dashboard for your vehicle service station.",
 };
 
